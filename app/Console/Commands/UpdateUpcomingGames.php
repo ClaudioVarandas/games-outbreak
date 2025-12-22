@@ -121,6 +121,29 @@ class UpdateUpcomingGames extends Command
             // Get raw JSON for this game (only if fetching single game)
             $gameRawJson = ($igdbId && isset($rawJson)) ? $rawJson : null;
             
+            // Priority: IGDB cover first, SteamGridDB as fallback only if IGDB has no cover
+            $coverImageId = $igdbGame['cover']['image_id'] ?? null;
+            
+            // Only try SteamGridDB if IGDB didn't provide a cover
+            if (!$coverImageId) {
+                $gameName = $igdbGame['name'] ?? 'Unknown Game';
+                $steamAppId = $igdbGame['steam']['appid'] ?? null;
+                $igdbGameId = $igdbGame['id'] ?? null;
+                
+                $this->line("No IGDB cover for {$gameName}, trying SteamGridDB...");
+                $steamGridDbCover = $igdb->fetchCoverFromSteamGridDb($gameName, $steamAppId, $igdbGameId);
+                
+                if ($steamGridDbCover) {
+                    $coverImageId = $steamGridDbCover;
+                    $this->info("  ✓ Found SteamGridDB cover: {$steamGridDbCover}");
+                } else {
+                    $this->warn("  ✗ No SteamGridDB cover found");
+                }
+            } else {
+                // IGDB cover exists, use it (don't try SteamGridDB)
+                $this->line("Using IGDB cover for: " . ($igdbGame['name'] ?? 'Unknown Game'));
+            }
+            
             $game = Game::updateOrCreate(
                 ['igdb_id' => $igdbGame['id']],
                 [
@@ -129,7 +152,7 @@ class UpdateUpcomingGames extends Command
                     'first_release_date' => isset($igdbGame['first_release_date'])
                         ? Carbon::createFromTimestamp($igdbGame['first_release_date'])
                         : null,
-                    'cover_image_id' => $igdbGame['cover']['image_id'] ?? null,
+                    'cover_image_id' => $coverImageId,
                     'game_type' => $igdbGame['game_type'] ?? 0,
                     'raw_igdb_json' => $gameRawJson,
                     'steam_data' => $igdbGame['steam'] ?? null,

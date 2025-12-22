@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\GameTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\File;
 
 class Game extends Model
 {
@@ -46,12 +47,41 @@ class Game extends Model
 
     // === HELPER METHODS ===
 
+    /**
+     * Check if cover_image_id is an IGDB ID (alphanumeric) or a local filename
+     * IGDB IDs are alphanumeric strings (e.g., "coauth", "co9xkp")
+     * Local filenames from SteamGridDB have extensions (e.g., "12345_1234567890.jpg")
+     */
+    private function isIgdbCoverId(?string $coverId): bool
+    {
+        if (!$coverId) {
+            return false;
+        }
+        // Local filenames from SteamGridDB have file extensions (e.g., ".jpg", ".png")
+        // IGDB IDs are alphanumeric strings without extensions
+        return !preg_match('/\.(jpg|jpeg|png|webp)$/i', $coverId);
+    }
+
     public function getCoverUrl(string $size = 'cover_big'): string
     {
         if (!$this->cover_image_id) {
             return 'https://via.placeholder.com/300x400?text=No+Cover';
         }
-        return "https://images.igdb.com/igdb/image/upload/t_{$size}/{$this->cover_image_id}.jpg";
+
+        // If it's an IGDB ID (alphanumeric without extension), format as IGDB URL
+        if ($this->isIgdbCoverId($this->cover_image_id)) {
+            return "https://images.igdb.com/igdb/image/upload/t_{$size}/{$this->cover_image_id}.jpg";
+        }
+
+        // Otherwise, treat as local filename from SteamGridDB
+        // Serve from storage
+        $filePath = storage_path('app/public/covers/' . $this->cover_image_id);
+        if (File::exists($filePath)) {
+            return asset('storage/covers/' . $this->cover_image_id);
+        }
+
+        // Fallback if file doesn't exist
+        return 'https://via.placeholder.com/300x400?text=No+Cover';
     }
 
     public function getScreenshotUrl(?string $imageId, string $size = 'screenshot_big'): string
@@ -155,6 +185,19 @@ class Game extends Model
             // Enrich with Steam data
             $igdbGame = $igdbService->enrichWithSteamData([$igdbGame])[0] ?? $igdbGame;
 
+            // Priority: IGDB cover first, SteamGridDB as fallback only if IGDB has no cover
+            $coverImageId = $igdbGame['cover']['image_id'] ?? null;
+            
+            // Only try SteamGridDB if IGDB didn't provide a cover
+            if (!$coverImageId) {
+                $gameName = $igdbGame['name'] ?? 'Unknown Game';
+                $steamAppId = $igdbGame['steam']['appid'] ?? null;
+                $steamGridDbCover = $igdbService->fetchCoverFromSteamGridDb($gameName, $steamAppId, $igdbGame['id'] ?? null);
+                if ($steamGridDbCover) {
+                    $coverImageId = $steamGridDbCover;
+                }
+            }
+
             // Create game in database
             $game = self::create([
                 'igdb_id' => $igdbGame['id'],
@@ -163,7 +206,7 @@ class Game extends Model
                 'first_release_date' => isset($igdbGame['first_release_date'])
                     ? \Carbon\Carbon::createFromTimestamp($igdbGame['first_release_date'])
                     : null,
-                'cover_image_id' => $igdbGame['cover']['image_id'] ?? null,
+                'cover_image_id' => $coverImageId,
                 'game_type' => $igdbGame['game_type'] ?? 0,
                 'steam_data' => $igdbGame['steam'] ?? null,
                 'screenshots' => $igdbGame['screenshots'] ?? null,

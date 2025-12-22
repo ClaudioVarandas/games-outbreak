@@ -37,4 +37,7 @@ return [
     'igdb' => [
         'rate_limit_delay_ms' => env('IGDB_RATE_LIMIT_DELAY_MS', 280000), // Default 280ms
     ],
+    'steamgriddb' => [
+        'api_key' => env('STEAMGRIDDB_API_KEY'),
+    ],
 ];

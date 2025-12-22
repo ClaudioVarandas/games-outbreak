@@ -6,6 +6,7 @@ namespace App\Services;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -345,5 +346,132 @@ class IgdbService
     {
         if (!$videoId) return 'https://via.placeholder.com/1280x720?text=No+Trailer';
         return "https://img.youtube.com/vi/{$videoId}/maxresdefault.jpg";
+    }
+
+    /**
+     * Fetch game cover from SteamGridDB when IGDB doesn't provide one
+     *
+     * @param string $gameName The game name to search for
+     * @param int|null $steamAppId Optional Steam AppID for better matching
+     * @param int|null $igdbId Optional IGDB ID for filename
+     * @return string|null Filename of downloaded cover, or null if failed
+     */
+    public function fetchCoverFromSteamGridDb(string $gameName, ?int $steamAppId = null, ?int $igdbId = null): ?string
+    {
+        $apiKey = config('services.steamgriddb.api_key');
+        if (!$apiKey) {
+            \Log::warning('SteamGridDB API key not configured');
+            return null;
+        }
+
+        try {
+            // Search for game
+            $searchResponse = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+            ])
+                ->timeout(10)
+                ->get('https://www.steamgriddb.com/api/v2/search/autocomplete/' . urlencode($gameName));
+
+            if ($searchResponse->failed() || empty($searchResponse->json()['data'])) {
+                \Log::debug("SteamGridDB search failed for: {$gameName}");
+                return null;
+            }
+
+            $searchResults = $searchResponse->json()['data'] ?? [];
+            if (empty($searchResults)) {
+                \Log::debug("No SteamGridDB results for: {$gameName}");
+                return null;
+            }
+
+            // If Steam AppID provided, try to find exact match
+            $gameId = null;
+            if ($steamAppId) {
+                foreach ($searchResults as $result) {
+                    if (isset($result['types']) && in_array('steam', $result['types'] ?? [])) {
+                        // Try to match by Steam AppID if available in result
+                        if (isset($result['id'])) {
+                            $gameId = $result['id'];
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Fallback to first result if no AppID match
+            if (!$gameId && !empty($searchResults[0]['id'])) {
+                $gameId = $searchResults[0]['id'];
+            }
+
+            if (!$gameId) {
+                \Log::debug("No valid game ID found in SteamGridDB results for: {$gameName}");
+                return null;
+            }
+
+            // Fetch grids (covers)
+            $gridsResponse = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+            ])
+                ->timeout(10)
+                ->get("https://www.steamgriddb.com/api/v2/grids/game/{$gameId}");
+
+            if ($gridsResponse->failed() || empty($gridsResponse->json()['data'])) {
+                \Log::debug("SteamGridDB grids fetch failed for game ID: {$gameId}");
+                return null;
+            }
+
+            $grids = $gridsResponse->json()['data'] ?? [];
+            if (empty($grids)) {
+                \Log::debug("No grids found for SteamGridDB game ID: {$gameId}");
+                return null;
+            }
+
+            // Prefer "hero" or "logo" type, fallback to first available
+            $selectedGrid = null;
+            foreach ($grids as $grid) {
+                if (isset($grid['style']) && in_array($grid['style'], ['hero', 'logo'])) {
+                    $selectedGrid = $grid;
+                    break;
+                }
+            }
+
+            if (!$selectedGrid) {
+                $selectedGrid = $grids[0];
+            }
+
+            $imageUrl = $selectedGrid['url'] ?? null;
+            if (!$imageUrl) {
+                \Log::debug("No image URL in selected grid for SteamGridDB game ID: {$gameId}");
+                return null;
+            }
+
+            // Download and store the image
+            $imageResponse = Http::timeout(15)->get($imageUrl);
+            if ($imageResponse->failed()) {
+                \Log::warning("Failed to download SteamGridDB cover image: {$imageUrl}");
+                return null;
+            }
+
+            // Ensure storage directory exists
+            $storagePath = storage_path('app/public/covers');
+            if (!File::exists($storagePath)) {
+                File::makeDirectory($storagePath, 0755, true);
+            }
+
+            // Generate filename
+            $extension = pathinfo(parse_url($imageUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+            $filename = ($igdbId ?: ($steamAppId ?: 'game')) . '_' . time() . '.' . $extension;
+            $filePath = $storagePath . '/' . $filename;
+
+            // Save the image
+            File::put($filePath, $imageResponse->body());
+
+            \Log::info("Downloaded SteamGridDB cover for {$gameName}: {$filename}");
+            return $filename;
+        } catch (\Exception $e) {
+            \Log::warning("SteamGridDB cover fetch exception for {$gameName}", [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 }

@@ -240,6 +240,19 @@ class GameListController extends Controller
                     // Enrich with Steam data
                     $igdbGame = $igdbService->enrichWithSteamData([$igdbGame])[0] ?? $igdbGame;
 
+                    // Priority: IGDB cover first, SteamGridDB as fallback only if IGDB has no cover
+                    $coverImageId = $igdbGame['cover']['image_id'] ?? null;
+                    
+                    // Only try SteamGridDB if IGDB didn't provide a cover
+                    if (!$coverImageId) {
+                        $gameName = $igdbGame['name'] ?? 'Unknown Game';
+                        $steamAppId = $igdbGame['steam']['appid'] ?? null;
+                        $steamGridDbCover = $igdbService->fetchCoverFromSteamGridDb($gameName, $steamAppId, $igdbGame['id'] ?? null);
+                        if ($steamGridDbCover) {
+                            $coverImageId = $steamGridDbCover;
+                        }
+                    }
+
                     // Create game in database (same logic as GamesController::show)
                     $game = Game::create([
                         'igdb_id' => $igdbGame['id'],
@@ -248,7 +261,7 @@ class GameListController extends Controller
                         'first_release_date' => isset($igdbGame['first_release_date'])
                             ? \Carbon\Carbon::createFromTimestamp($igdbGame['first_release_date'])
                             : null,
-                        'cover_image_id' => $igdbGame['cover']['image_id'] ?? null,
+                        'cover_image_id' => $coverImageId,
                         'game_type' => $igdbGame['game_type'] ?? 0,
                         'steam_data' => $igdbGame['steam'] ?? null,
                         'screenshots' => $igdbGame['screenshots'] ?? null,
