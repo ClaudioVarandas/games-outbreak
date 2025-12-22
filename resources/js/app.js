@@ -1,0 +1,32 @@
+import './bootstrap';
+import {createApp, h} from 'vue';
+import GlobalSearch from './components/GlobalSearch.vue';
+import AddGameToList from './components/AddGameToList.vue';
+import './components/AuthModals.js';
+
+// Wait for DOM to be ready before mounting Vue
+document.addEventListener('DOMContentLoaded', () => {
+    // Mount global search in header
+    const appSearchElement = document.getElementById('app-search');
+    if (appSearchElement) {
+        createApp({})
+            .component('global-search', GlobalSearch)
+            .mount('#app-search');
+    }
+
+    // Mount add game to list components (can be multiple on page)
+    document.querySelectorAll('[data-vue-component="add-game-to-list"]').forEach(element => {
+        const listId = parseInt(element.getAttribute('data-list-id'));
+        if (listId) {
+            createApp({
+                render() {
+                    return h(AddGameToList, { listId: listId });
+                }
+            }).mount(element);
+        }
+    });
+});
+
+
+
+

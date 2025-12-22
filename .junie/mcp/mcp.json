@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "/usr/bin/php",
+            "args": [
+                "/var/www/code/cv/games-outbreak/artisan",
+                "boost:mcp"
+            ]
+        }
+    }
+}
