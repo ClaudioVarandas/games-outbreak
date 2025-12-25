@@ -346,6 +346,160 @@ class GamesController extends Controller
 
 
 
+    public function searchResults(Request $request): \Illuminate\View\View
+    {
+        $query = trim($request->query('q', ''));
+        $page = (int) $request->query('page', 1);
+        $viewMode = $request->query('view', 'grid'); // 'grid' or 'list'
+        $perPage = 25;
+        $offset = ($page - 1) * $perPage;
+
+        if (strlen($query) < 2) {
+            return view('search.results', [
+                'games' => collect(),
+                'query' => $query,
+                'viewMode' => $viewMode,
+                'totalResults' => 0,
+                'currentPage' => 1,
+                'totalPages' => 1,
+                'platformEnums' => PlatformEnum::getActivePlatforms(),
+            ]);
+        }
+
+        try {
+            $validPlatformIds = PlatformEnum::getActivePlatforms()
+                ->keys()
+                ->toArray();
+
+            // Normalize query
+            $normalizedQuery = preg_replace('/[:;,\-\.]/', ' ', $query);
+            $normalizedQuery = preg_replace('/\s+/', ' ', $normalizedQuery);
+            $normalizedQuery = trim($normalizedQuery);
+
+            $words = array_filter(explode(' ', $normalizedQuery), fn($w) => strlen($w) > 0);
+            $platformsList = implode(',', $validPlatformIds);
+
+            // Build IGDB query
+            $nameConditions = [];
+            foreach ($words as $word) {
+                $escapedWord = str_replace('"', "'", $word);
+                $nameConditions[] = 'name ~ *"' . $escapedWord . '"*';
+            }
+            $nameWhereClause = implode(' & ', $nameConditions);
+
+            // Main query: games matching name AND platform filter
+            $igdbQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type, category, collection; ' .
+                'where ' . $nameWhereClause . ' ' .
+                '& platforms = (' . $platformsList . ') ' .
+                '& game_type = (0, 1, 2, 3, 4, 5, 8, 9, 10); ' .
+                'sort first_release_date desc; ' .
+                'limit ' . $perPage . '; ' .
+                'offset ' . $offset . ';';
+            
+            // Bundle query (without platform filter)
+            $bundleQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type, category, collection; ' .
+                'where ' . $nameWhereClause . ' ' .
+                '& (name ~ *"Bundle"* | name ~ *"Collection"*) ' .
+                '& game_type = (3, 5); ' .
+                'sort first_release_date desc; ' .
+                'limit 10;';
+
+            $response = Http::igdb()
+                ->withBody($igdbQuery, 'text/plain')
+                ->post('https://api.igdb.com/v4/games');
+
+            $igdbResponseData = $response->json() ?? [];
+            
+            // Fetch bundles separately
+            $bundleResponse = Http::igdb()
+                ->withBody($bundleQuery, 'text/plain')
+                ->post('https://api.igdb.com/v4/games');
+            
+            $bundleData = $bundleResponse->json() ?? [];
+            
+            // Merge results: add bundles at the beginning if they're not already in results
+            $existingIds = collect($igdbResponseData)->pluck('id')->toArray();
+            $newBundles = collect($bundleData)->filter(fn($bundle) => !in_array($bundle['id'] ?? null, $existingIds))->toArray();
+            
+            // Prepend bundles to results
+            $igdbResponseData = array_merge($newBundles, $igdbResponseData);
+
+            // Convert to Game models or fetch/create them
+            $games = collect($igdbResponseData)->map(function ($igdbGame) {
+                $gameType = isset($igdbGame['game_type']) ? (int)$igdbGame['game_type'] : 0;
+                $gameName = $igdbGame['name'] ?? 'Unknown Game';
+                
+                // Detect bundles by name
+                $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
+                if ($isBundle && $gameType !== 5) {
+                    $gameType = 5;
+                }
+                
+                // Try to find existing game
+                $game = Game::with('platforms')->where('igdb_id', $igdbGame['id'])->first();
+                
+                if (!$game) {
+                    // Create a new game record
+                    $game = Game::create([
+                        'igdb_id' => $igdbGame['id'],
+                        'name' => $gameName,
+                        'game_type' => $gameType,
+                        'cover_image_id' => $igdbGame['cover']['image_id'] ?? null,
+                        'first_release_date' => isset($igdbGame['first_release_date'])
+                            ? \Carbon\Carbon::createFromTimestamp($igdbGame['first_release_date'])
+                            : null,
+                    ]);
+                    
+                    // Sync platforms
+                    if (!empty($igdbGame['platforms'])) {
+                        $platformIds = collect($igdbGame['platforms'])->map(function ($platform) {
+                            return Platform::firstOrCreate(
+                                ['igdb_id' => $platform['id']],
+                                ['name' => $platform['name'] ?? 'Unknown']
+                            )->id;
+                        });
+                        $game->platforms()->sync($platformIds);
+                        $game->load('platforms');
+                    }
+                }
+                
+                return $game;
+            });
+
+            // For pagination, we'll estimate total pages (IGDB doesn't provide total count easily)
+            // We'll show pagination if we got a full page of results
+            $hasMore = count($igdbResponseData) >= $perPage;
+            $totalPages = $hasMore ? $page + 1 : $page; // Simple estimation
+
+            return view('search.results', [
+                'games' => $games,
+                'query' => $query,
+                'viewMode' => $viewMode,
+                'totalResults' => $games->count(),
+                'currentPage' => $page,
+                'totalPages' => $totalPages,
+                'hasMore' => $hasMore,
+                'platformEnums' => PlatformEnum::getActivePlatforms(),
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('IGDB search results exception', [
+                'query' => $query,
+                'error' => $e->getMessage()
+            ]);
+            
+            return view('search.results', [
+                'games' => collect(),
+                'query' => $query,
+                'viewMode' => $viewMode,
+                'totalResults' => 0,
+                'currentPage' => 1,
+                'totalPages' => 1,
+                'platformEnums' => PlatformEnum::getActivePlatforms(),
+            ]);
+        }
+    }
+
     // Helper method (optional, to avoid duplication)
     private function syncRelations(Game $game, array $igdbGame): void
     {

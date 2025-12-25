@@ -23,6 +23,9 @@ Route::get('/game/{game:igdb_id}', [GamesController::class, 'show'])
 Route::get('/api/search', [GamesController::class, 'search'])
     ->name('api.search');
 
+Route::get('/search', [GamesController::class, 'searchResults'])
+    ->name('search');
+
 // System list public route
 Route::get('/list/{slug}', [GameListController::class, 'showBySlug'])
     ->name('system-list.show');

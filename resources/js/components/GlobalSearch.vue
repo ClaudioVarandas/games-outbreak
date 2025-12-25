@@ -40,7 +40,7 @@
           :key="game.igdb_id"
           :href="`/game/${game.igdb_id}`"
           @click="closeDropdown"
-          class="flex items-center gap-4 px-4 py-3 hover:bg-gray-700 transition border-b border-gray-700 last:border-0"
+          class="flex items-center gap-4 px-4 py-3 hover:bg-gray-700 transition border-b border-gray-700"
         >
           <img
             :src="game.cover_url || '/images/game-cover-placeholder.svg'"
@@ -60,6 +60,17 @@
               </span>
             </div>
           </div>
+        </a>
+        <!-- Show More Link -->
+        <a
+          :href="`/search?q=${encodeURIComponent(query)}`"
+          @click="closeDropdown"
+          class="flex items-center justify-center gap-2 px-4 py-3 hover:bg-teal-600/20 transition border-t border-gray-700 text-teal-400 hover:text-teal-300 font-medium"
+        >
+          <span>Show more</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
         </a>
       </template>
 
