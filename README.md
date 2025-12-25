@@ -1,4 +1,9 @@
 
+## setup
+
+php artisan migrate --seed
+php artisan games:lists:create-monthly --year=2026
+
 
 
 ### OLD project ideas
