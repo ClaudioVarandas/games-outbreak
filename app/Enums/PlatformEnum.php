@@ -82,4 +82,14 @@ enum PlatformEnum: int
             ->filter(fn($enum) => in_array($enum->value, $activeIds))
             ->keyBy(fn($enum) => $enum->value);
     }
+
+    /**
+     * Get platform priority for sorting (lower number = higher priority)
+     * Reads from config/platforms.php priority array
+     */
+    public static function getPriority(int $igdbId): int
+    {
+        $priorities = config('platforms.priority', []);
+        return $priorities[$igdbId] ?? 999;
+    }
 }

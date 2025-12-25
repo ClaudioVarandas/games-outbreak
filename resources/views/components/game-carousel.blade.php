@@ -78,9 +78,16 @@
                                     
                                     @php
                                         $validPlatformIds = $platformEnums->keys()->toArray();
-                                        $displayPlatforms = $carouselGame->platforms 
-                                            ? $carouselGame->platforms->filter(fn($p) => in_array($p->igdb_id, $validPlatformIds))->take(2)
+                                        $filteredPlatforms = $carouselGame->platforms 
+                                            ? $carouselGame->platforms->filter(fn($p) => in_array($p->igdb_id, $validPlatformIds))
                                             : collect();
+                                        
+                                        // Sort platforms using config-based priority: PC first, then consoles, then Linux/macOS
+                                        $sortedPlatforms = $filteredPlatforms->sortBy(function($platform) {
+                                            return \App\Enums\PlatformEnum::getPriority($platform->igdb_id);
+                                        })->values();
+                                        
+                                        $displayPlatforms = $sortedPlatforms;
                                     @endphp
                                     @if($displayPlatforms->count() > 0)
                                         <div class="absolute top-2 left-2 flex flex-wrap gap-1 z-10">

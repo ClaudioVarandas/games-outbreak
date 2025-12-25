@@ -166,21 +166,36 @@
                                 @endif
 
                                 <!-- Platform Badges -->
-                                <div class="absolute top-2 left-2 flex flex-wrap gap-1">
-                                    @foreach($game->platforms->take(2) as $platform)
-                                        @php
-                                            $enum = $platformEnums[$platform->igdb_id] ?? null;
-                                        @endphp
-                                        <span class="px-2 py-1 text-xs font-bold text-white rounded
-                                    @if($enum)
-                                        bg-{{ $enum->color() }}-600
-                                    @else
-                                        bg-gray-600
-                                    @endif">
-                                    {{ $enum?->label() ?? Str::limit($platform->name, 8) }}
-                                </span>
-                                    @endforeach
-                                </div>
+                                @php
+                                    $validPlatformIds = $platformEnums->keys()->toArray();
+                                    $filteredPlatforms = $game->platforms 
+                                        ? $game->platforms->filter(fn($p) => in_array($p->igdb_id, $validPlatformIds))
+                                        : collect();
+                                    
+                                    // Sort platforms using config-based priority: PC first, then consoles, then Linux/macOS
+                                    $sortedPlatforms = $filteredPlatforms->sortBy(function($platform) {
+                                        return \App\Enums\PlatformEnum::getPriority($platform->igdb_id);
+                                    })->values();
+                                    
+                                    $displayPlatforms = $sortedPlatforms;
+                                @endphp
+                                @if($displayPlatforms->count() > 0)
+                                    <div class="absolute top-2 left-2 flex flex-wrap gap-1">
+                                        @foreach($displayPlatforms as $platform)
+                                            @php
+                                                $enum = $platformEnums[$platform->igdb_id] ?? null;
+                                            @endphp
+                                            <span class="px-2 py-1 text-xs font-bold text-white rounded
+                                        @if($enum)
+                                            bg-{{ $enum->color() }}-600
+                                        @else
+                                            bg-gray-600
+                                        @endif">
+                                        {{ $enum?->label() ?? Str::limit($platform->name, 8) }}
+                                    </span>
+                                        @endforeach
+                                    </div>
+                                @endif
 
                                 <!-- Remove Button -->
                                 <form action="{{ route('lists.games.remove', ['gameList' => $gameList, 'game' => $game]) }}" 

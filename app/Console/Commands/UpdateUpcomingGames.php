@@ -158,17 +158,17 @@ class UpdateUpcomingGames extends Command
             // Get raw JSON for this game (only if fetching single game)
             $gameRawJson = ($igdbId && isset($rawJson)) ? $rawJson : null;
             
-            // Priority: IGDB cover first, SteamGridDB as fallback only if IGDB has no cover
+            $gameName = $igdbGame['name'] ?? 'Unknown Game';
+            $steamAppId = $igdbGame['steam']['appid'] ?? null;
+            $igdbGameId = $igdbGame['id'] ?? null;
+
+            // Store IGDB cover.image_id in cover_image_id
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
             
-            // Only try SteamGridDB if IGDB didn't provide a cover
+            // If IGDB didn't provide a cover, try SteamGridDB
             if (!$coverImageId) {
-                $gameName = $igdbGame['name'] ?? 'Unknown Game';
-                $steamAppId = $igdbGame['steam']['appid'] ?? null;
-                $igdbGameId = $igdbGame['id'] ?? null;
-                
                 $this->line("No IGDB cover for {$gameName}, trying SteamGridDB...");
-                $steamGridDbCover = $igdb->fetchCoverFromSteamGridDb($gameName, $steamAppId, $igdbGameId);
+                $steamGridDbCover = $igdb->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
                 
                 if ($steamGridDbCover) {
                     $coverImageId = $steamGridDbCover;
@@ -176,20 +176,31 @@ class UpdateUpcomingGames extends Command
                 } else {
                     $this->warn("  ✗ No SteamGridDB cover found");
                 }
-            } else {
-                // IGDB cover exists, use it (don't try SteamGridDB)
-                $this->line("Using IGDB cover for: " . ($igdbGame['name'] ?? 'Unknown Game'));
             }
+
+            // For hero: Use IGDB cover if available, else fetch from SteamGridDB
+            $heroImageId = $igdbGame['cover']['image_id'] ?? null;
+            if (!$heroImageId) {
+                $steamGridDbHero = $igdb->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
+                if ($steamGridDbHero) {
+                    $heroImageId = $steamGridDbHero;
+                }
+            }
+
+            // For logo: Fetch from SteamGridDB
+            $logoImageId = $igdb->fetchImageFromSteamGridDb($gameName, 'logo', $steamAppId, $igdbGameId);
             
             $game = Game::updateOrCreate(
                 ['igdb_id' => $igdbGame['id']],
                 [
-                    'name' => $igdbGame['name'] ?? 'Unknown Game',
+                    'name' => $gameName,
                     'summary' => $igdbGame['summary'] ?? null,
                     'first_release_date' => isset($igdbGame['first_release_date'])
                         ? Carbon::createFromTimestamp($igdbGame['first_release_date'])
                         : null,
                     'cover_image_id' => $coverImageId,
+                    'hero_image_id' => $heroImageId,
+                    'logo_image_id' => $logoImageId,
                     'game_type' => $igdbGame['game_type'] ?? 0,
                     'release_dates' => \App\Models\Game::transformReleaseDates($igdbGame['release_dates'] ?? null),
                     'raw_igdb_json' => $gameRawJson,

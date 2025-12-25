@@ -107,7 +107,18 @@
                                     Add to Watchlist
                                 </button>
                                 <p class="text-xs text-gray-500 mt-2">
-                                    @foreach($game->platforms->take(3) as $plat)
+                                    @php
+                                        $validPlatformIds = $platformEnums->keys()->toArray();
+                                        $filteredPlatforms = $game->platforms 
+                                            ? $game->platforms->filter(fn($p) => in_array($p->igdb_id, $validPlatformIds))
+                                            : collect();
+                                        
+                                        // Sort platforms using config-based priority: PC first, then consoles, then Linux/macOS
+                                        $sortedPlatforms = $filteredPlatforms->sortBy(function($platform) {
+                                            return \App\Enums\PlatformEnum::getPriority($platform->igdb_id);
+                                        })->values();
+                                    @endphp
+                                    @foreach($sortedPlatforms as $plat)
                                         @php $enum = $platformEnums[$plat->igdb_id] ?? null @endphp
                                         {{ $enum?->label() ?? $plat->name }}
                                         {{ !$loop->last ? ' • ' : '' }}

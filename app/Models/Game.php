@@ -51,18 +51,41 @@ class Game extends Model
     // === HELPER METHODS ===
 
     /**
-     * Check if cover_image_id is an IGDB ID (alphanumeric) or a local filename
+     * Check if image_id is an IGDB ID (alphanumeric) or a local filename
      * IGDB IDs are alphanumeric strings (e.g., "coauth", "co9xkp")
      * Local filenames from SteamGridDB have extensions (e.g., "12345_1234567890.jpg")
      */
-    private function isIgdbCoverId(?string $coverId): bool
+    private function isIgdbCoverId(?string $imageId): bool
     {
-        if (!$coverId) {
+        if (!$imageId) {
             return false;
         }
         // Local filenames from SteamGridDB have file extensions (e.g., ".jpg", ".png")
         // IGDB IDs are alphanumeric strings without extensions
-        return !preg_match('/\.(jpg|jpeg|png|webp)$/i', $coverId);
+        return !preg_match('/\.(jpg|jpeg|png|webp)$/i', $imageId);
+    }
+
+    /**
+     * Get image URL from image ID (works for both IGDB IDs and local filenames)
+     */
+    private function getImageUrl(?string $imageId, string $size = 'cover_big'): string
+    {
+        if (!$imageId) {
+            return $this->getPlaceholderUrl();
+        }
+
+        // If IGDB ID (no extension), use IGDB URL
+        if ($this->isIgdbCoverId($imageId)) {
+            return "https://images.igdb.com/igdb/image/upload/t_{$size}/{$imageId}.jpg";
+        }
+
+        // Otherwise, local file from SteamGridDB
+        $filePath = storage_path('app/public/covers/' . $imageId);
+        if (File::exists($filePath)) {
+            return asset('storage/covers/' . $imageId);
+        }
+
+        return $this->getPlaceholderUrl();
     }
 
     public function getPlaceholderUrl(): string
@@ -74,23 +97,42 @@ class Game extends Model
 
     public function getCoverUrl(string $size = 'cover_big'): string
     {
-        if (!$this->cover_image_id) {
-            return $this->getPlaceholderUrl();
+        // If cover_image_id exists, use it
+        if ($this->cover_image_id) {
+            return $this->getImageUrl($this->cover_image_id, $size);
         }
 
-        // If it's an IGDB ID (alphanumeric without extension), format as IGDB URL
-        if ($this->isIgdbCoverId($this->cover_image_id)) {
-            return "https://images.igdb.com/igdb/image/upload/t_{$size}/{$this->cover_image_id}.jpg";
+        // Fallback to hero_image_id if available
+        if ($this->hero_image_id) {
+            return $this->getImageUrl($this->hero_image_id, $size);
         }
 
-        // Otherwise, treat as local filename from SteamGridDB
-        // Serve from storage
-        $filePath = storage_path('app/public/covers/' . $this->cover_image_id);
-        if (File::exists($filePath)) {
-            return asset('storage/covers/' . $this->cover_image_id);
+        return $this->getPlaceholderUrl();
+    }
+
+    public function getHeroImageUrl(): string
+    {
+        // If hero_image_id exists, use it at 720p
+        if ($this->hero_image_id) {
+            return $this->getImageUrl($this->hero_image_id, '720p');
         }
 
-        // Fallback if file doesn't exist
+        // Fallback to cover_image_id at 720p
+        if ($this->cover_image_id) {
+            return $this->getImageUrl($this->cover_image_id, '720p');
+        }
+
+        // Final fallback to placeholder
+        return $this->getPlaceholderUrl();
+    }
+
+    public function getLogoImageUrl(): string
+    {
+        // If logo_image_id exists, use it
+        if ($this->logo_image_id) {
+            return $this->getImageUrl($this->logo_image_id, 'logo_med');
+        }
+
         return $this->getPlaceholderUrl();
     }
 
@@ -159,7 +201,18 @@ class Game extends Model
 
     public function getGameTypeEnum(): GameTypeEnum
     {
-        return GameTypeEnum::fromValue($this->game_type ?? 0) ?? GameTypeEnum::MAIN;
+        $gameType = $this->game_type ?? 0;
+        $gameName = $this->name ?? '';
+        
+        // Detect bundles by name (IGDB sometimes classifies bundles as PORT/3 instead of BUNDLE/5)
+        $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
+        
+        // If it's a bundle by name, treat it as bundle regardless of game_type
+        if ($isBundle && $gameType !== 5) {
+            $gameType = 5; // Force to BUNDLE
+        }
+        
+        return GameTypeEnum::fromValue($gameType) ?? GameTypeEnum::MAIN;
     }
 
     /**
@@ -228,28 +281,44 @@ class Game extends Model
             // Enrich with Steam data
             $igdbGame = $igdbService->enrichWithSteamData([$igdbGame])[0] ?? $igdbGame;
 
-            // Priority: IGDB cover first, SteamGridDB as fallback only if IGDB has no cover
+            $gameName = $igdbGame['name'] ?? 'Unknown Game';
+            $steamAppId = $igdbGame['steam']['appid'] ?? null;
+            $igdbGameId = $igdbGame['id'] ?? null;
+
+            // Store IGDB cover.image_id in cover_image_id
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
             
-            // Only try SteamGridDB if IGDB didn't provide a cover
+            // If IGDB didn't provide a cover, try SteamGridDB
             if (!$coverImageId) {
-                $gameName = $igdbGame['name'] ?? 'Unknown Game';
-                $steamAppId = $igdbGame['steam']['appid'] ?? null;
-                $steamGridDbCover = $igdbService->fetchCoverFromSteamGridDb($gameName, $steamAppId, $igdbGame['id'] ?? null);
+                $steamGridDbCover = $igdbService->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
                 if ($steamGridDbCover) {
                     $coverImageId = $steamGridDbCover;
                 }
             }
 
+            // For hero: Use IGDB cover if available, else fetch from SteamGridDB
+            $heroImageId = $igdbGame['cover']['image_id'] ?? null;
+            if (!$heroImageId) {
+                $steamGridDbHero = $igdbService->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
+                if ($steamGridDbHero) {
+                    $heroImageId = $steamGridDbHero;
+                }
+            }
+
+            // For logo: Fetch from SteamGridDB
+            $logoImageId = $igdbService->fetchImageFromSteamGridDb($gameName, 'logo', $steamAppId, $igdbGameId);
+
             // Create game in database
             $game = self::create([
                 'igdb_id' => $igdbGame['id'],
-                'name' => $igdbGame['name'] ?? 'Unknown Game',
+                'name' => $gameName,
                 'summary' => $igdbGame['summary'] ?? null,
                 'first_release_date' => isset($igdbGame['first_release_date'])
                     ? \Carbon\Carbon::createFromTimestamp($igdbGame['first_release_date'])
                     : null,
                 'cover_image_id' => $coverImageId,
+                'hero_image_id' => $heroImageId,
+                'logo_image_id' => $logoImageId,
                 'game_type' => $igdbGame['game_type'] ?? 0,
                 'release_dates' => self::transformReleaseDates($igdbGame['release_dates'] ?? null),
                 'steam_data' => $igdbGame['steam'] ?? null,

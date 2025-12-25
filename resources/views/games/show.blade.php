@@ -6,48 +6,67 @@
     <div class="min-h-screen bg-gray-900 text-white">
         <!-- Hero with Trailer or Header -->
         <div class="relative h-96 overflow-hidden">
-            {{--@if($game->trailers && count($game->trailers) > 0)
-                <iframe src="{{ $game->getPrimaryTrailerEmbed() }}" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe>
-            @else--}}
             @if($game->steam_data['header_image'] ?? null)
-                <img src="{{ $game->steam_data['header_image'] }}" 
-                     class="absolute inset-0 w-full h-full object-cover"
-                     onerror="this.onerror=null; this.replaceWith(this.nextElementSibling);">
-                <x-game-cover-placeholder :gameName="$game->name" class="absolute inset-0 w-full h-full" style="display: none;" />
-            @elseif($game->cover_image_id)
-                <img src="{{ $game->getCoverUrl('1080p') }}" 
-                     class="absolute inset-0 w-full h-full object-cover"
-                     onerror="this.onerror=null; this.replaceWith(this.nextElementSibling);">
-                <x-game-cover-placeholder :gameName="$game->name" class="absolute inset-0 w-full h-full" style="display: none;" />
+            <img src="{{ $game->steam_data['header_image'] }}" 
+                 class="absolute inset-0 w-full h-full object-cover"
+                 onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <x-game-cover-placeholder :gameName="$game->name" class="absolute inset-0 w-full h-full" style="display: none;" />
             @else
-                <x-game-cover-placeholder :gameName="$game->name" class="absolute inset-0 w-full h-full" />
+            <div class="absolute inset-0 w-full h-full z-0 bg-gradient-to-br from-gray-800 to-gray-900 flex flex-col items-center justify-center p-4 text-center">
+                <img src="{{ $game->getHeroImageUrl() }}" 
+                     id="hero-background-image"
+                     class="absolute inset-0 w-full h-full object-cover"
+                     loading="eager"
+                     onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <p class="text-white font-semibold text-sm md:text-base mb-6 line-clamp-2 px-2 relative z-10" style="display: none;">
+                    {{ $game->name }}
+                </p>
+                <img src="{{ asset('images/game-controller.svg') }}" 
+                     alt="Game Controller" 
+                     class="w-24 h-24 max-w-full opacity-70 relative z-10"
+                     style="display: none;">
+            </div>
             @endif
 
             <!-- Dark Overlay for Readability -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent z-[1]"></div>
 
             <!-- Left-Aligned Container -->
-            <div class="absolute inset-0 flex items-center justify-start">
+            <div class="absolute inset-0 flex items-center justify-start z-10">
                 <div class="container mx-auto px-8 w-full">
-                    <h1 class="text-5xl md:text-5xl font-black mb-6 drop-shadow-2xl text-white text-left">
+                    <h1 class="text-5xl md:text-5xl font-black mb-6 drop-shadow-2xl text-white text-left max-w-[50%] break-words">
                         {{ $game->name }}
                     </h1>
 
                     <!-- Platforms -->
                     @php
-                        $validPlatformIds = $platformEnums->keys()->toArray();
+                        // On game detail page, show ALL platforms (not just active ones)
+                        // Filter out platforms that don't have an enum AND have "Unknown Platform" name
                         $displayPlatforms = $game->platforms 
-                            ? $game->platforms->filter(fn($p) => in_array($p->igdb_id, $validPlatformIds))
+                            ? $game->platforms->filter(function($p) {
+                                $enum = \App\Enums\PlatformEnum::fromIgdbId($p->igdb_id);
+                                $hasEnum = $enum !== null;
+                                $hasValidName = $p->name !== 'Unknown Platform' && !empty($p->name);
+                                return $hasEnum || $hasValidName;
+                            })
                             : collect();
                     @endphp
                     @if($displayPlatforms->count() > 0)
                         <div class="flex flex-wrap gap-2 mb-4">
                             @foreach($displayPlatforms as $plat)
-                                @php $enum = $platformEnums[$plat->igdb_id] ?? null @endphp
-                                <span
-                                    class="px-3 py-1.5 bg-{{ $enum?->color() ?? 'gray' }}-600 text-white font-semibold rounded-md text-sm shadow-lg">
-                            {{ $enum?->label() ?? $plat->name }}
-                        </span>
+                                @php 
+                                    $enum = \App\Enums\PlatformEnum::fromIgdbId($plat->igdb_id);
+                                    $colorClass = match($enum?->color() ?? 'gray') {
+                                        'blue' => 'bg-blue-600',
+                                        'green' => 'bg-green-600',
+                                        'red' => 'bg-red-600',
+                                        'gray' => 'bg-gray-600',
+                                        default => 'bg-gray-600',
+                                    };
+                                @endphp
+                                <span class="px-3 py-1.5 {{ $colorClass }} text-white font-semibold rounded-md text-sm shadow-lg">
+                                    {{ $enum?->label() ?? $plat->name }}
+                                </span>
                             @endforeach
                         </div>
                     @endif
@@ -131,10 +150,42 @@
                         </section>
                     @endif
 
+                    <!-- Trailers -->
+                    @if($game->trailers && count($game->trailers) > 0)
+                        <section>
+                            <h2 class="text-3xl font-bold mb-6 flex items-center">
+                                <svg class="w-8 h-8 mr-3 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                                </svg>
+                                Trailers
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                @foreach(collect($game->trailers)->take(4) as $trailer)
+                                    @if(!empty($trailer['video_id']))
+                                        <div class="rounded-xl overflow-hidden shadow-2xl aspect-video">
+                                            <iframe
+                                                src="{{ $game->getYouTubeEmbedUrl($trailer['video_id']) }}"
+                                                class="w-full h-full"
+                                                frameborder="0"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowfullscreen>
+                                            </iframe>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </section>
+                    @endif
+
                     <!-- Screenshots -->
                     @if($game->screenshots && count($game->screenshots) > 0)
                         <section>
-                            <h2 class="text-3xl font-bold mb-6">Screenshots</h2>
+                            <h2 class="text-3xl font-bold mb-6 flex items-center">
+                                <svg class="w-8 h-8 mr-3 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                                </svg>
+                                Screenshots
+                            </h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 @foreach(collect($game->screenshots)->take(6) as $shot)
                                     <div
@@ -165,43 +216,21 @@
                                 ->values();
                         @endphp
                         @if($activeReleaseDates->count() > 0)
-                            <div class="space-y-2">
+                            <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2">
                                 @foreach($activeReleaseDates as $rd)
                                     @php
                                         $platformEnum = $platformEnums[$rd['platform']] ?? null;
                                         $platformName = $platformEnum?->label() ?? ($rd['platform_name'] ?? 'Unknown Platform');
                                         $releaseDate = $rd['release_date'] ?? 'TBA';
                                     @endphp
-                                    <p class="text-gray-300">
-                                        {{ $platformName }} - {{ $releaseDate }}
-                                    </p>
+                                    <span class="text-gray-300 text-left">{{ $platformName }}</span>
+                                    <span class="text-gray-300 text-right font-medium">{{ $releaseDate }}</span>
                                 @endforeach
                             </div>
                         @else
                             <p class="text-gray-400">
                                 {{ $game->first_release_date?->format('d/m/Y') ?? 'TBA' }}
                             </p>
-                        @endif
-                    </div>
-
-                    <!-- Where to Buy -->
-                    <div class="bg-gray-800 p-6 rounded-xl space-y-4">
-                        <h3 class="text-xl font-bold">Where to Buy</h3>
-                        @if($game->steam_data['appid'] ?? null)
-                            <a href="https://store.steampowered.com/app/{{ $game->steam_data['appid'] }}"
-                               target="_blank"
-                               class="block bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-lg text-center transition">
-                                <svg class="w-6 h-6 inline mr-2" viewBox="0 0 24 24" fill="currentColor">
-                                    <path
-                                        d="M11.5 0C5.1 0 0 5.1 0 11.5S5.1 23 11.5 23 23 17.9 23 11.5 17.9 0 11.5 0zm6.3 17.1c-.8.6-2 .7-3 .3-.7-.3-1.4-.8-2-1.4l2.8-1.2c.3.4.7.8 1.2 1 .7.3 1.5.2 2-.2.6-.5.8-1.3.6-2-.2-.8-.9-1.3-1.7-1.2l1.4-1.9c1 .4 1.7 1.3 1.9 2.4.3 1.3-.4 2.7-1.7 3.2zM6.9 13.6c-.3-.3-.4.1-.5.4-.1.3-.1.6 0 .9.2.5.6.9 1.1 1 .8.2 1.6-.2 1.9-1 .2-.6 0-1.2-.5-1.6-.5-.4-1.2-.4-1.8 0l1.9-1.4c-.6-1-1.7-1.5-2.8-1.3-1.3.2-2.3 1.3-2.5 2.6-.2 1.3.6 2.6 1.8 3 .8.3 1.7.2 2.4-.3.5-.4.8-.9 1-1.5l-2.5 1.1c-.1-.3-.3-.6-.5-.9z"/>
-                                </svg>
-                                Buy on Steam
-                                @if($game->getSteamPrice())
-                                    <span class="block text-sm mt-1">{{ $game->getSteamPrice() }}</span>
-                                @endif
-                            </a>
-                        @else
-                            <p class="text-gray-400">No store links available yet.</p>
                         @endif
                     </div>
 
@@ -222,7 +251,24 @@
                         <h3 class="text-xl font-bold mb-4">Game Modes</h3>
                         <div class="flex flex-wrap gap-2">
                             @foreach($game->gameModes as $mode)
-                                <span class="px-4 py-2 bg-indigo-700 rounded-full text-sm">{{ $mode->name }}</span>
+                                @php
+                                    // Select icon based on IGDB game mode ID
+                                    $iconSvg = match($mode->igdb_id) {
+                                        1 => '<path d="M10 9a3 3 0 100-6 3 3 0 000 6zM10 11a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6z"/>', // Single player - User icon
+                                        2 => '<path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>', // Multiplayer - Users icon
+                                        3 => '<path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM16 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 15v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 8v1a4 4 0 01-4 4h-3a4 4 0 01-4-4V8a3.005 3.005 0 013.75-2.906A5.972 5.972 0 006 12v3h10z"/>', // Co-operative - Users together icon
+                                        4 => '<path fill-rule="evenodd" d="M3 4a1 1 0 011-1h5a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm8 0a1 1 0 011-1h5a1 1 0 011 1v12a1 1 0 01-1 1h-5a1 1 0 01-1-1V4z" clip-rule="evenodd"/>', // Split screen - Two rectangles/screens icon
+                                        5 => '<path fill-rule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clip-rule="evenodd"/><path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V7z"/>', // MMO - Network/computer icon
+                                        6 => '<path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>', // Battle Royale - Trophy/badge icon
+                                        default => '<path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>', // Default - Users icon
+                                    };
+                                @endphp
+                                <span class="px-4 py-2 bg-indigo-700 rounded-full text-sm flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        {!! $iconSvg !!}
+                                    </svg>
+                                    {{ $mode->name }}
+                                </span>
                             @endforeach
                         </div>
                     </div>

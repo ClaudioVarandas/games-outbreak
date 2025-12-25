@@ -355,14 +355,15 @@ class IgdbService
     }
 
     /**
-     * Fetch game cover from SteamGridDB when IGDB doesn't provide one
+     * Fetch game image from SteamGridDB when IGDB doesn't provide one
      *
      * @param string $gameName The game name to search for
+     * @param string $type Image type: 'cover', 'hero', or 'logo'
      * @param int|null $steamAppId Optional Steam AppID for better matching
      * @param int|null $igdbId Optional IGDB ID for filename
-     * @return string|null Filename of downloaded cover, or null if failed
+     * @return string|null Filename of downloaded image, or null if failed
      */
-    public function fetchCoverFromSteamGridDb(string $gameName, ?int $steamAppId = null, ?int $igdbId = null): ?string
+    public function fetchImageFromSteamGridDb(string $gameName, string $type = 'cover', ?int $steamAppId = null, ?int $igdbId = null): ?string
     {
         $apiKey = config('services.steamgriddb.api_key');
         if (!$apiKey) {
@@ -431,16 +432,15 @@ class IgdbService
                 return null;
             }
 
-            // Prefer "hero" or "logo" type, fallback to first available
-            $selectedGrid = null;
-            foreach ($grids as $grid) {
-                if (isset($grid['style']) && in_array($grid['style'], ['hero', 'logo'])) {
-                    $selectedGrid = $grid;
-                    break;
-                }
-            }
+            // Select grid based on requested type
+            $selectedGrid = match ($type) {
+                'hero' => $this->selectHeroGrid($grids),
+                'logo' => $this->selectLogoGrid($grids),
+                'cover' => $this->selectCoverGrid($grids),
+                default => $grids[0] ?? null,
+            };
 
-            if (!$selectedGrid) {
+            if (!$selectedGrid && !empty($grids)) {
                 $selectedGrid = $grids[0];
             }
 
@@ -471,13 +471,77 @@ class IgdbService
             // Save the image
             File::put($filePath, $imageResponse->body());
 
-            \Log::info("Downloaded SteamGridDB cover for {$gameName}: {$filename}");
+            \Log::info("Downloaded SteamGridDB {$type} image for {$gameName}: {$filename}");
             return $filename;
         } catch (\Exception $e) {
-            \Log::warning("SteamGridDB cover fetch exception for {$gameName}", [
+            \Log::warning("SteamGridDB {$type} image fetch exception for {$gameName}", [
                 'error' => $e->getMessage(),
             ]);
             return null;
         }
+    }
+
+    /**
+     * Fetch game cover from SteamGridDB (backward compatibility)
+     *
+     * @param string $gameName The game name to search for
+     * @param int|null $steamAppId Optional Steam AppID for better matching
+     * @param int|null $igdbId Optional IGDB ID for filename
+     * @return string|null Filename of downloaded cover, or null if failed
+     */
+    public function fetchCoverFromSteamGridDb(string $gameName, ?int $steamAppId = null, ?int $igdbId = null): ?string
+    {
+        return $this->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbId);
+    }
+
+    /**
+     * Select hero grid from SteamGridDB grids
+     */
+    private function selectHeroGrid(array $grids): ?array
+    {
+        // Prefer 'hero' style, fallback to 'alternate', then first available
+        foreach ($grids as $grid) {
+            if (isset($grid['style']) && $grid['style'] === 'hero') {
+                return $grid;
+            }
+        }
+        
+        foreach ($grids as $grid) {
+            if (isset($grid['style']) && $grid['style'] === 'alternate') {
+                return $grid;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Select logo grid from SteamGridDB grids
+     */
+    private function selectLogoGrid(array $grids): ?array
+    {
+        // Prefer 'logo' style
+        foreach ($grids as $grid) {
+            if (isset($grid['style']) && $grid['style'] === 'logo') {
+                return $grid;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Select cover grid from SteamGridDB grids
+     */
+    private function selectCoverGrid(array $grids): ?array
+    {
+        // Prefer 'alternate' style, fallback to first available
+        foreach ($grids as $grid) {
+            if (isset($grid['style']) && $grid['style'] === 'alternate') {
+                return $grid;
+            }
+        }
+        
+        return null;
     }
 }
