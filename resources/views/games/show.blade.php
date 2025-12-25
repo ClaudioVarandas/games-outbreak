@@ -10,13 +10,17 @@
                 <iframe src="{{ $game->getPrimaryTrailerEmbed() }}" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe>
             @else--}}
             @if($game->steam_data['header_image'] ?? null)
-                <img src="{{ $game->steam_data['header_image'] }}" class="absolute inset-0 w-full h-full object-cover">
+                <img src="{{ $game->steam_data['header_image'] }}" 
+                     class="absolute inset-0 w-full h-full object-cover"
+                     onerror="this.onerror=null; this.replaceWith(this.nextElementSibling);">
+                <x-game-cover-placeholder :gameName="$game->name" class="absolute inset-0 w-full h-full" style="display: none;" />
             @elseif($game->cover_image_id)
-                <img src="{{ $game->getCoverUrl('1080p') }}" class="absolute inset-0 w-full h-full object-cover">
+                <img src="{{ $game->getCoverUrl('1080p') }}" 
+                     class="absolute inset-0 w-full h-full object-cover"
+                     onerror="this.onerror=null; this.replaceWith(this.nextElementSibling);">
+                <x-game-cover-placeholder :gameName="$game->name" class="absolute inset-0 w-full h-full" style="display: none;" />
             @else
-                <div class="absolute inset-0 bg-gray-800 flex items-center justify-center">
-                    <p class="text-4xl text-gray-600">No Media Available</p>
-                </div>
+                <x-game-cover-placeholder :gameName="$game->name" class="absolute inset-0 w-full h-full" />
             @endif
 
             <!-- Dark Overlay for Readability -->
@@ -72,14 +76,14 @@
                             if ($daysDiff >= 0) {
                                 // Past or today
                                 if ($daysDiff < 1) {
-                                    $releaseText = 'Released ' . $game->first_release_date->format('F j, Y') . ' (Today)';
+                                    $releaseText = 'Released ' . $game->first_release_date->format('d/m/Y') . ' (Today)';
                                 } else {
-                                    $releaseText = 'Released ' . $game->first_release_date->format('F j, Y') . " ({$daysDiff} " . ($daysDiff === 1 ? 'day' : 'days') . " ago)";
+                                    $releaseText = 'Released ' . $game->first_release_date->format('d/m/Y') . " ({$daysDiff} " . ($daysDiff === 1 ? 'day' : 'days') . " ago)";
                                 }
                             } else {
                                 // Future
                                 $daysUntil = abs($daysDiff);
-                                $releaseText = 'Release date ' . $game->first_release_date->format('F j, Y') . " (in {$daysUntil} " . ($daysUntil === 1 ? 'day' : 'days') . ")";
+                                $releaseText = 'Release date ' . $game->first_release_date->format('d/m/Y') . " (in {$daysUntil} " . ($daysUntil === 1 ? 'day' : 'days') . ")";
                             }
                         @endphp
                         <p class="text-lg text-gray-300 mt-4 text-left">
@@ -148,12 +152,36 @@
 
                 <!-- Sidebar -->
                 <div class="space-y-8">
-                    <!-- Release Date -->
+                    <!-- Release Dates -->
                     <div class="bg-gray-800 p-6 rounded-xl">
-                        <h3 class="text-xl font-bold mb-2">Release Date</h3>
-                        <p class="text-4xl font-black text-teal-400">
-                            {{ $game->first_release_date?->format('M j, Y') ?? 'TBA' }}
-                        </p>
+                        <h3 class="text-xl font-bold mb-4">Release Dates</h3>
+                        @php
+                            $activePlatformIds = $platformEnums->keys()->toArray();
+                            $activeReleaseDates = collect($game->release_dates ?? [])
+                                ->filter(function ($rd) use ($activePlatformIds) {
+                                    return isset($rd['platform']) && in_array($rd['platform'], $activePlatformIds);
+                                })
+                                ->sortBy('date')
+                                ->values();
+                        @endphp
+                        @if($activeReleaseDates->count() > 0)
+                            <div class="space-y-2">
+                                @foreach($activeReleaseDates as $rd)
+                                    @php
+                                        $platformEnum = $platformEnums[$rd['platform']] ?? null;
+                                        $platformName = $platformEnum?->label() ?? ($rd['platform_name'] ?? 'Unknown Platform');
+                                        $releaseDate = $rd['release_date'] ?? 'TBA';
+                                    @endphp
+                                    <p class="text-gray-300">
+                                        {{ $platformName }} - {{ $releaseDate }}
+                                    </p>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-gray-400">
+                                {{ $game->first_release_date?->format('d/m/Y') ?? 'TBA' }}
+                            </p>
+                        @endif
                     </div>
 
                     <!-- Where to Buy -->

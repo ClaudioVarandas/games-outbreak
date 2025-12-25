@@ -17,22 +17,19 @@
                         <div class="group relative bg-gray-800 dark:bg-gray-800 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-400">
                             <!-- Cover Image -->
                             <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                @if($game->cover_image_id)
-                                    <img src="{{ $game->getCoverUrl('cover_big') }}"
+                                @php
+                                    $coverUrl = $game->cover_image_id
+                                        ? $game->getCoverUrl('cover_big')
+                                        : ($game->steam_data['header_image'] ?? null);
+                                @endphp
+                                @if($coverUrl)
+                                    <img src="{{ $coverUrl }}"
                                          alt="{{ $game->name }} cover"
                                          class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                    <div class="hidden items-center justify-center h-full text-gray-400 text-lg bg-gray-800">
-                                        {{ Str::limit($game->name, 20) }}
-                                    </div>
-                                @elseif($game->steam_data['header_image'] ?? null)
-                                    <img src="{{ $game->steam_data['header_image'] }}"
-                                         alt="{{ $game->name }} header"
-                                         class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                    <x-game-cover-placeholder :gameName="$game->name" class="w-full h-full" style="display: none;" />
                                 @else
-                                    <div class="flex items-center justify-center h-full text-gray-400 text-lg bg-gray-800">
-                                        {{ Str::limit($game->name, 20) }}
-                                    </div>
+                                    <x-game-cover-placeholder :gameName="$game->name" class="w-full h-full" />
                                 @endif
 
                                 <!-- Platform Badges -->
@@ -66,12 +63,8 @@
                                         {{ $game->name }}
                                     </h3>
                                     @if($game->first_release_date)
-                                        @php
-                                            $day = $game->first_release_date->format('j');
-                                            $month = $game->first_release_date->format('M');
-                                        @endphp
                                         <p class="text-md font-semibold text-cyan-300 dark:text-cyan-400 mb-2">
-                                            {{ $day }} {{ $month }}
+                                            {{ $game->first_release_date->format('d/m/Y') }}
                                         </p>
                                     @endif
                                     @if(true)

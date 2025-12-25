@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\GameTypeEnum;
+use App\Enums\PlatformEnum;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\File;
@@ -21,6 +23,7 @@ class Game extends Model
         'similar_games' => 'array',
         'game_type' => 'integer',
         'raw_igdb_json' => 'array',
+        'release_dates' => 'array',
     ];
 
     public function platforms(): BelongsToMany
@@ -62,10 +65,17 @@ class Game extends Model
         return !preg_match('/\.(jpg|jpeg|png|webp)$/i', $coverId);
     }
 
+    public function getPlaceholderUrl(): string
+    {
+        // Return a data URL that will be handled by the placeholder component
+        // This is a fallback for cases where we can't use the Blade component
+        return asset('images/game-cover-placeholder.svg');
+    }
+
     public function getCoverUrl(string $size = 'cover_big'): string
     {
         if (!$this->cover_image_id) {
-            return 'https://via.placeholder.com/300x400?text=No+Cover';
+            return $this->getPlaceholderUrl();
         }
 
         // If it's an IGDB ID (alphanumeric without extension), format as IGDB URL
@@ -81,7 +91,7 @@ class Game extends Model
         }
 
         // Fallback if file doesn't exist
-        return 'https://via.placeholder.com/300x400?text=No+Cover';
+        return $this->getPlaceholderUrl();
     }
 
     public function getScreenshotUrl(?string $imageId, string $size = 'screenshot_big'): string
@@ -153,6 +163,38 @@ class Game extends Model
     }
 
     /**
+     * Transform release_dates array to include release_date (dd/mm/yyyy) and platform_name
+     */
+    public static function transformReleaseDates(?array $releaseDates): ?array
+    {
+        if (empty($releaseDates)) {
+            return null;
+        }
+
+        return collect($releaseDates)->map(function ($releaseDate) {
+            $transformed = $releaseDate;
+
+            // Add formatted release_date (dd/mm/yyyy)
+            if (isset($releaseDate['date'])) {
+                $date = Carbon::createFromTimestamp($releaseDate['date']);
+                $transformed['release_date'] = $date->format('d/m/Y');
+            } else {
+                $transformed['release_date'] = null;
+            }
+
+            // Add platform_name using PlatformEnum
+            if (isset($releaseDate['platform'])) {
+                $platformEnum = PlatformEnum::fromIgdbId($releaseDate['platform']);
+                $transformed['platform_name'] = $platformEnum?->label() ?? null;
+            } else {
+                $transformed['platform_name'] = null;
+            }
+
+            return $transformed;
+        })->toArray();
+    }
+
+    /**
      * Fetch a game from IGDB if it doesn't exist in the database
      */
     public static function fetchFromIgdbIfMissing(int $igdbId, \App\Services\IgdbService $igdbService): ?self
@@ -168,7 +210,8 @@ class Game extends Model
                          genres.name, genres.id, game_modes.name, game_modes.id,
                          screenshots.image_id, videos.video_id,
                          external_games.category, external_games.uid,
-                         websites.category, websites.url, game_type;
+                         websites.category, websites.url, game_type,
+                         release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d;
                   where id = {$igdbId}; limit 1;";
 
             $response = \Illuminate\Support\Facades\Http::igdb()
@@ -208,6 +251,7 @@ class Game extends Model
                     : null,
                 'cover_image_id' => $coverImageId,
                 'game_type' => $igdbGame['game_type'] ?? 0,
+                'release_dates' => self::transformReleaseDates($igdbGame['release_dates'] ?? null),
                 'steam_data' => $igdbGame['steam'] ?? null,
                 'screenshots' => $igdbGame['screenshots'] ?? null,
                 'trailers' => $igdbGame['videos'] ?? null,

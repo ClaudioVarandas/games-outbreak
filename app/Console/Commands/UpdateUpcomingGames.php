@@ -17,7 +17,7 @@ class UpdateUpcomingGames extends Command
                             {--days=14 : Number of days ahead to fetch (default 14)}
                             {--start-date= : Start date (Y-m-d format, defaults to today)}
                             {--platforms= : Comma-separated IGDB platform IDs (e.g. 6,167,169,130)}
-                            {--limit=100 : Max games to fetch}
+                            {--limit=500 : Max games to fetch (default: 500, IGDB max per query)}
                             {--igdb-id= : Fetch a single game by IGDB ID}';
 
     protected $description = 'Fetch upcoming games from IGDB, enrich with Steam data, and store in local database';
@@ -39,7 +39,8 @@ class UpdateUpcomingGames extends Command
                              screenshots.image_id,
                              videos.video_id,
                              external_games.category, external_games.uid,
-                             websites.category, websites.url, game_type;
+                             websites.category, websites.url, game_type,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d;
                          where id = {$igdbId}; limit 1;";
 
                 $response = \Illuminate\Support\Facades\Http::igdb()
@@ -90,14 +91,50 @@ class UpdateUpcomingGames extends Command
             if (!empty($platformIds)) {
                 $this->info('Platforms: ' . implode(', ', $platformIds));
             }
+            $this->info("Limit: {$limit} games");
 
             try {
-                $games = $igdb->fetchUpcomingGames(
-                    platformIds: $platformIds,
-                    startDate: $startDate,
-                    endDate: $endDate,
-                    limit: $limit
-                );
+                $games = [];
+                $igdbMaxPerQuery = 500;
+                $offset = 0;
+                $totalFetched = 0;
+
+                // If limit > 500, we need pagination
+                while ($totalFetched < $limit) {
+                    $remaining = $limit - $totalFetched;
+                    $currentLimit = min($remaining, $igdbMaxPerQuery);
+                    
+                    $this->info("Fetching batch: offset {$offset}, limit {$currentLimit}...");
+                    
+                    $batchGames = $igdb->fetchUpcomingGames(
+                        platformIds: $platformIds,
+                        startDate: $startDate,
+                        endDate: $endDate,
+                        limit: $currentLimit,
+                        offset: $offset
+                    );
+
+                    if (empty($batchGames)) {
+                        // No more games available
+                        break;
+                    }
+
+                    $games = array_merge($games, $batchGames);
+                    $totalFetched += count($batchGames);
+                    $offset += $currentLimit;
+
+                    // If we got fewer games than requested, we've reached the end
+                    if (count($batchGames) < $currentLimit) {
+                        break;
+                    }
+
+                    // Small delay between pagination requests to avoid rate limiting
+                    if ($totalFetched < $limit) {
+                        usleep(500000); // 0.5 seconds
+                    }
+                }
+
+                $this->info("Fetched {$totalFetched} game(s) from IGDB");
 
                 $games = $igdb->enrichWithSteamData($games);
                 $rawJson = null; // Not storing raw JSON for bulk fetches
@@ -154,6 +191,7 @@ class UpdateUpcomingGames extends Command
                         : null,
                     'cover_image_id' => $coverImageId,
                     'game_type' => $igdbGame['game_type'] ?? 0,
+                    'release_dates' => \App\Models\Game::transformReleaseDates($igdbGame['release_dates'] ?? null),
                     'raw_igdb_json' => $gameRawJson,
                     'steam_data' => $igdbGame['steam'] ?? null,
                     'steam_wishlist_count' => $igdbGame['steam']['wishlist_count'] ?? null,

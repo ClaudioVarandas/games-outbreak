@@ -89,10 +89,10 @@
     function renderGridCard(game) {
         const placeholder = createPlaceholder(game.title);
         const date = new Date(game.release);
-        const day = date.getDate(); // No leading zero
-        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        const month = months[date.getMonth()];
-        const displayDate = `${day} ${month}`; // Output: "19 Dez"
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const displayDate = `${day}/${month}/${year}`;
 
         return `
         <div class="group relative bg-gray-800 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-400">
@@ -116,10 +116,10 @@
 
     function renderListItem(game) {
         const date = new Date(game.release);
-        const day = date.getDate(); // No leading zero
-        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        const month = months[date.getMonth()];
-        const displayDate = `${day} ${month}`; // Out
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const displayDate = `${day}/${month}/${year}`;
 
         return `
         <div class="flex items-center gap-8 bg-gray-800/70 backdrop-blur-sm rounded-2xl p-6 hover:bg-gray-750 transition-all hover:scale-[1.01] shadow-lg">

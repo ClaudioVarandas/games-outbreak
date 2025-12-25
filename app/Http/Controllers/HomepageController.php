@@ -53,28 +53,29 @@ class HomepageController extends Controller
     }
 
     /**
-     * Display the homepage with week game releases.
+     * Display the homepage with featured game releases.
      */
     public function index(): View
     {
         $activeList = $this->getActiveMonthlyList();
-        $weekGames = collect();
+        $featuredGames = collect();
         $weeklyUpcomingGames = $this->getWeeklyUpcomingGames();
-        $platformEnums = collect(PlatformEnum::cases())->keyBy(fn($e) => $e->value);
+        $platformEnums = PlatformEnum::getActivePlatforms();
 
         if ($activeList) {
-            [$weekStart, $weekEnd] = $this->getCurrentWeekRange();
+            $today = Carbon::today();
             
-            // Get games from the list and filter by release date within current week
-            $weekGames = $activeList->games()
+            // Get games from the list and filter by release date from today until end of list
+            $featuredGames = $activeList->games()
                 ->whereNotNull('first_release_date')
-                ->whereBetween('first_release_date', [$weekStart, $weekEnd])
+                ->where('first_release_date', '>=', $today)
+                ->where('first_release_date', '<=', $activeList->end_at)
                 ->with('platforms')
                 ->orderBy('first_release_date')
                 ->get();
         }
 
-        return view('homepage.index', compact('activeList', 'weekGames', 'weeklyUpcomingGames', 'platformEnums'));
+        return view('homepage.index', compact('activeList', 'featuredGames', 'weeklyUpcomingGames', 'platformEnums'));
     }
 
     /**
@@ -84,7 +85,7 @@ class HomepageController extends Controller
     {
         $activeList = $this->getActiveMonthlyList();
         $monthGames = collect();
-        $platformEnums = collect(PlatformEnum::cases())->keyBy(fn($e) => $e->value);
+        $platformEnums = PlatformEnum::getActivePlatforms();
 
         if ($activeList) {
             $monthGames = $activeList->games()

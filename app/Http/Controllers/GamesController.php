@@ -30,7 +30,7 @@ class GamesController extends Controller
             ->paginate(24);
 
         // Pre-load enum data for platforms (avoids N+1 in Blade)
-        $platformEnums = collect(PlatformEnum::cases())->keyBy(fn($e) => $e->value);
+        $platformEnums = PlatformEnum::getActivePlatforms();
 
         return view('upcoming.index', compact('games', 'platformEnums'));
     }
@@ -44,7 +44,7 @@ class GamesController extends Controller
 
         // If exists → show it
         if ($game) {
-            $platformEnums = collect(PlatformEnum::cases())->keyBy(fn($e) => $e->value);
+            $platformEnums = PlatformEnum::getActivePlatforms();
             return view('games.show', compact('game', 'platformEnums'));
         }
 
@@ -55,7 +55,8 @@ class GamesController extends Controller
                          screenshots.image_id, videos.video_id,
                          external_games.category, external_games.uid,
                          websites.category, websites.url,
-                         similar_games.name, similar_games.cover.image_id, similar_games.id, game_type;
+                         similar_games.name, similar_games.cover.image_id, similar_games.id, game_type,
+                         release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d;
                   where id = {$igdbId}; limit 1;";
 
             $response = Http::igdb()
@@ -94,6 +95,7 @@ class GamesController extends Controller
                     : null,
                 'cover_image_id' => $coverImageId,
                 'game_type' => $igdbGame['game_type'] ?? 0,
+                'release_dates' => Game::transformReleaseDates($igdbGame['release_dates'] ?? null),
                 'steam_data' => $igdbGame['steam'] ?? null,
                 'screenshots' => $igdbGame['screenshots'] ?? null,
                 'trailers' => $igdbGame['videos'] ?? null,
@@ -104,7 +106,7 @@ class GamesController extends Controller
             $this->syncRelations($game, $igdbGame);
 
             $game->load(['platforms', 'genres', 'gameModes']);
-            $platformEnums = collect(PlatformEnum::cases())->keyBy(fn($e) => $e->value);
+            $platformEnums = PlatformEnum::getActivePlatforms();
 
             return view('games.show', compact('game', 'platformEnums'));
 
@@ -167,7 +169,7 @@ class GamesController extends Controller
             ->sortByDesc('wanted_score')
             ->take(12); // Top 50 most wanted
 
-        $platformEnums = collect(PlatformEnum::cases())->keyBy(fn($e) => $e->value);
+        $platformEnums = PlatformEnum::getActivePlatforms();
 
         return view('most-wanted.index', compact('games', 'platformEnums'));
     }
@@ -203,8 +205,8 @@ class GamesController extends Controller
                     ->values()
                     ->toArray();
             } else {
-                $validPlatformIds = collect(PlatformEnum::cases())
-                    ->map(fn($enum) => $enum->value)
+                $validPlatformIds = PlatformEnum::getActivePlatforms()
+                    ->keys()
                     ->toArray();
             }
 
@@ -229,19 +231,48 @@ class GamesController extends Controller
             $nameWhereClause = implode(' & ', $nameConditions);
 
             // Use 'game_type' instead of deprecated 'category'
-            // Included game_type values: 0 = main game, 1 = DLC/Add-on, 2 = expansion, 4 = standalone expansion, 8 = remake, 9 = remaster, 10 = expanded game
-            $igdbQuery = 'fields name, first_release_date, cover.image_id, platforms.name, game_type; ' .
+            // Included game_type values: 0 = main game, 1 = DLC/Add-on, 2 = expansion, 3 = port, 4 = standalone expansion, 5 = bundle, 8 = remake, 9 = remaster, 10 = expanded game
+            // First query: games matching name AND platform filter
+            $igdbQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type, category, collection; ' .
                 'where ' . $nameWhereClause . ' ' .
                 '& platforms = (' . $platformsList . ') ' .
-                '& game_type = (0, 1, 2, 4, 8, 9, 10); ' .
+                '& game_type = (0, 1, 2, 3, 4, 5, 8, 9, 10); ' .
                 'sort first_release_date desc; ' .
                 'limit 8;';
+            
+            // Second query: bundles/ports with "Bundle" in name (without platform filter, like IGDB website does)
+            $bundleQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type, category, collection; ' .
+                'where ' . $nameWhereClause . ' ' .
+                '& (name ~ *"Bundle"* | name ~ *"Collection"*) ' .
+                '& game_type = (3, 5); ' .
+                'sort first_release_date desc; ' .
+                'limit 3;';
+
 
             $response = Http::igdb()
                 ->withBody($igdbQuery, 'text/plain')
                 ->post('https://api.igdb.com/v4/games');
 
             $igdbResponseData = $response->json() ?? [];
+            
+            // Fetch bundles separately (without platform filter, like IGDB website)
+            $bundleResponse = Http::igdb()
+                ->withBody($bundleQuery, 'text/plain')
+                ->post('https://api.igdb.com/v4/games');
+            
+            $bundleData = $bundleResponse->json() ?? [];
+            
+            // Merge results: add bundles at the beginning if they're not already in results
+            $existingIds = collect($igdbResponseData)->pluck('id')->toArray();
+            $newBundles = collect($bundleData)->filter(fn($bundle) => !in_array($bundle['id'] ?? null, $existingIds))->toArray();
+            
+            // Prepend bundles to results (like IGDB website does)
+            $igdbResponseData = array_merge($newBundles, $igdbResponseData);
+            
+            // Limit to 8 total results
+            $igdbResponseData = array_slice($igdbResponseData, 0, 8);
+
+
 
             if ($response->failed() || empty($igdbResponseData)) {
                 return response()->json([]);
@@ -249,20 +280,33 @@ class GamesController extends Controller
 
             $igdbResults = collect($igdbResponseData)->map(function ($game) {
                 $gameType = isset($game['game_type']) ? (int)$game['game_type'] : 0;
+                $gameName = $game['name'] ?? 'Unknown Game';
+                
+                // Detect bundles by name (IGDB sometimes classifies bundles as PORT/3 instead of BUNDLE/5)
+                $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
+                
+                // If it's a bundle by name, treat it as bundle regardless of game_type
+                if ($isBundle && $gameType !== 5) {
+                    $gameType = 5; // Force to BUNDLE
+                }
+                
                 $gameTypeEnum = \App\Enums\GameTypeEnum::fromValue($gameType) ?? \App\Enums\GameTypeEnum::MAIN;
                 $gameTypeLabel = $gameTypeEnum->label();
 
                 return [
                     'igdb_id' => $game['id'],
-                    'name' => $game['name'] ?? 'Unknown Game',
-                    'release' => isset($game['first_release_date'])
-                        ? \Carbon\Carbon::createFromTimestamp($game['first_release_date'])->format('M Y')
+                    'name' => $gameName,
+                        'release' => isset($game['first_release_date'])
+                        ? \Carbon\Carbon::createFromTimestamp($game['first_release_date'])->format('d/m/Y')
                         : 'TBA',
                     'cover_url' => isset($game['cover']['image_id'])
                         ? "https://images.igdb.com/igdb/image/upload/t_cover_small/{$game['cover']['image_id']}.jpg"
                         : 'https://via.placeholder.com/90x120/1f2937/6b7280?text=No+Cover',
                     'platforms' => collect($game['platforms'] ?? [])
-                        ->pluck('name')
+                        ->map(function ($platform) {
+                            $platformEnum = PlatformEnum::fromIgdbId($platform['id'] ?? 0);
+                            return $platformEnum?->label() ?? $platform['name'] ?? 'Unknown';
+                        })
                         ->take(2)
                         ->implode(', '),
                     'game_type' => $gameType,

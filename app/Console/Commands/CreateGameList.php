@@ -212,7 +212,8 @@ class CreateGameList extends Command
                          screenshots.image_id, videos.video_id,
                          external_games.category, external_games.uid,
                          websites.category, websites.url,
-                         similar_games.name, similar_games.cover.image_id, similar_games.id, game_type;
+                         similar_games.name, similar_games.cover.image_id, similar_games.id, game_type,
+                         release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d;
                   where id = {$igdbId}; limit 1;";
 
             $response = Http::igdb()
@@ -252,6 +253,7 @@ class CreateGameList extends Command
                     : null,
                 'cover_image_id' => $coverImageId,
                 'game_type' => $igdbGame['game_type'] ?? 0,
+                'release_dates' => Game::transformReleaseDates($igdbGame['release_dates'] ?? null),
                 'steam_data' => $igdbGame['steam'] ?? null,
                 'screenshots' => $igdbGame['screenshots'] ?? null,
                 'trailers' => $igdbGame['videos'] ?? null,

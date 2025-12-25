@@ -56,9 +56,9 @@
                         @php
                             $coverUrl = $carouselGame->cover_image_id
                                 ? $carouselGame->getCoverUrl('cover_big')
-                                : ($carouselGame->steam_data['header_image'] ?? 'https://via.placeholder.com/300x400/1f2937/6b7280?text=No+Cover');
+                                : ($carouselGame->steam_data['header_image'] ?? null);
                             $linkUrl = route('game.show', $carouselGame);
-                            $platformEnums = $platformEnums ?? collect(\App\Enums\PlatformEnum::cases())->keyBy(fn($e) => $e->value);
+                            $platformEnums = $platformEnums ?? \App\Enums\PlatformEnum::getActivePlatforms();
                         @endphp
 
                         <a href="{{ $linkUrl }}"
@@ -66,10 +66,15 @@
                             <div
                                 class="bg-gray-800 dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all">
                                 <div class="aspect-[3/4] relative overflow-hidden">
-                                    <img src="{{ $coverUrl }}"
-                                         alt="{{ $carouselGame->name }}"
-                                         class="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500"
-                                         onerror="this.onerror=null; this.src='https://via.placeholder.com/300x400/1f2937/6b7280?text=No+Cover';">
+                                    @if($coverUrl)
+                                        <img src="{{ $coverUrl }}"
+                                             alt="{{ $carouselGame->name }}"
+                                             class="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500"
+                                             onerror="this.onerror=null; this.replaceWith(this.nextElementSibling);">
+                                        <x-game-cover-placeholder :gameName="$carouselGame->name" class="w-full h-full" style="display: none;" />
+                                    @else
+                                        <x-game-cover-placeholder :gameName="$carouselGame->name" class="w-full h-full" />
+                                    @endif
                                     
                                     @php
                                         $validPlatformIds = $platformEnums->keys()->toArray();
@@ -104,7 +109,7 @@
                                     </h3>
                                     @if($carouselGame->first_release_date)
                                         <p class="text-sm text-gray-400 mt-1">
-                                            {{ $carouselGame->first_release_date->format('M j, Y') }}
+                                            {{ $carouselGame->first_release_date->format('d/m/Y') }}
                                         </p>
                                     @else
                                         <p class="text-sm text-gray-400 mt-1">TBA</p>

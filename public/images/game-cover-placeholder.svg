@@ -1,0 +1,12 @@
+<svg width="300" height="400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1f2937;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#111827;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="300" height="400" fill="url(#grad)"/>
+  <text x="150" y="190" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#6b7280" text-anchor="middle">No Cover</text>
+  <text x="150" y="220" font-family="Arial, sans-serif" font-size="14" fill="#4b5563" text-anchor="middle">Game Cover</text>
+</svg>
+

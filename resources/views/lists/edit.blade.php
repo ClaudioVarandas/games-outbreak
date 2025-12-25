@@ -150,18 +150,19 @@
                         <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow overflow-hidden">
                             <!-- Cover Image -->
                             <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-600">
-                                @if($game->cover_image_id)
-                                    <img src="{{ $game->getCoverUrl('cover_big') }}"
+                                @php
+                                    $coverUrl = $game->cover_image_id
+                                        ? $game->getCoverUrl('cover_big')
+                                        : ($game->steam_data['header_image'] ?? null);
+                                @endphp
+                                @if($coverUrl)
+                                    <img src="{{ $coverUrl }}"
                                          alt="{{ $game->name }} cover"
-                                         class="w-full h-full object-cover">
-                                @elseif($game->steam_data['header_image'] ?? null)
-                                    <img src="{{ $game->steam_data['header_image'] }}"
-                                         alt="{{ $game->name }} header"
-                                         class="w-full h-full object-cover">
+                                         class="w-full h-full object-cover"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <x-game-cover-placeholder :gameName="$game->name" class="w-full h-full" style="display: none;" />
                                 @else
-                                    <div class="flex items-center justify-center h-full text-gray-400 text-sm">
-                                        No Image
-                                    </div>
+                                    <x-game-cover-placeholder :gameName="$game->name" class="w-full h-full" />
                                 @endif
 
                                 <!-- Platform Badges -->
@@ -203,7 +204,7 @@
                                 </h3>
                                 @if($game->first_release_date)
                                     <p class="text-xs text-gray-600 dark:text-gray-400">
-                                        {{ $game->first_release_date->format('M j, Y') }}
+                                        {{ $game->first_release_date->format('d/m/Y') }}
                                     </p>
                                 @endif
                                 <div class="mt-1">

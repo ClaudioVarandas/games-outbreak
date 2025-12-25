@@ -35,7 +35,7 @@
         }
     }
     
-    $platformEnums = isset($platformEnums) ? $platformEnums : collect(\App\Enums\PlatformEnum::cases())->keyBy(fn($e) => $e->value);
+    $platformEnums = isset($platformEnums) ? $platformEnums : \App\Enums\PlatformEnum::getActivePlatforms();
     
     $titleIcon = '<svg class="w-8 h-8 mr-3 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

@@ -6,6 +6,8 @@ namespace App\Enums;
 enum PlatformEnum: int
 {
     // IGDB ID's
+    case LINUX = 3; //
+    case MACOS = 14; //
     case PC = 6;
     case PS5 = 167;
     case XBOX_SX = 169;
@@ -13,6 +15,8 @@ enum PlatformEnum: int
     case PS4 = 48;
     case XBOX_ONE = 49;
     case SWITCH2 = 508;
+    case ANDROID = 34; //
+    case IOS = 39; //
 
     // Add more as needed
 
@@ -21,11 +25,15 @@ enum PlatformEnum: int
         return match ($this) {
             self::PC => 'PC',
             self::PS5 => 'PS5',
-            self::XBOX_SX => 'Xbox',
+            self::XBOX_SX => 'Xbox X/S',
             self::SWITCH => 'Switch',
             self::PS4 => 'PS4',
             self::XBOX_ONE => 'Xbox One',
             self::SWITCH2 => 'Switch 2',
+            self::LINUX => 'Linux',
+            self::MACOS => 'macOS',
+            self::ANDROID => 'Android',
+            self::IOS => 'iOS',
         };
     }
 
@@ -39,6 +47,10 @@ enum PlatformEnum: int
             self::PS4 => 'blue',
             self::XBOX_ONE => 'green',
             self::SWITCH2 => 'red',
+            self::LINUX => 'gray',
+            self::MACOS => 'gray',
+            self::ANDROID => 'green',
+            self::IOS => 'gray',
         };
     }
 
@@ -57,5 +69,17 @@ enum PlatformEnum: int
     public static function fromIgdbId(int $id): ?self
     {
         return collect(self::cases())->firstWhere('value', $id);
+    }
+
+    /**
+     * Get only active platforms for frontend display
+     * Reads from config/platforms.php to determine which platforms are active
+     */
+    public static function getActivePlatforms(): \Illuminate\Support\Collection
+    {
+        $activeIds = config('platforms.active', []);
+        return collect(self::cases())
+            ->filter(fn($enum) => in_array($enum->value, $activeIds))
+            ->keyBy(fn($enum) => $enum->value);
     }
 }

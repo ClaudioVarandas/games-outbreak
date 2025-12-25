@@ -41,9 +41,10 @@
           class="flex items-center gap-4 px-4 py-3 hover:bg-gray-700 transition"
         >
           <img
-            :src="game.cover_url || 'https://via.placeholder.com/80x100/1f2937/6b7280?text=No+Cover'"
+            :src="game.cover_url || '/images/game-cover-placeholder.svg'"
             alt="Cover"
             class="w-12 h-16 object-cover rounded shadow"
+            @error="$event.target.src = '/images/game-cover-placeholder.svg'"
           >
           <div class="flex-1">
             <div class="font-medium text-white truncate">{{ game.name }}</div>

@@ -8,11 +8,11 @@
             Game Releases
         </h1>
 
-        <!-- Week Game Releases Section -->
+        <!-- Featured Games Section -->
         <section class="mb-12">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-                    Weekly Featured Games
+                    Featured Games
                 </h2>
                 @if($activeList)
                     <a href="{{ route('monthly-releases') }}" class="text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-medium transition">
@@ -21,16 +21,16 @@
                 @endif
             </div>
 
-            @if($activeList && $weekGames->count() > 0)
+            @if($activeList && $featuredGames->count() > 0)
                 <x-game-carousel 
-                    :games="$weekGames"
+                    :games="$featuredGames"
                     :platformEnums="$platformEnums"
-                    emptyMessage="No games releasing this week."
+                    emptyMessage="No featured games available."
                 />
-            @elseif($activeList && $weekGames->count() === 0)
+            @elseif($activeList && $featuredGames->count() === 0)
                 <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
                     <p class="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                        No games releasing this week.
+                        No featured games available.
                     </p>
                     <a href="{{ route('monthly-releases') }}" class="inline-block text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-medium transition">
                         View Monthly Featured Games →
@@ -49,7 +49,7 @@
         <section class="mb-12">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-                    This Week's Releases
+                    Upcoming Releases
                 </h2>
                 <a href="{{ route('upcoming') }}" class="text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-medium transition">
                     View All Upcoming →

@@ -15,7 +15,7 @@
             <div class="flex items-center gap-2 flex-shrink-0">
                 @if($list->end_at)
                     <span class="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded text-xs font-medium">
-                        Expires {{ $list->end_at->format('M j') }}
+                        Expires {{ $list->end_at->format('d/m/Y') }}
                     </span>
                 @endif
                 @if($list->is_system)

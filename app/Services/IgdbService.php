@@ -34,17 +34,28 @@ class IgdbService
 
     /**
      * Fetch upcoming games from IGDB
+     * 
+     * @param array $platformIds Platform IDs to filter by
+     * @param Carbon|null $startDate Start date for filtering
+     * @param Carbon|null $endDate End date for filtering
+     * @param int $limit Maximum number of games to fetch (IGDB max is 500 per query)
+     * @param int $offset Offset for pagination (default: 0)
+     * @return array Array of game data
      */
     public function fetchUpcomingGames(
         array   $platformIds = [],
         ?Carbon $startDate = null,
         ?Carbon $endDate = null,
-        int     $limit = 50
+        int     $limit = 500,
+        int     $offset = 0
     ): array
     {
         $platformIds = empty($platformIds) ? $this->defaultPlatforms : $platformIds;
         $startDate ??= Carbon::today();
         $endDate ??= $startDate->copy()->addWeek();
+
+        // IGDB max limit per query is 500
+        $queryLimit = min($limit, 500);
 
         $query = sprintf(
             "fields name, first_release_date, summary, platforms.name, cover.image_id,
@@ -54,23 +65,18 @@ class IgdbService
                             screenshots.image_id,
                             videos.video_id,
                             external_games.category, external_games.uid,
-                            websites.category, websites.url, game_type;
+                            websites.category, websites.url, game_type,
+                            release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d;
                      where platforms = (%s) & first_release_date >= %d & first_release_date < %d;
                      sort first_release_date asc;
-                     limit %d;",
+                     limit %d;
+                     offset %d;",
             implode(',', $platformIds),
             $startDate->timestamp,
             $endDate->timestamp,
-            $limit
+            $queryLimit,
+            $offset
         );
-
-        /*$response = Http::withHeaders([
-            'Client-ID' => config('igdb.credentials.client_id'),
-            'Authorization' => 'Bearer ' . $this->getAccessToken(),
-            'Accept' => 'application/json',
-        ])->withBody($query, 'text/plain') // IGDB expects plain text body
-        ->post('https://api.igdb.com/v4/games');*/
-
 
         $response = Http::igdb()
             ->withBody($query, 'text/plain')

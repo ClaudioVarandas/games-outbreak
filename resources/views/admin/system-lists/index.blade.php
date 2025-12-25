@@ -61,7 +61,7 @@
                                     </span>
                                     @if($list->end_at)
                                         <div class="text-xs text-gray-500 mt-1">
-                                            Expires {{ $list->end_at->format('M j, Y') }}
+                                            Expires {{ $list->end_at->format('d/m/Y') }}
                                         </div>
                                     @endif
                                 </td>

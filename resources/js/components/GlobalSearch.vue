@@ -43,9 +43,10 @@
           class="flex items-center gap-4 px-4 py-3 hover:bg-gray-700 transition border-b border-gray-700 last:border-0"
         >
           <img
-            :src="game.cover_url || 'https://via.placeholder.com/80x100/1f2937/6b7280?text=No+Cover'"
+            :src="game.cover_url || '/images/game-cover-placeholder.svg'"
             alt="Cover"
             class="w-12 h-16 object-cover rounded shadow"
+            @error="$event.target.src = '/images/game-cover-placeholder.svg'"
           >
           <div class="flex-1">
             <div class="font-medium text-white truncate">{{ game.name }}</div>
@@ -126,7 +127,10 @@ const debouncedSearch = debounce(async () => {
   try {
     const response = await fetch(`/api/search?q=${encodeURIComponent(query.value)}`);
     if (response.ok) {
-      results.value = await response.json();
+      const data = await response.json();
+      console.log('Search results received:', data);
+      console.log('Bundles found:', data.filter(g => g.name && (g.name.includes('Bundle') || g.name.includes('Collection'))));
+      results.value = data;
     } else {
       results.value = [];
     }
@@ -147,7 +151,9 @@ const getBadgeColor = (gameType) => {
     0: 'bg-green-600/80',      // MAIN
     1: 'bg-orange-600/80',     // DLC
     2: 'bg-teal-600/80',       // Expansion
+    3: 'bg-blue-600/80',       // PORT
     4: 'bg-yellow-600/80',     // Standalone
+    5: 'bg-pink-600/80',       // BUNDLE
     8: 'bg-red-600/80',        // Remake
     9: 'bg-yellow-500/80',      // Remaster
     10: 'bg-purple-600/80',     // Expanded

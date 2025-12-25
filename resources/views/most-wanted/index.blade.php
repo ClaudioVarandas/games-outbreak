@@ -36,7 +36,7 @@
                 @php
                     $rank = $index + 1;
                     $rankColor = $rank === 1 ? 'bg-yellow-500' : ($rank <= 5 ? 'bg-slate-400' : 'bg-teal-500');
-                    $release = $game->first_release_date?->format('M j, Y') ?? 'TBA';
+                    $release = $game->first_release_date?->format('d/m/Y') ?? 'TBA';
                     $wishlistProxy = $game->steam_data['recommendations'] ?? 'N/A';
                 @endphp
 
@@ -53,9 +53,20 @@
                         </div>
 
                         <div class="w-full aspect-video overflow-hidden">
-                            <img src="{{ $game->steam_data['header_image'] ?? $game->getCoverUrl('720p') }}"
-                                 alt="{{ $game->name }}"
-                                 class="w-full h-full object-cover group-hover:opacity-80 transition-opacity">
+                            @php
+                                $coverUrl = $game->cover_image_id
+                                    ? $game->getCoverUrl('720p')
+                                    : ($game->steam_data['header_image'] ?? null);
+                            @endphp
+                            @if($coverUrl)
+                                <img src="{{ $coverUrl }}"
+                                     alt="{{ $game->name }}"
+                                     class="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <x-game-cover-placeholder :gameName="$game->name" class="w-full h-full" style="display: none;" />
+                            @else
+                                <x-game-cover-placeholder :gameName="$game->name" class="w-full h-full" />
+                            @endif
                         </div>
 
                         <div class="p-4 relative">
