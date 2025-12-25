@@ -6,7 +6,7 @@
         @focus="openDropdown"
         @input="debouncedSearch"
         type="text"
-        class="w-full px-6 py-3 text-base rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+        class="w-full px-6 py-3 text-base rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
         placeholder="Search games..."
         autocomplete="off"
         ref="input"
@@ -65,7 +65,7 @@
         <a
           :href="`/search?q=${encodeURIComponent(query)}`"
           @click="closeDropdown"
-          class="flex items-center justify-center gap-2 px-4 py-3 hover:bg-teal-600/20 transition border-t border-gray-700 text-teal-400 hover:text-teal-300 font-medium"
+          class="flex items-center justify-center gap-2 px-4 py-3 hover:bg-orange-600/20 transition border-t border-gray-700 text-orange-400 hover:text-orange-300 font-medium"
         >
           <span>Show more</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,9 +159,9 @@ const checkAndLogBadge = (game) => {
 
 const getBadgeColor = (gameType) => {
   const colorMap = {
-    0: 'bg-green-600/80',      // MAIN
+    0: 'bg-orange-600/80',      // MAIN
     1: 'bg-orange-600/80',     // DLC
-    2: 'bg-teal-600/80',       // Expansion
+    2: 'bg-orange-600/80',       // Expansion
     3: 'bg-blue-600/80',       // PORT
     4: 'bg-yellow-600/80',     // Standalone
     5: 'bg-pink-600/80',       // BUNDLE

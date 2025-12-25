@@ -45,7 +45,7 @@
                         
                         <!-- Game Info -->
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
                                 {{ $game->name }}
                             </h3>
                             

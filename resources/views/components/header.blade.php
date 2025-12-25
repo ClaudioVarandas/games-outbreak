@@ -9,7 +9,7 @@
                      alt="Games Outbreak" 
                      class="h-10 w-auto"
                      onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="h-10 px-3 bg-teal-600 rounded-lg flex items-center justify-center font-black text-white text-xl tracking-tight" style="display: none;">
+                <div class="h-10 px-3 bg-orange-600 rounded-lg flex items-center justify-center font-black text-white text-xl tracking-tight" style="display: none;">
                     GO
                 </div>
                 <span class="text-xl font-bold text-white">Games Outbreak</span>
@@ -27,7 +27,7 @@
                 <!-- User Dropdown -->
                 <div x-data="{ open: false }" class="relative" @click.outside="open = false">
                     <button @click="open = !open" class="flex items-center space-x-2 hover:bg-gray-700 px-2 py-1 rounded transition">
-                        <div class="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                        <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                             {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                         </div>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,7 +70,7 @@
             @else
                 <!-- Guest -->
                 <div x-data>
-                    <button type="button" @click.prevent="$dispatch('open-modal', 'login-modal')" class="bg-teal-600 hover:bg-teal-700 px-4 py-2 rounded-lg transition">Login</button>
+                    <button type="button" @click.prevent="$dispatch('open-modal', 'login-modal')" class="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg transition">Login</button>
                 </div>
             @endauth
         </div>

@@ -76,7 +76,7 @@
                     
                     <!-- Game Info Below Image -->
                     <div class="p-4">
-                        <h3 class="font-bold text-lg text-white truncate group-hover:text-teal-400 transition-colors">
+                        <h3 class="font-bold text-lg text-white truncate group-hover:text-orange-400 transition-colors">
                             {{ $game->name }}
                         </h3>
                         

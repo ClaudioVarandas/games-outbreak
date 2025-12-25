@@ -16,7 +16,7 @@
 
         <div class="flex flex-wrap gap-4 mb-8">
             <select id="genre-filter"
-                    class="bg-gray-700 text-gray-200 p-2 rounded-lg focus:ring-teal-500 focus:border-teal-500">
+                    class="bg-gray-700 text-gray-200 p-2 rounded-lg focus:ring-orange-500 focus:border-orange-500">
                 <option value="all">All Genres</option>
                 @foreach($games->pluck('genres')->flatten()->unique('name') as $genre)
                     <option value="{{ $genre->name }}">{{ $genre->name }}</option>
@@ -24,7 +24,7 @@
             </select>
 
             <select id="sort-by"
-                    class="bg-gray-700 text-gray-200 p-2 rounded-lg focus:ring-teal-500 focus:border-teal-500">
+                    class="bg-gray-700 text-gray-200 p-2 rounded-lg focus:ring-orange-500 focus:border-orange-500">
                 <option value="score">Sort by: Wanted Score (Default)</option>
                 <option value="release">Sort by: Release Date</option>
                 <option value="title">Sort by: Title</option>
@@ -35,7 +35,7 @@
             @foreach($games as $index => $game)
                 @php
                     $rank = $index + 1;
-                    $rankColor = $rank === 1 ? 'bg-yellow-500' : ($rank <= 5 ? 'bg-slate-400' : 'bg-teal-500');
+                    $rankColor = $rank === 1 ? 'bg-yellow-500' : ($rank <= 5 ? 'bg-slate-400' : 'bg-orange-500');
                     $release = $game->first_release_date?->format('d/m/Y') ?? 'TBA';
                     $wishlistProxy = $game->steam_data['recommendations'] ?? 'N/A';
                 @endphp
@@ -81,7 +81,7 @@
 
                             <div class="flex justify-between items-center text-sm text-gray-400 mb-2">
                         <span class="flex items-center">
-                            <svg class="w-4 h-4 mr-1 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-4 h-4 mr-1 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path
                                     d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 9h12v7a1 1 0 01-1 1H5a1 1 0 01-1-1V9z"
                                     fill-rule="evenodd" clip-rule="evenodd"></path>
@@ -103,7 +103,7 @@
                                 <p class="text-sm text-gray-300 mb-2 font-light">
                                     Recommendations: {{ $wishlistProxy }}</p>
                                 <button
-                                    class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-6 rounded-full transition duration-150 shadow-lg">
+                                    class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-full transition duration-150 shadow-lg">
                                     Add to Watchlist
                                 </button>
                                 <p class="text-xs text-gray-500 mt-2">

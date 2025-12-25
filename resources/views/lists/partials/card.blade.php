@@ -8,7 +8,7 @@
         <!-- Header: Title | Expiration Badge | Active/Inactive Icon | Privacy Icon -->
         <div class="flex items-start justify-between gap-2 mb-4">
             <h3 class="font-semibold text-lg text-gray-900 dark:text-white flex-1">
-                <a href="{{ $listRoute }}" class="hover:text-teal-600">
+                <a href="{{ $listRoute }}" class="hover:text-orange-600">
                     {{ $list->name }}
                 </a>
             </h3>

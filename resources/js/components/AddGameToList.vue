@@ -6,7 +6,7 @@
         @focus="openDropdown"
         @input="debouncedSearch"
         type="text"
-        class="w-full px-4 py-2 rounded-lg bg-gray-700 dark:bg-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+        class="w-full px-4 py-2 rounded-lg bg-gray-700 dark:bg-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
         placeholder="Search games to add..."
         autocomplete="off"
         ref="input"
@@ -62,7 +62,7 @@
                   type="button"
                   @click="addGame(game.igdb_id)"
                   :disabled="adding"
-                  class="bg-teal-600 hover:bg-teal-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded text-sm transition">
+                  class="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded text-sm transition">
             <span v-if="adding && addingGameId === game.igdb_id">Adding...</span>
             <span v-else>Add</span>
           </button>
@@ -159,9 +159,9 @@ const shouldShowBadge = (game) => {
 
 const getBadgeColor = (gameType) => {
   const colorMap = {
-    0: 'bg-green-600/80',      // MAIN
+    0: 'bg-orange-600/80',      // MAIN
     1: 'bg-orange-600/80',     // DLC
-    2: 'bg-teal-600/80',       // Expansion
+    2: 'bg-orange-600/80',       // Expansion
     4: 'bg-yellow-600/80',     // Standalone
     8: 'bg-red-600/80',        // Remake
     9: 'bg-yellow-500/80',      // Remaster

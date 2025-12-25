@@ -20,7 +20,7 @@
                        id="name" 
                        value="{{ old('name') }}"
                        required
-                       class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                       class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
                 @error('name')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
@@ -33,7 +33,7 @@
                 <textarea name="description" 
                           id="description" 
                           rows="4"
-                          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white">{{ old('description') }}</textarea>
+                          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">{{ old('description') }}</textarea>
                 @error('description')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
@@ -45,7 +45,7 @@
                            name="is_public" 
                            value="1"
                            {{ old('is_public') ? 'checked' : '' }}
-                           class="rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                           class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">
                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Make this list public</span>
                 </label>
             </div>
@@ -58,7 +58,7 @@
                                value="1"
                                {{ old('is_system') ? 'checked' : '' }}
                                id="is_system_checkbox"
-                               class="rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                               class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">
                         <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Create as System List</span>
                     </label>
                     <p class="text-xs text-gray-600 dark:text-gray-400 ml-6">System lists are featured lists that can be accessed via a public URL.</p>
@@ -73,7 +73,7 @@
                                    id="slug" 
                                    value="{{ old('slug') }}"
                                    pattern="[a-z0-9-]+"
-                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
                             <p class="mt-1 text-xs text-gray-500">Only lowercase letters, numbers, and hyphens</p>
                             @error('slug')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -85,7 +85,7 @@
                                        name="is_active" 
                                        value="1"
                                        {{ old('is_active', true) ? 'checked' : '' }}
-                                       class="rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                                       class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">
                                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
                             </label>
                         </div>
@@ -97,7 +97,7 @@
                                    name="start_at" 
                                    id="start_at" 
                                    value="{{ old('start_at') }}"
-                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
                             <p class="mt-1 text-xs text-gray-500">List will be active starting from this date.</p>
                             @error('start_at')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -110,7 +110,7 @@
                                    id="end_at" 
                                    value="{{ old('end_at') }}"
                                    min="{{ old('start_at', date('Y-m-d', strtotime('+1 day'))) }}"
-                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
                             <p class="mt-1 text-xs text-gray-500">List will be automatically deactivated after this date.</p>
                             @error('end_at')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -121,7 +121,7 @@
             @endif
 
             <div class="flex gap-4">
-                <button type="submit" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg transition">
+                <button type="submit" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg transition">
                     Create List
                 </button>
                 <a href="{{ route('lists.index') }}" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-6 py-3 rounded-lg text-center transition">

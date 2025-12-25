@@ -82,7 +82,7 @@
 
                     <!-- Wishlist Count -->
                     @if($game->steam_data['wishlist_formatted'] ?? null)
-                        <p class="text-2xl md:text-3xl font-bold text-teal-400 drop-shadow-lg text-left">
+                        <p class="text-2xl md:text-3xl font-bold text-orange-400 drop-shadow-lg text-left">
                             🔥 {{ $game->steam_data['wishlist_formatted'] }} wishlists on Steam
                         </p>
                     @endif
@@ -121,7 +121,7 @@
                     <!-- Summary -->
                     <section>
                         <h2 class="text-3xl font-bold mb-6 flex items-center">
-                            <svg class="w-8 h-8 mr-3 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-8 h-8 mr-3 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
                                 <path fill-rule="evenodd"
                                       d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm1 0a7 7 0 1014 0 7 7 0 00-14 0z"
@@ -154,7 +154,7 @@
                     @if($game->trailers && count($game->trailers) > 0)
                         <section>
                             <h2 class="text-3xl font-bold mb-6 flex items-center">
-                                <svg class="w-8 h-8 mr-3 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="w-8 h-8 mr-3 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
                                 </svg>
                                 Trailers
@@ -181,7 +181,7 @@
                     @if($game->screenshots && count($game->screenshots) > 0)
                         <section>
                             <h2 class="text-3xl font-bold mb-6 flex items-center">
-                                <svg class="w-8 h-8 mr-3 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="w-8 h-8 mr-3 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
                                 </svg>
                                 Screenshots

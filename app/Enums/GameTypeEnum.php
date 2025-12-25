@@ -33,9 +33,9 @@ enum GameTypeEnum: int
     public function colorClass(): string
     {
         return match ($this) {
-            self::MAIN => 'bg-green-600/80',
+            self::MAIN => 'bg-orange-600/80',
             self::DLC => 'bg-orange-600/80',
-            self::EXPANSION => 'bg-teal-600/80',
+            self::EXPANSION => 'bg-orange-600/80',
             self::PORT => 'bg-blue-600/80',
             self::STANDALONE => 'bg-yellow-600/80',
             self::BUNDLE => 'bg-pink-600/80',

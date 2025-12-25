@@ -4,18 +4,18 @@
             <div>
                 <h3 class="text-white font-semibold mb-4">Upcoming Games</h3>
                 <ul class="space-y-2">
-                    <li><a href="{{ route('upcoming') }}" class="hover:text-teal-400 transition">Upcoming Games</a></li>
-                    <li><a href="{{ route('most-wanted') }}" class="hover:text-teal-400 transition">Most Wanted</a></li>
-                    <li><a href="{{ route('homepage') }}" class="hover:text-teal-400 transition">Homepage</a></li>
+                    <li><a href="{{ route('upcoming') }}" class="hover:text-orange-400 transition">Upcoming Games</a></li>
+                    <li><a href="{{ route('most-wanted') }}" class="hover:text-orange-400 transition">Most Wanted</a></li>
+                    <li><a href="{{ route('homepage') }}" class="hover:text-orange-400 transition">Homepage</a></li>
                 </ul>
             </div>
             <div>
                 <h3 class="text-white font-semibold mb-4">Lists</h3>
                 <ul class="space-y-2">
                     @auth
-                        <li><a href="{{ route('lists.index') }}" class="hover:text-teal-400 transition">My Lists</a></li>
+                        <li><a href="{{ route('lists.index') }}" class="hover:text-orange-400 transition">My Lists</a></li>
                     @else
-                        <li><a href="{{ route('login') }}" class="hover:text-teal-400 transition">Login</a></li>
+                        <li><a href="{{ route('login') }}" class="hover:text-orange-400 transition">Login</a></li>
                     @endauth
                 </ul>
             </div>
@@ -28,7 +28,7 @@
         </div>--}}
         <div class="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-400">
             <p>&copy; {{ date('Y') }} Games Outbreak. All rights reserved. Made with love by
-                <a href="https://github.com/ClaudioVarandas" class="hover:text-teal-400 transition">Cláudio Varandas</a>
+                <a href="https://github.com/ClaudioVarandas" class="hover:text-orange-400 transition">Cláudio Varandas</a>
             </p>
         </div>
     </div>

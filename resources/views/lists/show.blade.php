@@ -20,7 +20,7 @@
                         {{ $gameList->name }}
                     </h1>
                     @if($gameList->is_system)
-                        <span class="inline-block px-3 py-1 bg-teal-600 text-white rounded text-sm font-bold">System List</span>
+                        <span class="inline-block px-3 py-1 bg-orange-600 text-white rounded text-sm font-bold">System List</span>
                     @endif
                     @if($gameList->is_public)
                         <span class="inline-block px-3 py-1 bg-green-600 text-white rounded text-sm ml-2">Public</span>

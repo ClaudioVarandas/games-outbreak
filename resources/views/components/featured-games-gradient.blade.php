@@ -63,7 +63,7 @@
                     
                     <!-- Game Info on Gradient Overlay -->
                     <div class="absolute bottom-0 left-0 right-0 p-4 z-10">
-                        <h3 class="font-bold text-lg text-white mb-2 line-clamp-2 group-hover:text-teal-400 transition-colors">
+                        <h3 class="font-bold text-lg text-white mb-2 line-clamp-2 group-hover:text-orange-400 transition-colors">
                             {{ $game->name }}
                         </h3>
                         

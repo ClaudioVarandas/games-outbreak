@@ -73,7 +73,7 @@
                         
                         <!-- Game Info on Glass Surface -->
                         <div class="absolute bottom-0 left-0 right-0 p-4 z-10 backdrop-blur-sm bg-black/30 border-t border-white/20">
-                            <h3 class="font-bold text-lg text-white mb-2 line-clamp-2 group-hover:text-teal-400 transition-colors">
+                            <h3 class="font-bold text-lg text-white mb-2 line-clamp-2 group-hover:text-orange-400 transition-colors">
                                 {{ $game->name }}
                             </h3>
                             
@@ -154,7 +154,7 @@
                             
                             <!-- Game Info on Glass Surface -->
                             <div class="absolute bottom-0 left-0 right-0 p-4 z-10 backdrop-blur-sm bg-black/30 border-t border-white/20">
-                                <h3 class="font-bold text-lg text-white mb-2 line-clamp-2 group-hover:text-teal-400 transition-colors">
+                                <h3 class="font-bold text-lg text-white mb-2 line-clamp-2 group-hover:text-orange-400 transition-colors">
                                     {{ $game->name }}
                                 </h3>
                                 
@@ -179,7 +179,7 @@
             
             <div class="text-center mt-8">
                 <button id="load-more-games" 
-                        class="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm border border-white/20">
+                        class="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm border border-white/20">
                     Load More ({{ $remainingGames->count() }} remaining)
                 </button>
             </div>

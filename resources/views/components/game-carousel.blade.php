@@ -111,7 +111,7 @@
                                         class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
                                 </div>
                                 <div class="p-4">
-                                    <h3 class="font-bold text-lg text-white truncate group-hover/card:text-teal-400">
+                                    <h3 class="font-bold text-lg text-white truncate group-hover/card:text-orange-400">
                                         {{ $carouselGame->name }}
                                     </h3>
                                     @if($carouselGame->first_release_date)

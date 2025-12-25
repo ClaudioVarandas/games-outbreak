@@ -17,22 +17,122 @@ use Illuminate\Http\Request;
 
 class GamesController extends Controller
 {
-    public function upcoming(): View
+    public function upcoming(Request $request): View
     {
         $today = Carbon::today();
-        $oneMonthFromNow = $today->copy()->addMonth();
-
-        $games = Game::with('platforms')
+        $maxDate = $today->copy()->addDays(90);
+        
+        // Get filter parameters from request
+        $startDate = $request->query('start_date') 
+            ? Carbon::createFromFormat('Y-m-d', $request->query('start_date'))->startOfDay()
+            : $today;
+        
+        $endDate = $request->query('end_date')
+            ? Carbon::createFromFormat('Y-m-d', $request->query('end_date'))->endOfDay()
+            : $maxDate;
+        
+        // Validate date range
+        if ($endDate->lt($startDate)) {
+            $endDate = $startDate->copy()->endOfDay();
+        }
+        
+        // Ensure max 90 days range
+        if ($endDate->diffInDays($startDate) > 90) {
+            $endDate = $startDate->copy()->addDays(90)->endOfDay();
+        }
+        
+        // Ensure dates don't exceed max
+        if ($startDate->gt($maxDate)) {
+            $startDate = $today;
+        }
+        if ($endDate->gt($maxDate)) {
+            $endDate = $maxDate;
+        }
+        
+        // Build query
+        $query = Game::with(['platforms', 'genres', 'gameModes'])
             ->whereNotNull('first_release_date')
-            ->where('first_release_date', '>=', $today)
-            ->where('first_release_date', '<=', $oneMonthFromNow)
-            ->orderBy('first_release_date')
-            ->paginate(24);
-
-        // Pre-load enum data for platforms (avoids N+1 in Blade)
+            ->whereBetween('first_release_date', [$startDate, $endDate]);
+        
+        // Apply genre filter
+        $genreParams = $request->query('genres', []);
+        if (!is_array($genreParams)) {
+            $genreParams = [$genreParams];
+        }
+        $genreIds = array_filter(array_map('intval', $genreParams));
+        if (!empty($genreIds)) {
+            $query->whereHas('genres', function ($q) use ($genreIds) {
+                $q->whereIn('genres.id', $genreIds);
+            });
+        }
+        
+        // Apply platform filter
+        $platformParams = $request->query('platforms', []);
+        if (!is_array($platformParams)) {
+            $platformParams = [$platformParams];
+        }
+        $platformIds = array_filter(array_map('intval', $platformParams));
+        if (!empty($platformIds)) {
+            $query->whereHas('platforms', function ($q) use ($platformIds) {
+                $q->whereIn('platforms.igdb_id', $platformIds);
+            });
+        }
+        
+        // Apply game mode filter
+        $modeParams = $request->query('game_modes', []);
+        if (!is_array($modeParams)) {
+            $modeParams = [$modeParams];
+        }
+        $modeIds = array_filter(array_map('intval', $modeParams));
+        if (!empty($modeIds)) {
+            $query->whereHas('gameModes', function ($q) use ($modeIds) {
+                $q->whereIn('game_modes.id', $modeIds);
+            });
+        }
+        
+        // Apply game type filter
+        $gameTypeParams = $request->query('game_types', []);
+        if (!is_array($gameTypeParams)) {
+            $gameTypeParams = [$gameTypeParams];
+        }
+        $gameTypeIds = array_filter(array_map('intval', $gameTypeParams));
+        if (!empty($gameTypeIds)) {
+            $query->whereIn('game_type', $gameTypeIds);
+        }
+        
+        // Order and paginate
+        $games = $query->orderBy('first_release_date')
+            ->paginate(24)
+            ->appends($request->query());
+        
+        // Get filter options for the UI
         $platformEnums = PlatformEnum::getActivePlatforms();
-
-        return view('upcoming.index', compact('games', 'platformEnums'));
+        $allGenres = \App\Models\Genre::orderBy('name')->get();
+        $allGameModes = \App\Models\GameMode::orderBy('name')->get();
+        $allGameTypes = \App\Enums\GameTypeEnum::cases();
+        
+        // Get active filter values (ensure arrays)
+        $activeFilters = [
+            'start_date' => $request->query('start_date'),
+            'end_date' => $request->query('end_date'),
+            'genres' => is_array($request->query('genres', [])) ? $request->query('genres', []) : (($request->query('genres')) ? [$request->query('genres')] : []),
+            'platforms' => is_array($request->query('platforms', [])) ? $request->query('platforms', []) : (($request->query('platforms')) ? [$request->query('platforms')] : []),
+            'game_modes' => is_array($request->query('game_modes', [])) ? $request->query('game_modes', []) : (($request->query('game_modes')) ? [$request->query('game_modes')] : []),
+            'game_types' => is_array($request->query('game_types', [])) ? $request->query('game_types', []) : (($request->query('game_types')) ? [$request->query('game_types')] : []),
+        ];
+        
+        return view('upcoming.index', compact(
+            'games',
+            'platformEnums',
+            'allGenres',
+            'allGameModes',
+            'allGameTypes',
+            'activeFilters',
+            'startDate',
+            'endDate',
+            'today',
+            'maxDate'
+        ));
     }
 
     public function show($igdbId, IgdbService $igdb): View

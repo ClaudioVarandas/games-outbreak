@@ -27,7 +27,7 @@
                 <div class="flex items-center gap-2">
                     <button
                         onclick="window.location.href='{{ route('search', ['q' => $query, 'view' => 'grid']) }}'"
-                        class="px-4 py-2 rounded-lg transition {{ $viewMode === 'grid' ? 'bg-teal-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
+                        class="px-4 py-2 rounded-lg transition {{ $viewMode === 'grid' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
                     >
                         <svg class="w-5 h-5 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
@@ -36,7 +36,7 @@
                     </button>
                     <button
                         onclick="window.location.href='{{ route('search', ['q' => $query, 'view' => 'list']) }}'"
-                        class="px-4 py-2 rounded-lg transition {{ $viewMode === 'list' ? 'bg-teal-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
+                        class="px-4 py-2 rounded-lg transition {{ $viewMode === 'list' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
                     >
                         <svg class="w-5 h-5 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
@@ -80,7 +80,7 @@
                         
                         @if($hasMore)
                             <a href="{{ route('search', ['q' => $query, 'view' => $viewMode, 'page' => $currentPage + 1]) }}" 
-                               class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition">
+                               class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition">
                                 Next
                             </a>
                         @endif
