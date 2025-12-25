@@ -3,10 +3,13 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Observers\UserObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+#[ObservedBy([UserObserver::class])]
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -61,5 +64,45 @@ class User extends Authenticatable
     public function canCreateSystemLists(): bool
     {
         return $this->isAdmin();
+    }
+
+    public function getOrCreateBacklogList(): GameList
+    {
+        return $this->gameLists()
+            ->firstOrCreate(
+                [
+                    'user_id' => $this->id,
+                    'list_type' => \App\Enums\ListTypeEnum::BACKLOG->value,
+                ],
+                [
+                    'name' => 'Backlog',
+                    'description' => 'Games I plan to play',
+                    'is_public' => false,
+                    'is_system' => false,
+                ]
+            );
+    }
+
+    public function getOrCreateWishlistList(): GameList
+    {
+        return $this->gameLists()
+            ->firstOrCreate(
+                [
+                    'user_id' => $this->id,
+                    'list_type' => \App\Enums\ListTypeEnum::WISHLIST->value,
+                ],
+                [
+                    'name' => 'Wishlist',
+                    'description' => 'Games I want to buy',
+                    'is_public' => false,
+                    'is_system' => false,
+                ]
+            );
+    }
+
+    public function ensureSpecialLists(): void
+    {
+        $this->getOrCreateBacklogList();
+        $this->getOrCreateWishlistList();
     }
 }

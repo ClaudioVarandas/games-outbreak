@@ -7,11 +7,31 @@
     <div class="p-6 flex flex-col h-full">
         <!-- Header: Title | Expiration Badge | Active/Inactive Icon | Privacy Icon -->
         <div class="flex items-start justify-between gap-2 mb-4">
-            <h3 class="font-semibold text-lg text-gray-900 dark:text-white flex-1">
-                <a href="{{ $listRoute }}" class="hover:text-orange-600">
-                    {{ $list->name }}
-                </a>
-            </h3>
+            <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                    <h3 class="font-semibold text-lg text-gray-900 dark:text-white">
+                        <a href="{{ $listRoute }}" class="hover:text-orange-600">
+                            {{ $list->name }}
+                        </a>
+                    </h3>
+                    @if($list->isBacklog())
+                        <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs font-medium flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                            </svg>
+                            Backlog
+                        </span>
+                    @elseif($list->isWishlist())
+                        <span class="px-2 py-0.5 bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 rounded text-xs font-medium flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
+                            </svg>
+                            Wishlist
+                        </span>
+                    @endif
+                </div>
+            </div>
             <div class="flex items-center gap-2 flex-shrink-0">
                 @if($list->end_at)
                     <span class="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded text-xs font-medium">
@@ -116,20 +136,34 @@
             </div>
         @endif
 
-        <!-- Actions (Edit/Delete) - Always last row -->
+        <!-- Actions (View/Edit/Delete) - Always last row -->
         @if(isset($showActions) && $showActions)
-            <div class="flex gap-2 mt-auto">
-                <a href="{{ route('lists.edit', $list) }}" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded text-center text-sm transition">
-                    Edit
-                </a>
-                <form action="{{ route('lists.destroy', $list) }}" method="POST" class="flex-1" onsubmit="return confirm('Are you sure you want to delete this list?');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition">
-                        Delete
-                    </button>
-                </form>
-            </div>
+            @if($list->isSpecialList())
+                <div class="flex gap-2 mt-auto">
+                    <a href="{{ route('lists.show', $list) }}" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-center text-sm transition">
+                        View
+                    </a>
+                    <a href="{{ route('lists.edit', $list) }}" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded text-center text-sm transition">
+                        Edit
+                    </a>
+                </div>
+            @else
+                <div class="flex gap-2 mt-auto">
+                    <a href="{{ route('lists.show', $list) }}" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-center text-sm transition">
+                        View
+                    </a>
+                    <a href="{{ route('lists.edit', $list) }}" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded text-center text-sm transition">
+                        Edit
+                    </a>
+                    <form action="{{ route('lists.destroy', $list) }}" method="POST" class="flex-1" onsubmit="return confirm('Are you sure you want to delete this list?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+            @endif
         @endif
     </div>
 </div>

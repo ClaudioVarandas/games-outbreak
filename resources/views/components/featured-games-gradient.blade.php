@@ -25,10 +25,14 @@
                 $sortedPlatforms = $filteredPlatforms->sortBy(function($platform) {
                     return \App\Enums\PlatformEnum::getPriority($platform->igdb_id);
                 })->values();
+                
+                // Get user's backlog and wishlist lists for quick actions
+                $backlogList = auth()->check() ? auth()->user()->gameLists()->backlog()->with('games')->first() : null;
+                $wishlistList = auth()->check() ? auth()->user()->gameLists()->wishlist()->with('games')->first() : null;
             @endphp
 
             <a href="{{ $linkUrl }}" class="group block">
-                <div class="relative aspect-[3/4] rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105">
+                <div class="relative aspect-[3/4] rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 group/card">
                     @if($coverUrl)
                         <img src="{{ $coverUrl }}"
                              alt="{{ $game->name }}"
@@ -41,6 +45,13 @@
                     
                     <!-- Gradient Overlay -->
                     <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+                    
+                    @auth
+                        <x-game-quick-actions 
+                            :game="$game" 
+                            :backlogList="$backlogList" 
+                            :wishlistList="$wishlistList" />
+                    @endauth
                     
                     <!-- Platform Badges -->
                     @if($sortedPlatforms->count() > 0)

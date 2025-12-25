@@ -27,6 +27,12 @@ class StoreGameListRequest extends FormRequest
             'is_public' => ['boolean'],
         ];
 
+        // Prevent list_type from being set via form
+        // Backlog and wishlist lists are auto-created only
+        if ($this->has('list_type')) {
+            $rules['list_type'] = ['prohibited'];
+        }
+
         // Only admins can create system lists
         if ($this->user() && $this->user()->isAdmin()) {
             $rules['is_system'] = ['boolean'];

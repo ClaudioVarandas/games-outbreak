@@ -157,7 +157,12 @@
                     <a href="{{ route('game.show', $game) }}" class="block">
                         <div class="group relative bg-gray-800 dark:bg-gray-800 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-400">
                             <!-- Cover Image -->
-                            <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                            <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-700 overflow-hidden group/card">
+                                @php
+                                    // Get user's backlog and wishlist lists for quick actions
+                                    $backlogList = auth()->check() ? auth()->user()->gameLists()->backlog()->with('games')->first() : null;
+                                    $wishlistList = auth()->check() ? auth()->user()->gameLists()->wishlist()->with('games')->first() : null;
+                                @endphp
                                 @php
                                     $coverUrl = $game->cover_image_id
                                         ? $game->getCoverUrl('cover_big')
@@ -204,6 +209,13 @@
                                         @endforeach
                                     </div>
                                 @endif
+
+                                @auth
+                                    <x-game-quick-actions 
+                                        :game="$game" 
+                                        :backlogList="$backlogList" 
+                                        :wishlistList="$wishlistList" />
+                                @endauth
 
                                 <!-- Bottom Overlay with Title and Date -->
                                 <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent px-4 pt-20 pb-4 opacity-100 translate-y-0 transition-all duration-400 ease-out">

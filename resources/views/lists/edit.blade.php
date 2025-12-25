@@ -16,15 +16,27 @@
                 <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     List Name <span class="text-red-500">*</span>
                 </label>
-                <input type="text" 
-                       name="name" 
-                       id="name" 
-                       value="{{ old('name', $gameList->name) }}"
-                       required
-                       class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
-                @error('name')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+                @if($gameList->isSpecialList())
+                    <input type="text" 
+                           name="name" 
+                           id="name" 
+                           value="{{ old('name', $gameList->name) }}"
+                           disabled
+                           class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed">
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 italic">
+                        Backlog and wishlist lists cannot be renamed.
+                    </p>
+                @else
+                    <input type="text" 
+                           name="name" 
+                           id="name" 
+                           value="{{ old('name', $gameList->name) }}"
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                    @error('name')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                @endif
             </div>
 
             <div class="mb-6">
@@ -156,11 +168,13 @@
                                         : ($game->steam_data['header_image'] ?? null);
                                 @endphp
                                 @if($coverUrl)
-                                    <img src="{{ $coverUrl }}"
-                                         alt="{{ $game->name }} cover"
-                                         class="w-full h-full object-cover"
-                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                    <x-game-cover-placeholder :gameName="$game->name" class="w-full h-full" style="display: none;" />
+                                    <div class="relative w-full h-full">
+                                        <img src="{{ $coverUrl }}"
+                                             alt="{{ $game->name }} cover"
+                                             class="w-full h-full object-cover"
+                                             onerror="this.style.display='none'; if(this.nextElementSibling) { this.nextElementSibling.style.display='flex'; }">
+                                        <x-game-cover-placeholder :gameName="$game->name" class="w-full h-full absolute inset-0" style="display: none !important;" />
+                                    </div>
                                 @else
                                     <x-game-cover-placeholder :gameName="$game->name" class="w-full h-full" />
                                 @endif

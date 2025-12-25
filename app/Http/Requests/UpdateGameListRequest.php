@@ -37,6 +37,16 @@ class UpdateGameListRequest extends FormRequest
             'is_public' => ['boolean'],
         ];
 
+        // Prevent list_type from being changed
+        if ($this->has('list_type')) {
+            $rules['list_type'] = ['prohibited'];
+        }
+
+        // Prevent renaming backlog/wishlist lists
+        if ($gameList && $gameList->isSpecialList()) {
+            $rules['name'] = ['prohibited'];
+        }
+
         // Only admins can modify system list properties
         if ($this->user() && $this->user()->isAdmin()) {
             $rules['is_system'] = ['boolean'];

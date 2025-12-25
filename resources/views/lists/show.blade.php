@@ -50,13 +50,15 @@
                             <a href="{{ route('lists.edit', $gameList) }}" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg transition">
                                 Edit
                             </a>
-                            <form action="{{ route('lists.destroy', $gameList) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this list?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
-                                    Delete
-                                </button>
-                            </form>
+                            @if($gameList->canBeDeleted())
+                                <form action="{{ route('lists.destroy', $gameList) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this list?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                                        Delete
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                     @endif
                 @endauth
@@ -105,7 +107,12 @@
                     <a href="{{ route('game.show', $game) }}" class="block">
                         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
                             <!-- Cover Image -->
-                            <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-700">
+                            <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-700 group/card">
+                                @php
+                                    // Get user's backlog and wishlist lists for quick actions
+                                    $backlogList = auth()->check() ? auth()->user()->gameLists()->backlog()->with('games')->first() : null;
+                                    $wishlistList = auth()->check() ? auth()->user()->gameLists()->wishlist()->with('games')->first() : null;
+                                @endphp
                                 @php
                                     $coverUrl = $game->cover_image_id
                                         ? $game->getCoverUrl('cover_big')
@@ -154,6 +161,11 @@
                                 @endif
 
                                 @auth
+                                    <x-game-quick-actions 
+                                        :game="$game" 
+                                        :backlogList="$backlogList" 
+                                        :wishlistList="$wishlistList" />
+                                    
                                     @if($canEdit)
                                         <form action="{{ route('lists.games.remove', ['gameList' => $gameList, 'game' => $game]) }}" 
                                               method="POST" 

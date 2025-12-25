@@ -24,8 +24,25 @@ class GameListController extends Controller
     {
         $user = auth()->user();
 
-        // User's own lists (private or public) - visible to logged-in user only
-        $userLists = $user->gameLists()->userLists()->with('games')->get();
+        // Ensure special lists exist (in case they were deleted somehow)
+        $user->ensureSpecialLists();
+
+        // Separate regular lists from special lists
+        $regularLists = $user->gameLists()
+            ->userLists()
+            ->regular()
+            ->with('games')
+            ->get();
+
+        $backlogList = $user->gameLists()
+            ->backlog()
+            ->with('games')
+            ->first();
+
+        $wishlistList = $user->gameLists()
+            ->wishlist()
+            ->with('games')
+            ->first();
 
         // System lists - visible to admin users only
         // Note: is_active, is_public, start_at, and end_at are for public interface only
@@ -50,7 +67,7 @@ class GameListController extends Controller
                 ->get();
         }
 
-        return view('lists.index', compact('userLists', 'activeSystemLists', 'otherUsersLists'));
+        return view('lists.index', compact('regularLists', 'backlogList', 'wishlistList', 'activeSystemLists', 'otherUsersLists'));
     }
 
     /**
@@ -69,6 +86,14 @@ class GameListController extends Controller
     {
         $data = $request->validated();
         $data['user_id'] = auth()->id();
+
+        // Prevent creating backlog/wishlist via form (only auto-created)
+        if (isset($data['list_type']) && in_array($data['list_type'], ['backlog', 'wishlist'])) {
+            abort(403, 'Backlog and wishlist lists cannot be created manually.');
+        }
+
+        // Set list_type to 'regular' for user-created lists
+        $data['list_type'] = \App\Enums\ListTypeEnum::REGULAR->value;
 
         // Handle checkbox fields - if not present, set to false
         if ($request->user() && $request->user()->isAdmin()) {
@@ -148,6 +173,16 @@ class GameListController extends Controller
     {
         $data = $request->validated();
 
+        // Prevent changing list_type
+        if (isset($data['list_type']) && $data['list_type'] !== $gameList->list_type?->value) {
+            abort(403, 'List type cannot be changed.');
+        }
+
+        // Prevent renaming backlog/wishlist lists
+        if ($gameList->isSpecialList() && isset($data['name']) && $data['name'] !== $gameList->name) {
+            abort(403, 'Backlog and wishlist lists cannot be renamed.');
+        }
+
         // Handle checkbox fields - if not present, set to false
         if ($request->user() && $request->user()->isAdmin()) {
             $data['is_system'] = $request->has('is_system') ? (bool)$request->input('is_system') : false;
@@ -179,6 +214,11 @@ class GameListController extends Controller
     {
         if (!$gameList->canBeEditedBy(auth()->user())) {
             abort(403);
+        }
+
+        // Prevent deletion of backlog/wishlist lists
+        if (!$gameList->canBeDeleted()) {
+            abort(403, 'Backlog and wishlist lists cannot be deleted.');
         }
 
         $gameList->delete();
@@ -335,13 +375,24 @@ class GameListController extends Controller
     /**
      * Remove a game from the list.
      */
-    public function removeGame(GameList $gameList, Game $game): RedirectResponse
+    public function removeGame(Request $request, GameList $gameList, Game $game): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         if (!$gameList->canBeEditedBy(auth()->user())) {
             abort(403);
         }
 
         $gameList->games()->detach($game->id);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Game removed from list.',
+                'game' => [
+                    'id' => $game->id,
+                    'name' => $game->name,
+                ]
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Game removed from list.');
     }

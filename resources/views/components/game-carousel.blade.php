@@ -17,13 +17,13 @@
         </h2>
     @endif
 
-    <div class="relative group">
+    <div class="relative group/carousel">
         @if($games && $games->count() > 0)
             <!-- Left Arrow -->
             <button
                 onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: -400, behavior: 'smooth'})"
                 class="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-black/70 hover:bg-black/90 text-white p-4 rounded-full
-                   opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl
+                   opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 shadow-2xl
                    pointer-events-auto">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/>
@@ -34,7 +34,7 @@
             <button
                 onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: 400, behavior: 'smooth'})"
                 class="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-black/70 hover:bg-black/90 text-white p-4 rounded-full
-                   opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl
+                   opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 shadow-2xl
                    pointer-events-auto">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
@@ -65,7 +65,7 @@
                            class="flex-shrink-0 w-64 group/card block transform transition-all duration-300 hover:scale-105 hover:z-30">
                             <div
                                 class="bg-gray-800 dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all">
-                                <div class="aspect-[3/4] relative overflow-hidden">
+                                <div class="aspect-[3/4] relative overflow-hidden group/card">
                                     @if($coverUrl)
                                         <img src="{{ $coverUrl }}"
                                              alt="{{ $carouselGame->name }}"
@@ -88,6 +88,10 @@
                                         })->values();
                                         
                                         $displayPlatforms = $sortedPlatforms;
+                                        
+                                        // Get user's backlog and wishlist lists for quick actions
+                                        $backlogList = auth()->check() ? auth()->user()->gameLists()->backlog()->with('games')->first() : null;
+                                        $wishlistList = auth()->check() ? auth()->user()->gameLists()->wishlist()->with('games')->first() : null;
                                     @endphp
                                     @if($displayPlatforms->count() > 0)
                                         <div class="absolute top-2 left-2 flex flex-wrap gap-1 z-10">
@@ -106,6 +110,13 @@
                                             @endforeach
                                         </div>
                                     @endif
+                                    
+                                    @auth
+                                        <x-game-quick-actions 
+                                            :game="$carouselGame" 
+                                            :backlogList="$backlogList" 
+                                            :wishlistList="$wishlistList" />
+                                    @endauth
                                     
                                     <div
                                         class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity"></div>

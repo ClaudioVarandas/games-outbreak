@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ListTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -19,6 +20,7 @@ class GameList extends Model
         'is_active',
         'start_at',
         'end_at',
+        'list_type',
     ];
 
     protected $casts = [
@@ -27,6 +29,7 @@ class GameList extends Model
         'is_active' => 'boolean',
         'start_at' => 'datetime',
         'end_at' => 'datetime',
+        'list_type' => ListTypeEnum::class,
     ];
 
     public function user(): BelongsTo
@@ -63,6 +66,21 @@ class GameList extends Model
         return $query->where('is_system', false);
     }
 
+    public function scopeRegular(Builder $query): Builder
+    {
+        return $query->where('list_type', ListTypeEnum::REGULAR->value);
+    }
+
+    public function scopeBacklog(Builder $query): Builder
+    {
+        return $query->where('list_type', ListTypeEnum::BACKLOG->value);
+    }
+
+    public function scopeWishlist(Builder $query): Builder
+    {
+        return $query->where('list_type', ListTypeEnum::WISHLIST->value);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)
@@ -80,6 +98,31 @@ class GameList extends Model
     public function isSystem(): bool
     {
         return $this->is_system;
+    }
+
+    public function isRegular(): bool
+    {
+        return $this->list_type === ListTypeEnum::REGULAR;
+    }
+
+    public function isBacklog(): bool
+    {
+        return $this->list_type === ListTypeEnum::BACKLOG;
+    }
+
+    public function isWishlist(): bool
+    {
+        return $this->list_type === ListTypeEnum::WISHLIST;
+    }
+
+    public function isSpecialList(): bool
+    {
+        return $this->isBacklog() || $this->isWishlist();
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return !$this->isSpecialList();
     }
 
     public function canBeEditedBy(?User $user): bool
@@ -100,5 +143,10 @@ class GameList extends Model
 
         // Users can edit their own lists (check for null user_id)
         return $this->user_id !== null && $this->user_id === $user->id;
+    }
+
+    public function canBeRenamed(): bool
+    {
+        return !$this->isSpecialList();
     }
 }

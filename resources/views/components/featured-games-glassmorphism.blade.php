@@ -31,10 +31,14 @@
                 $sortedPlatforms = $filteredPlatforms->sortBy(function($platform) {
                     return \App\Enums\PlatformEnum::getPriority($platform->igdb_id);
                 })->values();
+                
+                // Get user's backlog and wishlist lists for quick actions
+                $backlogList = auth()->check() ? auth()->user()->gameLists()->backlog()->with('games')->first() : null;
+                $wishlistList = auth()->check() ? auth()->user()->gameLists()->wishlist()->with('games')->first() : null;
             @endphp
 
                 <a href="{{ $linkUrl }}" class="group block featured-game-item" data-index="{{ $index }}">
-                    <div class="relative aspect-[3/4] rounded-xl overflow-hidden backdrop-blur-md bg-white/10 dark:bg-white/5 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:bg-white/20 dark:hover:bg-white/10 hover:backdrop-blur-lg">
+                    <div class="relative aspect-[3/4] rounded-xl overflow-hidden backdrop-blur-md bg-white/10 dark:bg-white/5 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:bg-white/20 dark:hover:bg-white/10 hover:backdrop-blur-lg group/card">
                         @if($coverUrl)
                             <img src="{{ $coverUrl }}"
                                  alt="{{ $game->name }}"
@@ -51,6 +55,13 @@
                         
                         <!-- Glass Overlay -->
                         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                        
+                        @auth
+                            <x-game-quick-actions 
+                                :game="$game" 
+                                :backlogList="$backlogList" 
+                                :wishlistList="$wishlistList" />
+                        @endauth
                         
                         <!-- Platform Badges with Glass Effect -->
                         @if($sortedPlatforms->count() > 0)
@@ -113,9 +124,13 @@
                         $sortedPlatforms = $filteredPlatforms->sortBy(function($platform) {
                             return \App\Enums\PlatformEnum::getPriority($platform->igdb_id);
                         })->values();
+                        
+                        // Get user's backlog and wishlist lists for quick actions
+                        $backlogList = auth()->check() ? auth()->user()->gameLists()->backlog()->with('games')->first() : null;
+                        $wishlistList = auth()->check() ? auth()->user()->gameLists()->wishlist()->with('games')->first() : null;
                     @endphp
                     <a href="{{ $linkUrl }}" class="group block featured-game-item" data-index="{{ $initialLimit + $index }}">
-                        <div class="relative aspect-[3/4] rounded-xl overflow-hidden backdrop-blur-md bg-white/10 dark:bg-white/5 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:bg-white/20 dark:hover:bg-white/10 hover:backdrop-blur-lg">
+                        <div class="relative aspect-[3/4] rounded-xl overflow-hidden backdrop-blur-md bg-white/10 dark:bg-white/5 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:bg-white/20 dark:hover:bg-white/10 hover:backdrop-blur-lg group/card">
                             @if($coverUrl)
                                 <img src="{{ $coverUrl }}"
                                      alt="{{ $game->name }}"
@@ -132,6 +147,13 @@
                             
                             <!-- Glass Overlay -->
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                            
+                            @auth
+                                <x-game-quick-actions 
+                                    :game="$game" 
+                                    :backlogList="$backlogList" 
+                                    :wishlistList="$wishlistList" />
+                            @endauth
                             
                             <!-- Platform Badges with Glass Effect -->
                             @if($sortedPlatforms->count() > 0)
