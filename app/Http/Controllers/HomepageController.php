@@ -63,13 +63,8 @@ class HomepageController extends Controller
         $platformEnums = PlatformEnum::getActivePlatforms();
 
         if ($activeList) {
-            $today = Carbon::today();
-            
-            // Get games from the list and filter by release date from today until end of list
+            // Get all games from the active list (no date filtering)
             $featuredGames = $activeList->games()
-                ->whereNotNull('first_release_date')
-                ->where('first_release_date', '>=', $today)
-                ->where('first_release_date', '<=', $activeList->end_at)
                 ->with('platforms')
                 ->orderBy('first_release_date')
                 ->get();
