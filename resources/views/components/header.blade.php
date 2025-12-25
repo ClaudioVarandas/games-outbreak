@@ -2,9 +2,18 @@
 
 <div class="bg-gray-800 text-white py-4 shadow-md">
     <div class="container mx-auto flex items-center justify-between px-4">
-        <!-- Left: App Name -->
-        <div class="text-xl font-bold">
-            <a href="{{ route('homepage') }}" class="hover:text-teal-400 transition">GamesOutbreak</a>
+        <!-- Left: Logo -->
+        <div class="flex items-center">
+            <a href="{{ route('homepage') }}" class="flex items-center gap-3 hover:opacity-80 transition">
+                <img src="{{ asset('images/games-outbreak-logo.png') }}" 
+                     alt="Games Outbreak" 
+                     class="h-10 w-auto"
+                     onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="h-10 px-3 bg-teal-600 rounded-lg flex items-center justify-center font-black text-white text-xl tracking-tight" style="display: none;">
+                    GO
+                </div>
+                <span class="text-xl font-bold text-white">Games Outbreak</span>
+            </a>
         </div>
 
         <!-- Center: Search Bar -->
