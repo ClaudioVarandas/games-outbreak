@@ -398,6 +398,98 @@ class GameListController extends Controller
     }
 
     /**
+     * Display backlog page with grid/list view.
+     */
+    public function backlog(Request $request): View
+    {
+        $user = auth()->user();
+        $user->ensureSpecialLists();
+        
+        $backlogList = $user->gameLists()
+            ->backlog()
+            ->with('games')
+            ->first();
+        
+        $viewMode = $request->query('view', 'grid'); // 'grid' or 'list'
+        $page = (int) $request->query('page', 1);
+        $perPage = 25;
+        
+        $games = collect();
+        $totalResults = 0;
+        $totalPages = 1;
+        $hasMore = false;
+        
+        if ($backlogList) {
+            $allGames = $backlogList->games;
+            $totalResults = $allGames->count();
+            $totalPages = (int) ceil($totalResults / $perPage);
+            
+            $games = $allGames->skip(($page - 1) * $perPage)->take($perPage);
+            $hasMore = $page < $totalPages;
+        }
+        
+        $platformEnums = PlatformEnum::getActivePlatforms();
+        
+        $currentPage = $page;
+        
+        return view('backlog.index', compact(
+            'games',
+            'viewMode',
+            'totalResults',
+            'currentPage',
+            'totalPages',
+            'hasMore',
+            'platformEnums'
+        ));
+    }
+
+    /**
+     * Display wishlist page with grid/list view.
+     */
+    public function wishlist(Request $request): View
+    {
+        $user = auth()->user();
+        $user->ensureSpecialLists();
+        
+        $wishlistList = $user->gameLists()
+            ->wishlist()
+            ->with('games')
+            ->first();
+        
+        $viewMode = $request->query('view', 'grid'); // 'grid' or 'list'
+        $page = (int) $request->query('page', 1);
+        $perPage = 25;
+        
+        $games = collect();
+        $totalResults = 0;
+        $totalPages = 1;
+        $hasMore = false;
+        
+        if ($wishlistList) {
+            $allGames = $wishlistList->games;
+            $totalResults = $allGames->count();
+            $totalPages = (int) ceil($totalResults / $perPage);
+            
+            $games = $allGames->skip(($page - 1) * $perPage)->take($perPage);
+            $hasMore = $page < $totalPages;
+        }
+        
+        $platformEnums = PlatformEnum::getActivePlatforms();
+        
+        $currentPage = $page;
+        
+        return view('wishlist.index', compact(
+            'games',
+            'viewMode',
+            'totalResults',
+            'currentPage',
+            'totalPages',
+            'hasMore',
+            'platformEnums'
+        ));
+    }
+
+    /**
      * Display system list by slug (public interface).
      * Respects start_at and end_at dates for public access.
      */

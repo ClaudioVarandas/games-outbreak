@@ -49,99 +49,19 @@
                 class="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-gray-900 dark:from-gray-900 to-transparent z-10 pointer-events-none"></div>
 
             <!-- Scrollable Carousel -->
-            <div id="{{ $carouselId }}" class="carousel-inner overflow-x-auto scrollbar-hide scroll-smooth"
-                 onwheel="this.scrollLeft += event.deltaY * 2">
+            <div id="{{ $carouselId }}" class="carousel-inner overflow-x-auto scrollbar-hide scroll-smooth">
                 <div class="flex gap-6 py-4">
                     @foreach($games as $carouselGame)
                         @php
-                            $coverUrl = $carouselGame->cover_image_id
-                                ? $carouselGame->getCoverUrl('cover_big')
-                                : ($carouselGame->steam_data['header_image'] ?? null);
-                            $linkUrl = route('game.show', $carouselGame);
                             $platformEnums = $platformEnums ?? \App\Enums\PlatformEnum::getActivePlatforms();
                         @endphp
-
-                        <a href="{{ $linkUrl }}"
-                           class="flex-shrink-0 w-64 group/card block transform transition-all duration-300 hover:scale-105 hover:z-30">
-                            <div
-                                class="bg-gray-800 dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all">
-                                <div class="aspect-[3/4] relative overflow-hidden group/card">
-                                    @if($coverUrl)
-                                        <img src="{{ $coverUrl }}"
-                                             alt="{{ $carouselGame->name }}"
-                                             class="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500"
-                                             onerror="this.onerror=null; this.replaceWith(this.nextElementSibling);">
-                                        <x-game-cover-placeholder :gameName="$carouselGame->name" class="w-full h-full" style="display: none;" />
-                                    @else
-                                        <x-game-cover-placeholder :gameName="$carouselGame->name" class="w-full h-full" />
-                                    @endif
-                                    
-                                    @php
-                                        $validPlatformIds = $platformEnums->keys()->toArray();
-                                        $filteredPlatforms = $carouselGame->platforms 
-                                            ? $carouselGame->platforms->filter(fn($p) => in_array($p->igdb_id, $validPlatformIds))
-                                            : collect();
-                                        
-                                        // Sort platforms using config-based priority: PC first, then consoles, then Linux/macOS
-                                        $sortedPlatforms = $filteredPlatforms->sortBy(function($platform) {
-                                            return \App\Enums\PlatformEnum::getPriority($platform->igdb_id);
-                                        })->values();
-                                        
-                                        $displayPlatforms = $sortedPlatforms;
-                                        
-                                        // Get user's backlog and wishlist lists for quick actions
-                                        $backlogList = auth()->check() ? auth()->user()->gameLists()->backlog()->with('games')->first() : null;
-                                        $wishlistList = auth()->check() ? auth()->user()->gameLists()->wishlist()->with('games')->first() : null;
-                                    @endphp
-                                    @if($displayPlatforms->count() > 0)
-                                        <div class="absolute top-2 left-2 flex flex-wrap gap-1 z-10">
-                                            @foreach($displayPlatforms as $platform)
-                                                @php
-                                                    $enum = $platformEnums[$platform->igdb_id] ?? null;
-                                                @endphp
-                                                <span class="px-2 py-1 text-xs font-bold text-white rounded shadow-lg
-                                                    @if($enum)
-                                                        bg-{{ $enum->color() }}-600
-                                                    @else
-                                                        bg-gray-600
-                                                    @endif">
-                                                    {{ $enum?->label() ?? \Illuminate\Support\Str::limit($platform->name, 6) }}
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                    
-                                    @auth
-                                        <x-game-quick-actions 
-                                            :game="$carouselGame" 
-                                            :backlogList="$backlogList" 
-                                            :wishlistList="$wishlistList" />
-                                    @endauth
-                                    
-                                    <div
-                                        class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-lg text-white truncate group-hover/card:text-orange-400">
-                                        {{ $carouselGame->name }}
-                                    </h3>
-                                    @if($carouselGame->first_release_date)
-                                        <p class="text-sm text-gray-400 mt-1">
-                                            {{ $carouselGame->first_release_date->format('d/m/Y') }}
-                                        </p>
-                                    @else
-                                        <p class="text-sm text-gray-400 mt-1">TBA</p>
-                                    @endif
-                                    @if(true)
-                                        <div class="mt-1">
-                                            <span class="{{ $carouselGame->getGameTypeEnum()->colorClass() }} px-2 py-0.5 text-xs font-medium rounded text-white">
-                                                {{ $carouselGame->getGameTypeEnum()->label() }}
-                                            </span>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        </a>
+                        <x-game-card 
+                            :game="$carouselGame"
+                            variant="glassmorphism"
+                            layout="overlay"
+                            aspectRatio="3/4"
+                            :carousel="true"
+                            :platformEnums="$platformEnums" />
                     @endforeach
                 </div>
             </div>

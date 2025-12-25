@@ -40,6 +40,10 @@ Route::middleware('auth')
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+        // Backlog and Wishlist Pages
+        Route::get('/backlog', [GameListController::class, 'backlog'])->name('backlog');
+        Route::get('/wishlist', [GameListController::class, 'wishlist'])->name('wishlist');
+
         // User Lists
         Route::get('/lists', [GameListController::class, 'index'])->name('lists.index');
         Route::get('/lists/create', [GameListController::class, 'create'])->name('lists.create');
