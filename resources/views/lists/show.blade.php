@@ -106,8 +106,18 @@
         @if($gameList->games->count() > 0)
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 @foreach($gameList->games as $game)
+                    @php
+                        // Use pivot release_date if available, otherwise fall back to game's first_release_date
+                        // Convert pivot release_date to Carbon if it's a string (from database)
+                        $pivotReleaseDate = $game->pivot->release_date ?? null;
+                        if ($pivotReleaseDate && is_string($pivotReleaseDate)) {
+                            $pivotReleaseDate = \Carbon\Carbon::parse($pivotReleaseDate);
+                        }
+                        $displayDate = $pivotReleaseDate ?? $game->first_release_date;
+                    @endphp
                     <x-game-card 
                         :game="$game"
+                        :displayReleaseDate="$displayDate"
                         variant="glassmorphism"
                         layout="overlay"
                         aspectRatio="3/4"

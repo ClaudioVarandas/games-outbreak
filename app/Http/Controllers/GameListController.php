@@ -140,6 +140,7 @@ class GameListController extends Controller
             // For read-only (slug) views: order by release date (pivot or game)
             $games = $gameList->games()
                 ->with(['platforms', 'genres'])
+                ->reorder() // Clear existing ordering from relationship
                 ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
                 ->orderBy('games.id', 'ASC') // Secondary sort for null dates
                 ->get();

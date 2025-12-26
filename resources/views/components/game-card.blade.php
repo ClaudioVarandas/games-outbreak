@@ -13,6 +13,7 @@
     'backlogList' => null,
     'wishlistList' => null,
     'carousel' => false, // Whether this card is used in a carousel context
+    'displayReleaseDate' => null, // Optional: overrides game->first_release_date
 ])
 
 @php
@@ -25,6 +26,9 @@
     if (!$wishlistList && auth()->check()) {
         $wishlistList = auth()->user()->gameLists()->wishlist()->with('games')->first();
     }
+    
+    // Determine which release date to display
+    $releaseDate = $displayReleaseDate ?? $game->first_release_date;
     
     $coverUrl = $game->cover_image_id
         ? $game->getCoverUrl('cover_big')
@@ -156,9 +160,9 @@
                     <h3 class="text-md font-bold text-white mb-2 leading-tight line-clamp-2">
                         {{ $game->name }}
                     </h3>
-                    @if($game->first_release_date)
+                    @if($releaseDate)
                         <p class="text-md font-semibold text-cyan-300 dark:text-cyan-400 mb-2">
-                            {{ $game->first_release_date->format('d/m/Y') }}
+                            {{ $releaseDate->format('d/m/Y') }}
                         </p>
                     @endif
                     @if(true)
@@ -185,9 +189,9 @@
                         {{ $game->name }}
                     </h3>
                     
-                    @if($game->first_release_date)
+                    @if($releaseDate)
                         <p class="text-sm text-gray-200 mb-2">
-                            {{ $game->first_release_date->format('d/m/Y') }}
+                            {{ $releaseDate->format('d/m/Y') }}
                         </p>
                     @else
                         <p class="text-sm text-gray-200 mb-2">TBA</p>
@@ -199,7 +203,7 @@
                                 <svg class="w-4 h-4 mr-1 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 9h12v7a1 1 0 01-1 1H5a1 1 0 01-1-1V9z" fill-rule="evenodd" clip-rule="evenodd"></path>
                                 </svg>
-                                {{ $game->first_release_date?->format('d/m/Y') ?? 'TBA' }}
+                                {{ $releaseDate?->format('d/m/Y') ?? 'TBA' }}
                             </span>
                             <span class="text-xs bg-gray-700/50 backdrop-blur-sm px-2 py-0.5 rounded-full">
                                 {{ $game->genres->first()?->name ?? 'N/A' }}
@@ -230,9 +234,9 @@
                     {{ $game->name }}
                 </h3>
                 
-                @if($game->first_release_date)
+                @if($releaseDate)
                     <p class="text-sm {{ $variant === 'carousel' ? 'text-gray-400' : ($variant === 'simple' ? ($wantedScore !== null ? 'text-gray-400 mb-2' : 'text-gray-600 dark:text-gray-400 mb-3') : 'text-gray-400 mb-2') }} mt-1">
-                        {{ $game->first_release_date->format('d/m/Y') }}
+                        {{ $releaseDate->format('d/m/Y') }}
                     </p>
                 @else
                     <p class="text-sm {{ $variant === 'carousel' ? 'text-gray-400' : ($variant === 'simple' ? ($wantedScore !== null ? 'text-gray-400 mb-2' : 'text-gray-600 dark:text-gray-400 mb-3') : 'text-gray-400 mb-2') }} mt-1">TBA</p>
@@ -244,7 +248,7 @@
                             <svg class="w-4 h-4 mr-1 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 9h12v7a1 1 0 01-1 1H5a1 1 0 01-1-1V9z" fill-rule="evenodd" clip-rule="evenodd"></path>
                             </svg>
-                            {{ $game->first_release_date?->format('d/m/Y') ?? 'TBA' }}
+                            {{ $releaseDate?->format('d/m/Y') ?? 'TBA' }}
                         </span>
                         <span class="text-xs bg-gray-700 px-2 py-0.5 rounded-full">
                             {{ $game->genres->first()?->name ?? 'N/A' }}
