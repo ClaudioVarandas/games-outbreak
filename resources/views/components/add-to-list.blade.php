@@ -20,6 +20,11 @@
         isInWishlist: {{ $isInWishlist ? 'true' : 'false' }},
         selectedListId: null,
         addToListLoading: false,
+        notification: { show: false, message: '', type: 'success' },
+        showNotification(message, type = 'success') {
+            this.notification = { show: true, message, type };
+            setTimeout(() => { this.notification.show = false; }, 3000);
+        },
         async toggleBacklog() {
             if (this.backlogLoading) return;
             this.backlogLoading = true;
@@ -113,21 +118,37 @@
                 if (data.success) {
                     // Reset dropdown
                     this.selectedListId = null;
-                    // Optionally show success message or reload
-                    alert('Game added to list successfully!');
+                    this.showNotification('Game added to list successfully!', 'success');
                 } else if (data.info) {
-                    alert(data.info);
+                    this.showNotification(data.info, 'info');
                 } else {
-                    alert(data.error || data.message || 'Failed to add game to list');
+                    this.showNotification(data.error || data.message || 'Failed to add game to list', 'error');
                 }
             } catch (error) {
                 console.error('Error adding to custom list:', error);
-                alert('Failed to add game to list');
+                this.showNotification('Failed to add game to list', 'error');
             } finally {
                 this.addToListLoading = false;
             }
         }
     }">
+        <!-- Notification Toast -->
+        <div x-show="notification.show" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg max-w-sm"
+             :class="{
+                 'bg-green-600 text-white': notification.type === 'success',
+                 'bg-blue-600 text-white': notification.type === 'info',
+                 'bg-red-600 text-white': notification.type === 'error'
+             }"
+             style="display: none;">
+            <p x-text="notification.message"></p>
+        </div>
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-xl font-bold">Add to List</h3>
             <button @click="open = !open" 

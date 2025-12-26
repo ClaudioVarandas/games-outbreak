@@ -221,9 +221,6 @@ class IgdbService
 
             if ($appId) {
                 $gameAppIdMap[$index] = $appId;
-                \Log::debug("Found Steam AppID {$appId} for game index {$index}: " . ($game['name'] ?? 'Unknown'));
-            } else {
-                \Log::debug("No Steam AppID found for game index {$index}: " . ($game['name'] ?? 'Unknown'));
             }
         }
 
@@ -380,13 +377,11 @@ class IgdbService
                 ->get('https://www.steamgriddb.com/api/v2/search/autocomplete/' . urlencode($gameName));
 
             if ($searchResponse->failed() || empty($searchResponse->json()['data'])) {
-                \Log::debug("SteamGridDB search failed for: {$gameName}");
                 return null;
             }
 
             $searchResults = $searchResponse->json()['data'] ?? [];
             if (empty($searchResults)) {
-                \Log::debug("No SteamGridDB results for: {$gameName}");
                 return null;
             }
 
@@ -410,7 +405,6 @@ class IgdbService
             }
 
             if (!$gameId) {
-                \Log::debug("No valid game ID found in SteamGridDB results for: {$gameName}");
                 return null;
             }
 
@@ -422,13 +416,11 @@ class IgdbService
                 ->get("https://www.steamgriddb.com/api/v2/grids/game/{$gameId}");
 
             if ($gridsResponse->failed() || empty($gridsResponse->json()['data'])) {
-                \Log::debug("SteamGridDB grids fetch failed for game ID: {$gameId}");
                 return null;
             }
 
             $grids = $gridsResponse->json()['data'] ?? [];
             if (empty($grids)) {
-                \Log::debug("No grids found for SteamGridDB game ID: {$gameId}");
                 return null;
             }
 
@@ -446,7 +438,6 @@ class IgdbService
 
             $imageUrl = $selectedGrid['url'] ?? null;
             if (!$imageUrl) {
-                \Log::debug("No image URL in selected grid for SteamGridDB game ID: {$gameId}");
                 return null;
             }
 

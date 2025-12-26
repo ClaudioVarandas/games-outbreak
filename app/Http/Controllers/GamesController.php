@@ -21,26 +21,26 @@ class GamesController extends Controller
     {
         $today = Carbon::today();
         $maxDate = $today->copy()->addDays(90);
-        
+
         // Get filter parameters from request
-        $startDate = $request->query('start_date') 
+        $startDate = $request->query('start_date')
             ? Carbon::createFromFormat('Y-m-d', $request->query('start_date'))->startOfDay()
             : $today;
-        
+
         $endDate = $request->query('end_date')
             ? Carbon::createFromFormat('Y-m-d', $request->query('end_date'))->endOfDay()
             : $maxDate;
-        
+
         // Validate date range
         if ($endDate->lt($startDate)) {
             $endDate = $startDate->copy()->endOfDay();
         }
-        
+
         // Ensure max 90 days range
         if ($endDate->diffInDays($startDate) > 90) {
             $endDate = $startDate->copy()->addDays(90)->endOfDay();
         }
-        
+
         // Ensure dates don't exceed max
         if ($startDate->gt($maxDate)) {
             $startDate = $today;
@@ -48,12 +48,12 @@ class GamesController extends Controller
         if ($endDate->gt($maxDate)) {
             $endDate = $maxDate;
         }
-        
+
         // Build query
         $query = Game::with(['platforms', 'genres', 'gameModes'])
             ->whereNotNull('first_release_date')
             ->whereBetween('first_release_date', [$startDate, $endDate]);
-        
+
         // Apply genre filter
         $genreParams = $request->query('genres', []);
         if (!is_array($genreParams)) {
@@ -65,7 +65,7 @@ class GamesController extends Controller
                 $q->whereIn('genres.id', $genreIds);
             });
         }
-        
+
         // Apply platform filter
         $platformParams = $request->query('platforms', []);
         if (!is_array($platformParams)) {
@@ -77,7 +77,7 @@ class GamesController extends Controller
                 $q->whereIn('platforms.igdb_id', $platformIds);
             });
         }
-        
+
         // Apply game mode filter
         $modeParams = $request->query('game_modes', []);
         if (!is_array($modeParams)) {
@@ -89,7 +89,7 @@ class GamesController extends Controller
                 $q->whereIn('game_modes.id', $modeIds);
             });
         }
-        
+
         // Apply game type filter
         $gameTypeParams = $request->query('game_types', []);
         if (!is_array($gameTypeParams)) {
@@ -99,18 +99,18 @@ class GamesController extends Controller
         if (!empty($gameTypeIds)) {
             $query->whereIn('game_type', $gameTypeIds);
         }
-        
+
         // Order and paginate
         $games = $query->orderBy('first_release_date')
             ->paginate(24)
             ->appends($request->query());
-        
+
         // Get filter options for the UI
         $platformEnums = PlatformEnum::getActivePlatforms();
-        $allGenres = \App\Models\Genre::orderBy('name')->get();
-        $allGameModes = \App\Models\GameMode::orderBy('name')->get();
+        $allGenres = Genre::orderBy('name')->get();
+        $allGameModes = GameMode::orderBy('name')->get();
         $allGameTypes = \App\Enums\GameTypeEnum::cases();
-        
+
         // Get active filter values (ensure arrays)
         $activeFilters = [
             'start_date' => $request->query('start_date'),
@@ -120,7 +120,7 @@ class GamesController extends Controller
             'game_modes' => is_array($request->query('game_modes', [])) ? $request->query('game_modes', []) : (($request->query('game_modes')) ? [$request->query('game_modes')] : []),
             'game_types' => is_array($request->query('game_types', [])) ? $request->query('game_types', []) : (($request->query('game_types')) ? [$request->query('game_types')] : []),
         ];
-        
+
         return view('upcoming.index', compact(
             'games',
             'platformEnums',
@@ -178,7 +178,7 @@ class GamesController extends Controller
 
             // Store IGDB cover.image_id in cover_image_id
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
-            
+
             // If IGDB didn't provide a cover, try SteamGridDB
             if (!$coverImageId) {
                 $steamGridDbCover = $igdb->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
@@ -222,8 +222,8 @@ class GamesController extends Controller
             $this->syncRelations($game, $igdbGame);
 
             $game->load(['platforms', 'genres', 'gameModes']);
-            $platformEnums = PlatformEnum::getActivePlatforms();
 
+            $platformEnums = PlatformEnum::getActivePlatforms();
             return view('games.show', compact('game', 'platformEnums'));
 
         } catch (\Exception $e) {
@@ -360,7 +360,7 @@ class GamesController extends Controller
                 '& game_type = (0, 1, 2, 3, 4, 5, 8, 9, 10); ' .
                 'sort first_release_date desc; ' .
                 'limit 8;';
-            
+
             // Second query: bundles/ports with "Bundle" in name (without platform filter, like IGDB website does)
             $bundleQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type, category, collection; ' .
                 'where ' . $nameWhereClause . ' ' .
@@ -375,21 +375,21 @@ class GamesController extends Controller
                 ->post('https://api.igdb.com/v4/games');
 
             $igdbResponseData = $response->json() ?? [];
-            
+
             // Fetch bundles separately (without platform filter, like IGDB website)
             $bundleResponse = Http::igdb()
                 ->withBody($bundleQuery, 'text/plain')
                 ->post('https://api.igdb.com/v4/games');
-            
+
             $bundleData = $bundleResponse->json() ?? [];
-            
+
             // Merge results: add bundles at the beginning if they're not already in results
             $existingIds = collect($igdbResponseData)->pluck('id')->toArray();
             $newBundles = collect($bundleData)->filter(fn($bundle) => !in_array($bundle['id'] ?? null, $existingIds))->toArray();
-            
+
             // Prepend bundles to results (like IGDB website does)
             $igdbResponseData = array_merge($newBundles, $igdbResponseData);
-            
+
             // Limit to 8 total results
             $igdbResponseData = array_slice($igdbResponseData, 0, 8);
 
@@ -402,15 +402,15 @@ class GamesController extends Controller
             $igdbResults = collect($igdbResponseData)->map(function ($game) {
                 $gameType = isset($game['game_type']) ? (int)$game['game_type'] : 0;
                 $gameName = $game['name'] ?? 'Unknown Game';
-                
+
                 // Detect bundles by name (IGDB sometimes classifies bundles as PORT/3 instead of BUNDLE/5)
                 $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
-                
+
                 // If it's a bundle by name, treat it as bundle regardless of game_type
                 if ($isBundle && $gameType !== 5) {
                     $gameType = 5; // Force to BUNDLE
                 }
-                
+
                 $gameTypeEnum = \App\Enums\GameTypeEnum::fromValue($gameType) ?? \App\Enums\GameTypeEnum::MAIN;
                 $gameTypeLabel = $gameTypeEnum->label();
 
@@ -458,7 +458,7 @@ class GamesController extends Controller
 
             // Format to match existing API response structure
             $gameTypeEnum = $game->getGameTypeEnum();
-            
+
             return response()->json([[
                 'igdb_id' => $game->igdb_id,
                 'name' => $game->name,
@@ -506,7 +506,7 @@ class GamesController extends Controller
 
             // Create a paginated collection with single result
             $games = collect([$game]);
-            
+
             return view('search.results', [
                 'games' => $games,
                 'query' => $query,
@@ -522,7 +522,7 @@ class GamesController extends Controller
                 'igdb_id' => $igdbId,
                 'error' => $e->getMessage()
             ]);
-            
+
             return view('search.results', [
                 'games' => collect(),
                 'query' => $query,
@@ -594,7 +594,7 @@ class GamesController extends Controller
                 'sort first_release_date desc; ' .
                 'limit ' . $perPage . '; ' .
                 'offset ' . $offset . ';';
-            
+
             // Bundle query (without platform filter)
             $bundleQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type, category, collection; ' .
                 'where ' . $nameWhereClause . ' ' .
@@ -608,18 +608,18 @@ class GamesController extends Controller
                 ->post('https://api.igdb.com/v4/games');
 
             $igdbResponseData = $response->json() ?? [];
-            
+
             // Fetch bundles separately
             $bundleResponse = Http::igdb()
                 ->withBody($bundleQuery, 'text/plain')
                 ->post('https://api.igdb.com/v4/games');
-            
+
             $bundleData = $bundleResponse->json() ?? [];
-            
+
             // Merge results: add bundles at the beginning if they're not already in results
             $existingIds = collect($igdbResponseData)->pluck('id')->toArray();
             $newBundles = collect($bundleData)->filter(fn($bundle) => !in_array($bundle['id'] ?? null, $existingIds))->toArray();
-            
+
             // Prepend bundles to results
             $igdbResponseData = array_merge($newBundles, $igdbResponseData);
 
@@ -627,16 +627,16 @@ class GamesController extends Controller
             $games = collect($igdbResponseData)->map(function ($igdbGame) {
                 $gameType = isset($igdbGame['game_type']) ? (int)$igdbGame['game_type'] : 0;
                 $gameName = $igdbGame['name'] ?? 'Unknown Game';
-                
+
                 // Detect bundles by name
                 $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
                 if ($isBundle && $gameType !== 5) {
                     $gameType = 5;
                 }
-                
+
                 // Try to find existing game
                 $game = Game::with('platforms')->where('igdb_id', $igdbGame['id'])->first();
-                
+
                 if (!$game) {
                     // Create a new game record
                     $game = Game::create([
@@ -648,7 +648,7 @@ class GamesController extends Controller
                             ? \Carbon\Carbon::createFromTimestamp($igdbGame['first_release_date'])
                             : null,
                     ]);
-                    
+
                     // Sync platforms
                     if (!empty($igdbGame['platforms'])) {
                         $platformIds = collect($igdbGame['platforms'])->map(function ($platform) {
@@ -661,7 +661,7 @@ class GamesController extends Controller
                         $game->load('platforms');
                     }
                 }
-                
+
                 return $game;
             });
 
@@ -686,7 +686,7 @@ class GamesController extends Controller
                 'query' => $query,
                 'error' => $e->getMessage()
             ]);
-            
+
             return view('search.results', [
                 'games' => collect(),
                 'query' => $query,

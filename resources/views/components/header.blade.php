@@ -13,6 +13,9 @@
                     GO
                 </div>
                 <span class="text-xl font-bold text-white">Games Outbreak</span>
+                <span class="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded shadow-lg border border-purple-400 ml-2">
+                    BETA
+                </span>
             </a>
         </div>
 

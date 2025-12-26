@@ -74,6 +74,28 @@
         No games found for "{{ query }}"
       </div>
     </div>
+
+    <!-- Notification Toast -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="opacity-0 translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="notification.show"
+        class="fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg max-w-sm"
+        :class="{
+          'bg-green-600 text-white': notification.type === 'success',
+          'bg-blue-600 text-white': notification.type === 'info',
+          'bg-red-600 text-white': notification.type === 'error'
+        }"
+      >
+        <p>{{ notification.message }}</p>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -95,6 +117,14 @@ const input = ref(null);
 const searchContainer = ref(null);
 const adding = ref(false);
 const addingGameId = ref(null);
+const notification = ref({ show: false, message: '', type: 'success' });
+
+const showNotification = (message, type = 'success') => {
+  notification.value = { show: true, message, type };
+  setTimeout(() => {
+    notification.value.show = false;
+  }, 3000);
+};
 
 const openDropdown = () => {
   isOpen.value = true;
@@ -205,7 +235,7 @@ const addGame = async (gameId) => {
         window.location.reload();
         return;
       }
-      alert('Failed to add game to list');
+      showNotification('Failed to add game to list', 'error');
       adding.value = false;
       addingGameId.value = null;
       return;
@@ -217,19 +247,19 @@ const addGame = async (gameId) => {
         window.location.reload();
       } else if (data.info) {
         // Game already in list
-        alert(data.info);
+        showNotification(data.info, 'info');
         adding.value = false;
         addingGameId.value = null;
       }
     } else {
       // Error response
-      alert(data.error || data.message || 'Failed to add game to list');
+      showNotification(data.error || data.message || 'Failed to add game to list', 'error');
       adding.value = false;
       addingGameId.value = null;
     }
   } catch (err) {
     console.error('Add game failed:', err);
-    alert('Failed to add game to list');
+    showNotification('Failed to add game to list', 'error');
     adding.value = false;
     addingGameId.value = null;
   }

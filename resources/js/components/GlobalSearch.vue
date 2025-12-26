@@ -108,7 +108,6 @@ const handleClickOutside = (event) => {
 };
 
 onMounted(() => {
-  console.log("Component mounted... yeah!");
   document.addEventListener('click', handleClickOutside);
 });
 
@@ -139,8 +138,6 @@ const debouncedSearch = debounce(async () => {
     const response = await fetch(`/api/search?q=${encodeURIComponent(query.value)}`);
     if (response.ok) {
       const data = await response.json();
-      console.log('Search results received:', data);
-      console.log('Bundles found:', data.filter(g => g.name && (g.name.includes('Bundle') || g.name.includes('Collection'))));
       results.value = data;
     } else {
       results.value = [];
