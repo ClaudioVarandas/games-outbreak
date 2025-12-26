@@ -8,8 +8,16 @@
 # Run migrations and seeders
 php artisan migrate --seed
 
+# Create the admin user id 1, required for the system lists
+php artisan user:create-admin --email=admin@example.com --password=secure_password --force
+
 # Create monthly game lists for the current year
 php artisan games:lists:create-monthly --year=2026
+
+
+# Populate db with games
+php artisan igdb:upcoming:update --start-date=2026-01-06 --days=10 
+
 ```
 
 ### Create Admin User
