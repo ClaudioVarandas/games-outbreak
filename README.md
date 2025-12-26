@@ -14,11 +14,21 @@ php artisan user:create-admin --email=admin@example.com --password=secure_passwo
 # Create monthly game lists for the current year
 php artisan games:lists:create-monthly --year=2026
 
-
 # Populate db with games
 php artisan igdb:upcoming:update --start-date=2026-01-06 --days=10 
+```
+
+### DB
+```shell
+
+# dump prod db
+mysqldump -h xxx.db.laravel.cloud -P 3306 -u <user> -p --single-transaction main > dump-go-main.sql
+
+# import DB
+mysql -u root -p games_outbreak < /usr/dumps/dump-go-main.sql
 
 ```
+
 
 ### Create Admin User
 
