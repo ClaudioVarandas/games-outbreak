@@ -136,7 +136,22 @@ class GameListController extends Controller
             abort(403);
         }
 
-        $gameList->load(['games.platforms', 'games.genres', 'user']);
+        if ($readOnly) {
+            // For read-only (slug) views: order by release date (pivot or game)
+            $games = $gameList->games()
+                ->with(['platforms', 'genres'])
+                ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
+                ->orderBy('games.id', 'ASC') // Secondary sort for null dates
+                ->get();
+            
+            // Assign to gameList for view compatibility
+            $gameList->setRelation('games', $games);
+            $gameList->load('user');
+        } else {
+            // For regular views: keep pivot order
+            $gameList->load(['games.platforms', 'games.genres', 'user']);
+        }
+
         $platformEnums = PlatformEnum::getActivePlatforms();
 
         return view('lists.show', compact('gameList', 'platformEnums', 'readOnly'));
@@ -358,7 +373,10 @@ class GameListController extends Controller
 
         // Add game to list
         $maxOrder = $gameList->games()->max('order') ?? 0;
-        $gameList->games()->attach($game->id, ['order' => $maxOrder + 1]);
+        $gameList->games()->attach($game->id, [
+            'order' => $maxOrder + 1,
+            'release_date' => $game->first_release_date,
+        ]);
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([

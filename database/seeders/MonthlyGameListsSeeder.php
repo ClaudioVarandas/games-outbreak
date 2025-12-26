@@ -67,7 +67,10 @@ class MonthlyGameListsSeeder extends Seeder
             // Attach games to the list with order
             $order = 1;
             foreach ($gamesToAdd as $game) {
-                $gameList->games()->attach($game->id, ['order' => $order]);
+                $gameList->games()->attach($game->id, [
+                    'order' => $order,
+                    'release_date' => $game->first_release_date,
+                ]);
                 $order++;
             }
 

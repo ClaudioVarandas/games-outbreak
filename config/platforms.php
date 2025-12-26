@@ -8,8 +8,11 @@ return [
         167, // PS5
         169, // Xbox Series X/S
         130, // Switch
+        508, // Switch2
         34, // Android
         39, // IOS
+        48, // PS4
+        59,// Xbox One
         // Add more platform IGDB IDs here to make them active
         // Platforms defined in PlatformEnum but not listed here will be inactive
     ],

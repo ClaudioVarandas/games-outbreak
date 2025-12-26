@@ -51,15 +51,18 @@ Route::middleware('auth')
         Route::get('/wishlist', [GameListController::class, 'wishlist'])->name('wishlist');
 
         // User Lists
-        Route::get('/lists', [GameListController::class, 'index'])->name('lists.index');
-        Route::get('/lists/create', [GameListController::class, 'create'])->name('lists.create');
-        Route::post('/lists', [GameListController::class, 'store'])->name('lists.store');
-        Route::get('/lists/{gameList}', [GameListController::class, 'show'])->name('lists.show');
-        Route::get('/lists/{gameList}/edit', [GameListController::class, 'edit'])->name('lists.edit');
-        Route::patch('/lists/{gameList}', [GameListController::class, 'update'])->name('lists.update');
-        Route::delete('/lists/{gameList}', [GameListController::class, 'destroy'])->name('lists.destroy');
-        Route::post('/lists/{gameList}/games', [GameListController::class, 'addGame'])->name('lists.games.add');
-        Route::delete('/lists/{gameList}/games/{game}', [GameListController::class, 'removeGame'])->name('lists.games.remove');
+        Route::prefix('user')
+            ->group(function () {
+                Route::get('/lists', [GameListController::class, 'index'])->name('lists.index');
+                Route::get('/lists/create', [GameListController::class, 'create'])->name('lists.create');
+                Route::post('/lists', [GameListController::class, 'store'])->name('lists.store');
+                Route::get('/lists/{gameList}', [GameListController::class, 'show'])->name('lists.show');
+                Route::get('/lists/{gameList}/edit', [GameListController::class, 'edit'])->name('lists.edit');
+                Route::patch('/lists/{gameList}', [GameListController::class, 'update'])->name('lists.update');
+                Route::delete('/lists/{gameList}', [GameListController::class, 'destroy'])->name('lists.destroy');
+                Route::post('/lists/{gameList}/games', [GameListController::class, 'addGame'])->name('lists.games.add');
+                Route::delete('/lists/{gameList}/games/{game}', [GameListController::class, 'removeGame'])->name('lists.games.remove');
+            });
     });
 
 // Admin System Lists Management

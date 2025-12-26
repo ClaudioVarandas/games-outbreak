@@ -105,7 +105,7 @@
                 formData.append('_token', '{{ csrf_token() }}');
                 formData.append('game_id', '{{ $game->id }}');
                 
-                const response = await fetch(`/lists/${this.selectedListId}/games`, {
+                const response = await fetch(`/user/lists/${this.selectedListId}/games`, {
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',

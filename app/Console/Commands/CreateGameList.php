@@ -162,8 +162,11 @@ class CreateGameList extends Command
                     continue;
                 }
 
-                // Attach game to list with order
-                $gameList->games()->attach($game->id, ['order' => $order]);
+                // Attach game to list with order and release_date
+                $gameList->games()->attach($game->id, [
+                    'order' => $order,
+                    'release_date' => $game->first_release_date,
+                ]);
                 $this->info("  ✓ Added: {$game->name}");
                 $successCount++;
                 $order++;

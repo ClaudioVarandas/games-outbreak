@@ -217,7 +217,7 @@ const addGame = async (gameId) => {
     formData.append('game_id', gameId);
     formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
 
-    const response = await fetch(`/lists/${props.listId}/games`, {
+    const response = await fetch(`/user/lists/${props.listId}/games`, {
       method: 'POST',
       body: formData,
       headers: {

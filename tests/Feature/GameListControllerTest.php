@@ -15,7 +15,7 @@ class GameListControllerTest extends TestCase
 
     public function test_lists_index_requires_authentication(): void
     {
-        $response = $this->get('/lists');
+        $response = $this->get('/user/lists');
 
         $response->assertRedirect('/login');
     }
@@ -25,7 +25,7 @@ class GameListControllerTest extends TestCase
         $user = User::factory()->create();
         $list = GameList::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->get('/lists');
+        $response = $this->actingAs($user)->get('/user/lists');
 
         $response->assertStatus(200);
         $response->assertViewIs('lists.index');
@@ -38,7 +38,7 @@ class GameListControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->get('/lists');
+        $response = $this->actingAs($user)->get('/user/lists');
 
         $response->assertStatus(200);
         $this->assertDatabaseHas('game_lists', [
@@ -53,7 +53,7 @@ class GameListControllerTest extends TestCase
 
     public function test_create_list_form_requires_authentication(): void
     {
-        $response = $this->get('/lists/create');
+        $response = $this->get('/user/lists/create');
 
         $response->assertRedirect('/login');
     }
@@ -62,7 +62,7 @@ class GameListControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->get('/lists/create');
+        $response = $this->actingAs($user)->get('/user/lists/create');
 
         $response->assertStatus(200);
         $response->assertViewIs('lists.create');
@@ -72,7 +72,7 @@ class GameListControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/user/lists', [
             'name' => 'My New List',
             'description' => 'Test description',
             'is_public' => false,
@@ -90,7 +90,7 @@ class GameListControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/lists', []);
+        $response = $this->actingAs($user)->post('/user/lists', []);
 
         $response->assertSessionHasErrors('name');
     }
@@ -99,7 +99,7 @@ class GameListControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/user/lists', [
             'name' => 'Backlog',
             'list_type' => 'backlog',
         ]);
@@ -112,7 +112,7 @@ class GameListControllerTest extends TestCase
         $user = User::factory()->create();
         $list = GameList::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->get('/lists/' . $list->id);
+        $response = $this->actingAs($user)->get('/user/lists/' . $list->id);
 
         $response->assertStatus(200);
         $response->assertViewIs('lists.show');
@@ -123,7 +123,7 @@ class GameListControllerTest extends TestCase
     {
         $list = GameList::factory()->create();
 
-        $response = $this->get('/lists/' . $list->id);
+        $response = $this->get('/user/lists/' . $list->id);
 
         $response->assertRedirect('/login');
     }
@@ -134,7 +134,7 @@ class GameListControllerTest extends TestCase
         $list = GameList::factory()->create(['user_id' => $user->id]);
         $game = Game::factory()->create();
 
-        $response = $this->actingAs($user)->post('/lists/' . $list->id . '/games', [
+        $response = $this->actingAs($user)->post('/user/lists/' . $list->id . '/games', [
             'game_id' => $game->igdb_id,
         ]);
 
@@ -150,7 +150,7 @@ class GameListControllerTest extends TestCase
         $game = Game::factory()->create();
         $list->games()->attach($game->id);
 
-        $response = $this->actingAs($user)->delete('/lists/' . $list->id . '/games/' . $game->id);
+        $response = $this->actingAs($user)->delete('/user/lists/' . $list->id . '/games/' . $game->id);
 
         $response->assertRedirect();
         $this->assertFalse($list->fresh()->games->contains($game));
@@ -290,7 +290,7 @@ class GameListControllerTest extends TestCase
         $user = User::factory()->create();
 
         // Public list gets slug
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/user/lists', [
             'name' => 'My Public List',
             'is_public' => true,
         ]);
@@ -304,7 +304,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Private list also gets slug
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/user/lists', [
             'name' => 'My Private List',
             'is_public' => false,
         ]);
@@ -330,7 +330,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Cannot use existing slug for public list
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/user/lists', [
             'name' => 'New List',
             'is_public' => true,
             'slug' => 'existing-slug',
@@ -339,7 +339,7 @@ class GameListControllerTest extends TestCase
         $response->assertSessionHasErrors('slug');
 
         // Cannot use existing slug for private list either
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/user/lists', [
             'name' => 'Another List',
             'is_public' => false,
             'slug' => 'existing-slug',
@@ -359,7 +359,7 @@ class GameListControllerTest extends TestCase
             'name' => 'My Test List',
         ]);
 
-        $response = $this->actingAs($user)->patch('/lists/' . $list->id, [
+        $response = $this->actingAs($user)->patch('/user/lists/' . $list->id, [
             'name' => 'My Test List',
             'is_public' => false,
         ]);
@@ -402,7 +402,7 @@ class GameListControllerTest extends TestCase
             'slug' => 'my-slug',
         ]);
 
-        $response = $this->actingAs($user)->patch('/lists/' . $list->id, [
+        $response = $this->actingAs($user)->patch('/user/lists/' . $list->id, [
             'name' => $list->name,
             'is_public' => true,
             'slug' => 'taken-slug',

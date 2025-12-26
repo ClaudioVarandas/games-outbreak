@@ -42,7 +42,7 @@ class GameList extends Model
     public function games(): BelongsToMany
     {
         return $this->belongsToMany(Game::class, 'game_list_game')
-            ->withPivot('order')
+            ->withPivot('order', 'release_date')
             ->withTimestamps()
             ->orderByPivot('order');
     }

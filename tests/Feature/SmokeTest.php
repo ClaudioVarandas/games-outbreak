@@ -75,7 +75,7 @@ class SmokeTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/user/lists', [
             'name' => 'My List',
             'description' => 'Test',
             'is_public' => false,
@@ -93,7 +93,7 @@ class SmokeTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->create();
 
-        $response = $this->actingAs($user)->post('/lists/' . $user->getOrCreateBacklogList()->id . '/games', [
+        $response = $this->actingAs($user)->post('/user/lists/' . $user->getOrCreateBacklogList()->id . '/games', [
             'game_id' => $game->igdb_id,
         ]);
 
@@ -108,7 +108,7 @@ class SmokeTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->create();
 
-        $response = $this->actingAs($user)->post('/lists/' . $user->getOrCreateWishlistList()->id . '/games', [
+        $response = $this->actingAs($user)->post('/user/lists/' . $user->getOrCreateWishlistList()->id . '/games', [
             'game_id' => $game->igdb_id,
         ]);
 
@@ -123,7 +123,7 @@ class SmokeTest extends TestCase
         $user = User::factory()->create();
         GameList::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->get('/lists');
+        $response = $this->actingAs($user)->get('/user/lists');
 
         $response->assertStatus(200);
         $response->assertViewIs('lists.index');
@@ -138,7 +138,7 @@ class SmokeTest extends TestCase
 
     public function test_protected_routes_require_authentication(): void
     {
-        $this->get('/lists')->assertRedirect('/login');
+        $this->get('/user/lists')->assertRedirect('/login');
         $this->get('/backlog')->assertRedirect('/login');
         $this->get('/wishlist')->assertRedirect('/login');
     }
