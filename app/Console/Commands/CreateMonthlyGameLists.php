@@ -18,7 +18,7 @@ class CreateMonthlyGameLists extends Command
         $year = $this->option('year');
         
         if (!$year) {
-            $year = $this->ask('Enter the year', date('Y'));
+            $year = date('Y');
         }
         
         $year = (int) $year;

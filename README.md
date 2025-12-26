@@ -1,14 +1,45 @@
+# Games Outbreak Project
 
-## setup
+## Setup
 
+### Initial Setup
+
+```bash
+# Run migrations and seeders
 php artisan migrate --seed
+
+# Create monthly game lists for the current year
 php artisan games:lists:create-monthly --year=2026
+```
+
+### Create Admin User
+
+After initial setup, create an admin user to access admin features:
+
+**Interactive Mode (Recommended)**:
+```bash
+php artisan user:create-admin
+```
+
+The command will prompt for:
+- Email address
+- Password (hidden input)
+- Password confirmation (hidden input)
+
+**Non-Interactive Mode**:
+```bash
+php artisan user:create-admin --email=admin@example.com --password=secure_password --force
+```
+
+**Security Notes**:
+- Use strong passwords (minimum 8 characters enforced)
+- Never commit admin credentials to git
+- Run command directly on server via SSH for production
+- Password is automatically hashed using Laravel's bcrypt
 
 
 
-### OLD project ideas
-
-# Go-Games Project
+## project ideas
 
 This project is a web application for managing game lists and tracking game statuses.
 
@@ -51,18 +82,3 @@ Each user can have:
 - Users can add/remove games to/from their wishlist.
 - Displayed under the **Wishlist** tab on `/my-games`.
 - Useful for tracking games you want to buy or try in the future.
-
-## Admin Panel
-
-An admin panel is available at `/admin` for users with the `Admin` role. It provides interfaces for managing core application data.
-
-**Features:**
-
-*   **User Management:** View, create, edit, and delete users.
-*   **Game Management:** View, create, edit, and delete games.
-*   **Game List Management:** View, create, edit, and delete game lists.
-
-**Access:**
-
-*   Only users with the `Admin` role (defined in `App\Enums\UserRole`) can access `/admin` and its sub-routes.
-*   Access is controlled via the `App\Http\Middleware\EnsureUserIsAdmin` middleware.
