@@ -35,6 +35,7 @@ class UpdateGameListRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_public' => ['boolean'],
+            'slug' => ['nullable', 'string', 'alpha_dash', 'unique:game_lists,slug,' . $gameListId],
         ];
 
         // Prevent list_type from being changed
@@ -50,7 +51,6 @@ class UpdateGameListRequest extends FormRequest
         // Only admins can modify system list properties
         if ($this->user() && $this->user()->isAdmin()) {
             $rules['is_system'] = ['boolean'];
-            $rules['slug'] = ['nullable', 'string', 'alpha_dash', 'unique:game_lists,slug,' . $gameListId];
             $rules['start_at'] = ['nullable', 'date'];
             $rules['end_at'] = ['nullable', 'date'];
             $rules['is_active'] = ['boolean'];

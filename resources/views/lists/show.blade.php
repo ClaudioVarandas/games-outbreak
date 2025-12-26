@@ -29,37 +29,39 @@
                     @endif
                 </div>
                 @auth
-                    @php
-                        // Re-check for admin users viewing system lists
-                        $authUser = auth()->user();
-                        $canEditList = false;
-                        if ($authUser) {
-                            // Direct check: admins can always edit
-                            if ($authUser->isAdmin()) {
-                                $canEditList = true;
-                            } else {
-                                // Non-admins can only edit their own non-system lists
-                                if (!$gameList->is_system && $gameList->user_id === $authUser->id) {
+                    @if(!isset($readOnly) || !$readOnly)
+                        @php
+                            // Re-check for admin users viewing system lists
+                            $authUser = auth()->user();
+                            $canEditList = false;
+                            if ($authUser) {
+                                // Direct check: admins can always edit
+                                if ($authUser->isAdmin()) {
                                     $canEditList = true;
+                                } else {
+                                    // Non-admins can only edit their own non-system lists
+                                    if (!$gameList->is_system && $gameList->user_id === $authUser->id) {
+                                        $canEditList = true;
+                                    }
                                 }
                             }
-                        }
-                    @endphp
-                    @if($canEditList)
-                        <div class="flex gap-2">
-                            <a href="{{ route('lists.edit', $gameList) }}" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg transition">
-                                Edit
-                            </a>
-                            @if($gameList->canBeDeleted())
-                                <form action="{{ route('lists.destroy', $gameList) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this list?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
-                                        Delete
-                                    </button>
-                                </form>
-                            @endif
-                        </div>
+                        @endphp
+                        @if($canEditList)
+                            <div class="flex gap-2">
+                                <a href="{{ route('lists.edit', $gameList) }}" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg transition">
+                                    Edit
+                                </a>
+                                @if($gameList->canBeDeleted())
+                                    <form action="{{ route('lists.destroy', $gameList) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this list?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                                            Delete
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        @endif
                     @endif
                 @endauth
             </div>
@@ -91,7 +93,7 @@
                 {{ $gameList->games->count() }} {{ Str::plural('game', $gameList->games->count()) }} in this list
             </p>
             @auth
-                @if($canEdit)
+                @if($canEdit && (!isset($readOnly) || !$readOnly))
                     <!-- Add Games Section -->
                     <div class="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                         <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">Add Games to List</h2>
@@ -109,8 +111,8 @@
                         variant="glassmorphism"
                         layout="overlay"
                         aspectRatio="3/4"
-                        :showRemoveButton="$canEdit"
-                        :removeRoute="route('lists.games.remove', ['gameList' => $gameList, 'game' => $game])"
+                        :showRemoveButton="($canEdit && (!isset($readOnly) || !$readOnly))"
+                        :removeRoute="(!isset($readOnly) || !$readOnly) ? route('lists.games.remove', ['gameList' => $gameList, 'game' => $game]) : null"
                         :platformEnums="$platformEnums" />
                 @endforeach
             </div>
@@ -120,7 +122,7 @@
                     This list is empty.
                 </p>
                 @auth
-                    @if($canEdit)
+                    @if($canEdit && (!isset($readOnly) || !$readOnly))
                         <p class="text-gray-500 dark:text-gray-500">
                             Browse games and add them to this list.
                         </p>

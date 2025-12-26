@@ -30,14 +30,12 @@ class StoreGameListRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_public' => ['boolean'],
+            'slug' => ['nullable', 'string', 'alpha_dash', 'unique:game_lists,slug'],
         ];
 
         // Only admins can create system lists
         if ($this->user() && $this->user()->isAdmin()) {
             $rules['is_system'] = ['boolean'];
-            // Slug is nullable - will be auto-generated from name if empty and is_system is true
-            // If provided, it must be unique and valid format
-            $rules['slug'] = ['nullable', 'string', 'alpha_dash', 'unique:game_lists,slug'];
             $rules['start_at'] = ['nullable', 'date'];
             $rules['end_at'] = ['nullable', 'date'];
             

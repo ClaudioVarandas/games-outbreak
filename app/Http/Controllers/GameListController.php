@@ -97,27 +97,23 @@ class GameListController extends Controller
         }
         $data['is_public'] = $request->has('is_public') ? (bool)$request->input('is_public') : false;
 
-        // Generate slug if creating system list and slug not provided
-        // Also slugify the slug if provided (to ensure proper format)
-        if ($data['is_system'] ?? false) {
-            if (empty($data['slug'])) {
-                $data['slug'] = $this->generateUniqueSlug($data['name']);
-            } else {
-                // Slugify the provided slug to ensure proper format
-                $data['slug'] = Str::slug($data['slug']);
-                // Check uniqueness and append number if needed
-                $originalSlug = $data['slug'];
-                $counter = 1;
-                while (GameList::where('slug', $data['slug'])->exists()) {
-                    $data['slug'] = $originalSlug . '-' . $counter;
-                    $counter++;
-                }
+        // Handle slug generation for all lists (mandatory)
+        if (empty($data['slug'])) {
+            $data['slug'] = $this->generateUniqueSlug($data['name']);
+        } else {
+            // Slugify the provided slug to ensure proper format
+            $data['slug'] = Str::slug($data['slug']);
+            // Check uniqueness and append number if needed
+            $originalSlug = $data['slug'];
+            $counter = 1;
+            while (GameList::where('slug', $data['slug'])->exists()) {
+                $data['slug'] = $originalSlug . '-' . $counter;
+                $counter++;
             }
         }
 
-        // Ensure non-system lists don't have slug
+        // Set is_active for non-system lists
         if (!($data['is_system'] ?? false)) {
-            $data['slug'] = null;
             $data['is_active'] = false;
         }
 
@@ -129,8 +125,10 @@ class GameListController extends Controller
 
     /**
      * Display the specified resource.
+     * 
+     * @param bool $readOnly If true, hides all edit/add/remove functionality
      */
-    public function show(GameList $gameList): View
+    public function show(GameList $gameList, bool $readOnly = false): View
     {
         // Check if user can view this list
         $user = auth()->user();
@@ -141,7 +139,7 @@ class GameListController extends Controller
         $gameList->load(['games.platforms', 'games.genres', 'user']);
         $platformEnums = PlatformEnum::getActivePlatforms();
 
-        return view('lists.show', compact('gameList', 'platformEnums'));
+        return view('lists.show', compact('gameList', 'platformEnums', 'readOnly'));
     }
 
     /**
@@ -185,14 +183,26 @@ class GameListController extends Controller
         }
         $data['is_public'] = $request->has('is_public') ? (bool)$request->input('is_public') : false;
 
-        // Generate slug if updating to system list and slug not provided
-        if (($data['is_system'] ?? false) && empty($data['slug']) && !$gameList->slug) {
-            $data['slug'] = $this->generateUniqueSlug($data['name']);
+        // Handle slug generation for all lists (mandatory)
+        if (empty($data['slug'])) {
+            // Generate slug if not provided and list doesn't have one
+            if (!$gameList->slug) {
+                $data['slug'] = $this->generateUniqueSlug($data['name']);
+            }
+            // If list already has a slug and none provided, keep existing slug (don't overwrite)
+        } else {
+            // Slugify and ensure uniqueness if slug is provided
+            $data['slug'] = Str::slug($data['slug']);
+            $originalSlug = $data['slug'];
+            $counter = 1;
+            while (GameList::where('slug', $data['slug'])->where('id', '!=', $gameList->id)->exists()) {
+                $data['slug'] = $originalSlug . '-' . $counter;
+                $counter++;
+            }
         }
 
-        // Ensure non-system lists don't have slug
+        // Set is_active for non-system lists
         if (!($data['is_system'] ?? false)) {
-            $data['slug'] = null;
             $data['is_active'] = false;
         }
 
@@ -482,27 +492,32 @@ class GameListController extends Controller
     }
 
     /**
-     * Display system list by slug (public interface).
-     * Respects start_at and end_at dates for public access.
+     * Display list by slug (public interface).
+     * Shows visible lists OR if the authenticated user is the owner.
+     * - Visible = is_active = true (for all list types)
+     * - Owner exception: Owner can always access their own list regardless of visibility
+     * Note: Slug-based views are read-only (no add/remove games functionality)
      */
     public function showBySlug(string $slug): View
     {
+        $user = auth()->user();
+        
         $gameList = GameList::where('slug', $slug)
-            ->where('is_system', true)
-            ->where('is_active', true)
-            ->where(function ($q) {
-                // Check if list has started (start_at is null or <= now)
-                $q->whereNull('start_at')
-                  ->orWhere('start_at', '<=', now());
-            })
-            ->where(function ($q) {
-                // Check if list hasn't ended (end_at is null or > now)
-                $q->whereNull('end_at')
-                  ->orWhere('end_at', '>', now());
+            ->whereNotNull('slug')
+            ->where(function ($query) use ($user) {
+                if ($user) {
+                    // Owner can always see their own list
+                    $query->where('user_id', $user->id)
+                        ->orWhere('is_active', true);
+                } else {
+                    // Non-authenticated users only see visible lists (visible = is_active = true)
+                    $query->where('is_active', true);
+                }
             })
             ->firstOrFail();
 
-        return $this->show($gameList);
+        // Slug-based views are read-only
+        return $this->show($gameList, true);
     }
 
     /**
