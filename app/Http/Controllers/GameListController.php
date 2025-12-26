@@ -87,11 +87,6 @@ class GameListController extends Controller
         $data = $request->validated();
         $data['user_id'] = auth()->id();
 
-        // Prevent creating backlog/wishlist via form (only auto-created)
-        if (isset($data['list_type']) && in_array($data['list_type'], ['backlog', 'wishlist'])) {
-            abort(403, 'Backlog and wishlist lists cannot be created manually.');
-        }
-
         // Set list_type to 'regular' for user-created lists
         $data['list_type'] = \App\Enums\ListTypeEnum::REGULAR->value;
 
@@ -287,26 +282,23 @@ class GameListController extends Controller
 
                     // Store IGDB cover.image_id in cover_image_id
                     $coverImageId = $igdbGame['cover']['image_id'] ?? null;
-                    
-                    // If IGDB didn't provide a cover, try SteamGridDB
-                    if (!$coverImageId) {
-                        $steamGridDbCover = $igdbService->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
-                        if ($steamGridDbCover) {
-                            $coverImageId = $steamGridDbCover;
-                        }
-                    }
 
-                    // For hero: Use IGDB cover if available, else fetch from SteamGridDB
+                    // For hero: Use IGDB cover if available
                     $heroImageId = $igdbGame['cover']['image_id'] ?? null;
-                    if (!$heroImageId) {
-                        $steamGridDbHero = $igdbService->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
-                        if ($steamGridDbHero) {
-                            $heroImageId = $steamGridDbHero;
-                        }
-                    }
 
-                    // For logo: Fetch from SteamGridDB
-                    $logoImageId = $igdbService->fetchImageFromSteamGridDb($gameName, 'logo', $steamAppId, $igdbGameId);
+                    // Logo will be fetched asynchronously (always null initially)
+                    $logoImageId = null;
+
+                    // Determine which images need to be fetched from SteamGridDB
+                    $imagesToFetch = [];
+                    if (!$coverImageId) {
+                        $imagesToFetch[] = 'cover';
+                    }
+                    if (!$heroImageId) {
+                        $imagesToFetch[] = 'hero';
+                    }
+                    // Logo is always fetched (not provided by IGDB)
+                    $imagesToFetch[] = 'logo';
 
                     // Create game in database
                     $game = Game::create([

@@ -18,15 +18,17 @@ return new class extends Migration
             $table->timestamp('end_at')->nullable()->after('start_at');
         });
 
-        // Migrate data from expire_at to end_at
-        DB::table('game_lists')->whereNotNull('expire_at')->update([
-            'end_at' => DB::raw('expire_at')
-        ]);
+        // Migrate data from expire_at to end_at (if column exists)
+        if (Schema::hasColumn('game_lists', 'expire_at')) {
+            DB::table('game_lists')->whereNotNull('expire_at')->update([
+                'end_at' => DB::raw('expire_at')
+            ]);
 
-        // Drop the old expire_at column
-        Schema::table('game_lists', function (Blueprint $table) {
-            $table->dropColumn('expire_at');
-        });
+            // Drop the old expire_at column
+            Schema::table('game_lists', function (Blueprint $table) {
+                $table->dropColumn('expire_at');
+            });
+        }
     }
 
     /**

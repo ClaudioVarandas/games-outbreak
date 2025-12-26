@@ -23,6 +23,12 @@ Route::get('/game/{game:igdb_id}', [GamesController::class, 'show'])
 Route::get('/api/search', [GamesController::class, 'search'])
     ->name('api.search');
 
+Route::get('/api/game/{game:igdb_id}/similar', [GamesController::class, 'similarGames'])
+    ->name('api.game.similar');
+
+Route::get('/game/{game:igdb_id}/similar-games-html', [GamesController::class, 'similarGamesHtml'])
+    ->name('game.similar.html');
+
 Route::get('/search', [GamesController::class, 'searchResults'])
     ->name('search');
 

@@ -287,26 +287,23 @@ class Game extends Model
 
             // Store IGDB cover.image_id in cover_image_id
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
-            
-            // If IGDB didn't provide a cover, try SteamGridDB
-            if (!$coverImageId) {
-                $steamGridDbCover = $igdbService->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
-                if ($steamGridDbCover) {
-                    $coverImageId = $steamGridDbCover;
-                }
-            }
 
-            // For hero: Use IGDB cover if available, else fetch from SteamGridDB
+            // For hero: Use IGDB cover if available
             $heroImageId = $igdbGame['cover']['image_id'] ?? null;
-            if (!$heroImageId) {
-                $steamGridDbHero = $igdbService->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
-                if ($steamGridDbHero) {
-                    $heroImageId = $steamGridDbHero;
-                }
-            }
 
-            // For logo: Fetch from SteamGridDB
-            $logoImageId = $igdbService->fetchImageFromSteamGridDb($gameName, 'logo', $steamAppId, $igdbGameId);
+            // Logo will be fetched asynchronously (always null initially)
+            $logoImageId = null;
+
+            // Determine which images need to be fetched from SteamGridDB
+            $imagesToFetch = [];
+            if (!$coverImageId) {
+                $imagesToFetch[] = 'cover';
+            }
+            if (!$heroImageId) {
+                $imagesToFetch[] = 'hero';
+            }
+            // Logo is always fetched (not provided by IGDB)
+            $imagesToFetch[] = 'logo';
 
             // Create game in database
             $game = self::create([
@@ -329,6 +326,17 @@ class Game extends Model
 
             // Sync relations (platforms, genres, game modes)
             self::syncRelations($game, $igdbGame);
+
+            // Dispatch job to fetch missing images asynchronously
+            if (!empty($imagesToFetch)) {
+                \App\Jobs\FetchGameImages::dispatch(
+                    $game->id,
+                    $gameName,
+                    $steamAppId,
+                    $igdbGameId,
+                    $imagesToFetch
+                );
+            }
 
             // Reload with relationships
             $game->load('platforms');

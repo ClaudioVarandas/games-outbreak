@@ -74,7 +74,7 @@ class GamesController extends Controller
         $platformIds = array_filter(array_map('intval', $platformParams));
         if (!empty($platformIds)) {
             $query->whereHas('platforms', function ($q) use ($platformIds) {
-                $q->whereIn('platforms.igdb_id', $platformIds);
+                $q->whereIn('igdb_id', $platformIds);
             });
         }
 
@@ -179,25 +179,22 @@ class GamesController extends Controller
             // Store IGDB cover.image_id in cover_image_id
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
 
-            // If IGDB didn't provide a cover, try SteamGridDB
-            if (!$coverImageId) {
-                $steamGridDbCover = $igdb->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
-                if ($steamGridDbCover) {
-                    $coverImageId = $steamGridDbCover;
-                }
-            }
-
-            // For hero: Use IGDB cover if available, else fetch from SteamGridDB
+            // For hero: Use IGDB cover if available
             $heroImageId = $igdbGame['cover']['image_id'] ?? null;
-            if (!$heroImageId) {
-                $steamGridDbHero = $igdb->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
-                if ($steamGridDbHero) {
-                    $heroImageId = $steamGridDbHero;
-                }
-            }
 
-            // For logo: Fetch from SteamGridDB
-            $logoImageId = $igdb->fetchImageFromSteamGridDb($gameName, 'logo', $steamAppId, $igdbGameId);
+            // Logo will be fetched asynchronously (always null initially)
+            $logoImageId = null;
+
+            // Determine which images need to be fetched from SteamGridDB
+            $imagesToFetch = [];
+            if (!$coverImageId) {
+                $imagesToFetch[] = 'cover';
+            }
+            if (!$heroImageId) {
+                $imagesToFetch[] = 'hero';
+            }
+            // Logo is always fetched (not provided by IGDB)
+            $imagesToFetch[] = 'logo';
 
             // Save to DB
             $game = Game::create([
@@ -221,6 +218,17 @@ class GamesController extends Controller
             // Sync relations
             $this->syncRelations($game, $igdbGame);
 
+            // Dispatch job to fetch missing images asynchronously
+            if (!empty($imagesToFetch)) {
+                \App\Jobs\FetchGameImages::dispatch(
+                    $game->id,
+                    $gameName,
+                    $steamAppId,
+                    $igdbGameId,
+                    $imagesToFetch
+                );
+            }
+
             $game->load(['platforms', 'genres', 'gameModes']);
 
             $platformEnums = PlatformEnum::getActivePlatforms();
@@ -230,6 +238,65 @@ class GamesController extends Controller
             \Log::error("On-demand fetch failed for IGDB ID {$igdbId}", ['error' => $e->getMessage()]);
             abort(404, 'Game temporarily unavailable');
         }
+    }
+
+    /**
+     * Get similar games HTML (for AJAX loading)
+     */
+    public function similarGamesHtml(Game $game): View
+    {
+        $platformEnums = PlatformEnum::getActivePlatforms();
+        return view('games.partials.similar-games', compact('game', 'platformEnums'));
+    }
+
+    /**
+     * Get similar games JSON (for AJAX loading)
+     */
+    public function similarGames(Game $game): JsonResponse
+    {
+        if (!$game->similar_games || empty($game->similar_games)) {
+            return response()->json(['games' => []]);
+        }
+
+        $igdbService = app(IgdbService::class);
+        $platformEnums = PlatformEnum::getActivePlatforms();
+        
+        $similarGames = collect($game->similar_games)
+            ->take(12)
+            ->map(function ($similar) use ($igdbService, $platformEnums) {
+                $igdbId = $similar['id'] ?? null;
+                if (!$igdbId) {
+                    return null;
+                }
+
+                // Try to find the game in the database, or fetch from IGDB if missing
+                $similarGame = Game::fetchFromIgdbIfMissing($igdbId, $igdbService);
+                if (!$similarGame) {
+                    return null;
+                }
+
+                $similarGame->load('platforms');
+                
+                // Format for JSON response
+                return [
+                    'igdb_id' => $similarGame->igdb_id,
+                    'name' => $similarGame->name,
+                    'cover_url' => $similarGame->cover_image_id
+                        ? $similarGame->getCoverUrl('cover_big')
+                        : null,
+                    'platforms' => $similarGame->platforms
+                        ->filter(fn($p) => $platformEnums->has($p->igdb_id))
+                        ->sortBy(fn($p) => PlatformEnum::getPriority($p->igdb_id))
+                        ->map(fn($p) => PlatformEnum::fromIgdbId($p->igdb_id)?->label() ?? $p->name)
+                        ->values()
+                        ->toArray(),
+                    'release_date' => $similarGame->first_release_date?->format('d/m/Y'),
+                ];
+            })
+            ->filter()
+            ->values();
+
+        return response()->json(['games' => $similarGames]);
     }
 
     public function mostWanted(): View
@@ -623,8 +690,15 @@ class GamesController extends Controller
             // Prepend bundles to results
             $igdbResponseData = array_merge($newBundles, $igdbResponseData);
 
+            // Filter out non-array items (safety check)
+            $igdbResponseData = array_filter($igdbResponseData, fn($item) => is_array($item));
+
             // Convert to Game models or fetch/create them
             $games = collect($igdbResponseData)->map(function ($igdbGame) {
+                if (!is_array($igdbGame)) {
+                    return null;
+                }
+                
                 $gameType = isset($igdbGame['game_type']) ? (int)$igdbGame['game_type'] : 0;
                 $gameName = $igdbGame['name'] ?? 'Unknown Game';
 
@@ -663,7 +737,7 @@ class GamesController extends Controller
                 }
 
                 return $game;
-            });
+            })->filter();
 
             // For pagination, we'll estimate total pages (IGDB doesn't provide total count easily)
             // We'll show pagination if we got a full page of results

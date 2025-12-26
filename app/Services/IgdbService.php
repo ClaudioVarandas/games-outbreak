@@ -234,6 +234,15 @@ class IgdbService
         $steamDetails = [];
 
         foreach ($uniqueAppIds as $appId) {
+            // Check cache first (24 hour TTL)
+            $cacheKey = "steam_app_details_{$appId}";
+            $cachedData = Cache::get($cacheKey);
+            
+            if ($cachedData !== null) {
+                $steamDetails[$appId] = $cachedData;
+                continue;
+            }
+
             try {
                 $response = Http::timeout(15)
                     ->retry(3, 1000)
@@ -250,7 +259,11 @@ class IgdbService
                     $info = $data[(string) $appId] ?? null;
 
                     if ($info['success'] ?? false) {
-                        $steamDetails[$appId] = $info['data'];
+                        $steamData = $info['data'];
+                        $steamDetails[$appId] = $steamData;
+                        
+                        // Cache for 24 hours
+                        Cache::put($cacheKey, $steamData, now()->addHours(24));
                     }
 
                     // New: Fetch wishlist/followers from SteamDB
@@ -270,14 +283,10 @@ class IgdbService
                         \Log::warning("SteamDB wishlist fetch failed for AppID {$appId}", ['error' => $e->getMessage()]);
                     }
 
-                    // Add to steam_data
-                    $igdbGames[$index]['steam']['wishlist_count'] = $wishlistCount;
-                    $igdbGames[$index]['steam']['wishlist_formatted'] = $wishlistCount ? number_format($wishlistCount) : null;
-                    $igdbGames[$index]['steam']['reviews_summary'] = [
-                        'rating' => $steam['review_score_desc'] ?? null, // e.g., "Very Positive"
-                        'percentage' => $steam['review_percentage'] ?? null,
-                        'total' => $steam['total_reviews'] ?? null,
-                    ];
+                    // Store wishlist count in steam data for later use
+                    if (isset($steamDetails[$appId])) {
+                        $steamDetails[$appId]['_wishlist_count'] = $wishlistCount;
+                    }
 
                 } else {
                     \Log::warning('Steam appdetails failed for single AppID', [
@@ -301,6 +310,7 @@ class IgdbService
         foreach ($gameAppIdMap as $index => $appId) {
             if (isset($steamDetails[$appId])) {
                 $steam = $steamDetails[$appId];
+                $wishlistCount = $steam['_wishlist_count'] ?? null;
 
                 $igdbGames[$index]['steam'] = [
                     'appid'             => $appId,
@@ -313,6 +323,13 @@ class IgdbService
                     'platforms'         => $steam['platforms'] ?? null,
                     'metacritic_score'  => $steam['metacritic']['score'] ?? null,
                     'recommendations'   => $steam['recommendations']['total'] ?? null,
+                    'wishlist_count'    => $wishlistCount,
+                    'wishlist_formatted' => $wishlistCount ? number_format($wishlistCount) : null,
+                    'reviews_summary'   => [
+                        'rating' => $steam['review_score_desc'] ?? null,
+                        'percentage' => $steam['review_percentage'] ?? null,
+                        'total' => $steam['total_reviews'] ?? null,
+                    ],
                 ];
             }
         }

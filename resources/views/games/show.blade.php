@@ -2,6 +2,17 @@
 
 @section('title', $game->name)
 
+@push('head')
+    @if($game->steam_data['header_image'] ?? null)
+        <link rel="preload" as="image" href="{{ $game->steam_data['header_image'] }}" fetchpriority="high">
+    @elseif($game->hero_image_id)
+        <link rel="preload" as="image" href="{{ $game->getHeroImageUrl() }}" fetchpriority="high">
+    @endif
+    @if($game->cover_image_id)
+        <link rel="preload" as="image" href="{{ $game->getCoverUrl('cover_big') }}" fetchpriority="high">
+    @endif
+@endpush
+
 @section('content')
     <div class="min-h-screen bg-gray-900 text-white">
         <!-- Hero with Trailer or Header -->
@@ -17,6 +28,7 @@
                      id="hero-background-image"
                      class="absolute inset-0 w-full h-full object-cover"
                      loading="eager"
+                     fetchpriority="high"
                      onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <p class="text-white font-semibold text-sm md:text-base mb-6 line-clamp-2 px-2 relative z-10" style="display: none;">
                     {{ $game->name }}
@@ -192,7 +204,9 @@
                                         class="rounded-xl overflow-hidden shadow-2xl hover:scale-105 transition-transform cursor-pointer">
                                         <img
                                             src="{{ app(\App\Services\IgdbService::class)->getScreenshotUrl($shot['image_id'], 'screenshot_big') }}"
-                                            class="w-full h-auto" alt="">
+                                            class="w-full h-auto"
+                                            loading="lazy"
+                                            alt="Screenshot">
                                     </div>
                                 @endforeach
                             </div>
@@ -276,9 +290,18 @@
             </div>
 
             <!-- Full-Width Similar Games Section (spans both columns) -->
-            <div class="mt-10 -mx-8 px-8 bg-gray-800/50 rounded-xl py-3">
+            <div class="mt-10 -mx-8 px-8 bg-gray-800/50 rounded-xl py-3" id="similar-games-container">
                 <div class="container mx-auto">
-                    @include('games.partials.similar-games', ['game' => $game, 'platformEnums' => $platformEnums])
+                    <!-- Loading state -->
+                    <div id="similar-games-loading" class="text-center py-8">
+                        <svg class="inline-block w-8 h-8 animate-spin text-orange-400" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-gray-400 mt-2">Loading similar games...</p>
+                    </div>
+                    <!-- Content will be loaded here via AJAX -->
+                    <div id="similar-games-content" style="display: none;"></div>
                 </div>
             </div>
         </div>
@@ -286,17 +309,35 @@
 
         @push('scripts')
             <script>
-                /*        document.addEventListener('DOMContentLoaded', function () {
-                            const iframe = document.querySelector('iframe[src*="youtube.com"]');
-                            if (iframe) {
-                                iframe.addEventListener('load', function () {
-                                    // Unmute on first user interaction
-                                    document.body.addEventListener('click', function unmute() {
-                                        iframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
-                                        document.body.removeEventListener('click', unmute);
-                                    }, { once: true });
-                                });
-                            }
-                        });*/
+                // Lazy load similar games after page load
+                document.addEventListener('DOMContentLoaded', function () {
+                    const gameIgdbId = {{ $game->igdb_id }};
+                    const loadingEl = document.getElementById('similar-games-loading');
+                    const contentEl = document.getElementById('similar-games-content');
+                    
+                    if (!loadingEl || !contentEl) {
+                        return;
+                    }
+
+                    // Load similar games HTML via AJAX after a short delay to prioritize main content
+                    setTimeout(() => {
+                        fetch(`/game/${gameIgdbId}/similar-games-html`)
+                            .then(r => {
+                                if (!r.ok) throw new Error('Failed to fetch');
+                                return r.text();
+                            })
+                            .then(html => {
+                                loadingEl.style.display = 'none';
+                                contentEl.innerHTML = html;
+                                contentEl.style.display = 'block';
+                            })
+                            .catch(error => {
+                                console.error('Failed to load similar games:', error);
+                                loadingEl.style.display = 'none';
+                                contentEl.innerHTML = '<p class="text-gray-400 text-center py-8">No similar games available.</p>';
+                                contentEl.style.display = 'block';
+                            });
+                    }, 500); // Small delay to let main content render first
+                });
             </script>
     @endpush

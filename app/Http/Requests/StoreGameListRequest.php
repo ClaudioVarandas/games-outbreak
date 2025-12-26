@@ -11,6 +11,11 @@ class StoreGameListRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // Prevent creating backlog/wishlist via form (only auto-created)
+        if ($this->has('list_type') && in_array($this->input('list_type'), ['backlog', 'wishlist'])) {
+            return false;
+        }
+        
         return true;
     }
 
@@ -26,12 +31,6 @@ class StoreGameListRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'is_public' => ['boolean'],
         ];
-
-        // Prevent list_type from being set via form
-        // Backlog and wishlist lists are auto-created only
-        if ($this->has('list_type')) {
-            $rules['list_type'] = ['prohibited'];
-        }
 
         // Only admins can create system lists
         if ($this->user() && $this->user()->isAdmin()) {
