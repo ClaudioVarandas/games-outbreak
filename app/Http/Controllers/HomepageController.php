@@ -24,29 +24,16 @@ class HomepageController extends Controller
     }
 
     /**
-     * Calculate current week start (Monday) and end (Sunday).
-     */
-    private function getCurrentWeekRange(): array
-    {
-        $now = Carbon::now();
-        // Start of week is Monday (Carbon::MONDAY = 1)
-        $weekStart = $now->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
-        $weekEnd = $now->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
-
-        return [$weekStart, $weekEnd];
-    }
-
-    /**
      * Get all games from games table releasing this week (from today to end of week).
      */
     private function getWeeklyUpcomingGames(): \Illuminate\Support\Collection
     {
         $today = Carbon::today();
-        [, $weekEnd] = $this->getCurrentWeekRange();
-        
+        $endDate = $today->copy()->addWeek();
+
         return Game::whereNotNull('first_release_date')
             ->where('first_release_date', '>=', $today)
-            ->where('first_release_date', '<=', $weekEnd)
+            ->where('first_release_date', '<=', $endDate)
             ->with('platforms')
             ->orderBy('first_release_date')
             ->get();
