@@ -29,12 +29,11 @@ class HomepageController extends Controller
     private function getWeeklyUpcomingGames(): \Illuminate\Support\Collection
     {
         $today = Carbon::today();
-        $endDate = $today->copy()->addWeek();
 
         return Game::whereNotNull('first_release_date')
             ->where('first_release_date', '>=', $today)
-            ->where('first_release_date', '<=', $endDate)
             ->with('platforms')
+            ->limit(18)
             ->orderBy('first_release_date')
             ->get();
     }
