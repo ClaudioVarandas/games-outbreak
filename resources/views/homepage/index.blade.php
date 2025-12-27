@@ -23,7 +23,7 @@
             <x-seasonal-banners :banners="[
                 [
                     'image' => '/images/best_of_2025.png',
-                    'link' => route('system-list.show',['slug' => 'best-games-2025']),
+                    'link' => route('system-list.show',['slug' => 'best-games-of-2025']),
                     'alt' => 'best games of 2025 banner'
                 ],
                 [
