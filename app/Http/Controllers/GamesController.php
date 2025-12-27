@@ -260,7 +260,7 @@ class GamesController extends Controller
 
         $igdbService = app(IgdbService::class);
         $platformEnums = PlatformEnum::getActivePlatforms();
-        
+
         $similarGames = collect($game->similar_games)
             ->take(12)
             ->map(function ($similar) use ($igdbService, $platformEnums) {
@@ -276,7 +276,7 @@ class GamesController extends Controller
                 }
 
                 $similarGame->load('platforms');
-                
+
                 // Format for JSON response
                 return [
                     'igdb_id' => $similarGame->igdb_id,
@@ -481,22 +481,33 @@ class GamesController extends Controller
                 $gameTypeEnum = \App\Enums\GameTypeEnum::fromValue($gameType) ?? \App\Enums\GameTypeEnum::MAIN;
                 $gameTypeLabel = $gameTypeEnum->label();
 
+                $platformIds = collect($game['platforms'] ?? [])
+                    ->map(fn($p) => $p['id'] ?? null)
+                    ->filter()
+                    ->values()
+                    ->toArray();
+
+                $platformLabels = collect($game['platforms'] ?? [])
+                    ->map(function ($platform) {
+                        $platformEnum = PlatformEnum::fromIgdbId($platform['id'] ?? 0);
+                        return $platformEnum?->label() ?? $platform['name'] ?? 'Unknown';
+                    })
+                    ->implode(', ');
+
+                $releaseDate = isset($game['first_release_date'])
+                    ? \Carbon\Carbon::createFromTimestamp($game['first_release_date'])
+                    : null;
+
                 return [
                     'igdb_id' => $game['id'],
                     'name' => $gameName,
-                        'release' => isset($game['first_release_date'])
-                        ? \Carbon\Carbon::createFromTimestamp($game['first_release_date'])->format('d/m/Y')
-                        : 'TBA',
+                    'release' => $releaseDate ? $releaseDate->format('d/m/Y') : 'TBA',
+                    'release_date' => $releaseDate ? $releaseDate->format('Y-m-d') : null,
                     'cover_url' => isset($game['cover']['image_id'])
                         ? "https://images.igdb.com/igdb/image/upload/t_cover_small/{$game['cover']['image_id']}.jpg"
                         : 'https://via.placeholder.com/90x120/1f2937/6b7280?text=No+Cover',
-                    'platforms' => collect($game['platforms'] ?? [])
-                        ->map(function ($platform) {
-                            $platformEnum = PlatformEnum::fromIgdbId($platform['id'] ?? 0);
-                            return $platformEnum?->label() ?? $platform['name'] ?? 'Unknown';
-                        })
-                        ->take(2)
-                        ->implode(', '),
+                    'platforms' => $platformLabels,
+                    'platform_ids' => $platformIds,
                     'game_type' => $gameType,
                     'game_type_label' => $gameTypeLabel,
                 ];
@@ -526,21 +537,32 @@ class GamesController extends Controller
             // Format to match existing API response structure
             $gameTypeEnum = $game->getGameTypeEnum();
 
+            $platformIds = $game->platforms
+                ->filter(fn($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+                ->map(fn($p) => $p->igdb_id)
+                ->values()
+                ->toArray();
+
+            $platformLabels = $game->platforms
+                ->filter(fn($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+                ->sortBy(fn($p) => PlatformEnum::getPriority($p->igdb_id))
+                ->map(fn($p) => PlatformEnum::fromIgdbId($p->igdb_id)?->label() ?? $p->name)
+                ->implode(', ');
+
             return response()->json([[
                 'igdb_id' => $game->igdb_id,
                 'name' => $game->name,
                 'release' => $game->first_release_date
                     ? $game->first_release_date->format('d/m/Y')
                     : 'TBA',
+                'release_date' => $game->first_release_date
+                    ? $game->first_release_date->format('Y-m-d')
+                    : null,
                 'cover_url' => $game->cover_image_id
                     ? $game->getCoverUrl('cover_small')
                     : 'https://via.placeholder.com/90x120/1f2937/6b7280?text=No+Cover',
-                'platforms' => $game->platforms
-                    ->filter(fn($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
-                    ->sortBy(fn($p) => PlatformEnum::getPriority($p->igdb_id))
-                    ->take(2)
-                    ->map(fn($p) => PlatformEnum::fromIgdbId($p->igdb_id)?->label() ?? $p->name)
-                    ->implode(', '),
+                'platforms' => $platformLabels,
+                'platform_ids' => $platformIds,
                 'game_type' => $game->game_type ?? 0,
                 'game_type_label' => $gameTypeEnum->label(),
             ]]);
@@ -698,7 +720,7 @@ class GamesController extends Controller
                 if (!is_array($igdbGame)) {
                     return null;
                 }
-                
+
                 $gameType = isset($igdbGame['game_type']) ? (int)$igdbGame['game_type'] : 0;
                 $gameName = $igdbGame['name'] ?? 'Unknown Game';
 

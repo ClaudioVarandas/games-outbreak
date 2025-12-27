@@ -67,9 +67,17 @@ class MonthlyGameListsSeeder extends Seeder
             // Attach games to the list with order
             $order = 1;
             foreach ($gamesToAdd as $game) {
+                $game->load('platforms');
+                $platformIds = $game->platforms
+                    ->filter(fn($p) => \App\Enums\PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+                    ->map(fn($p) => $p->igdb_id)
+                    ->values()
+                    ->toArray();
+                
                 $gameList->games()->attach($game->id, [
                     'order' => $order,
                     'release_date' => $game->first_release_date,
+                    'platforms' => json_encode($platformIds),
                 ]);
                 $order++;
             }

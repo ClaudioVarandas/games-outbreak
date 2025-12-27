@@ -17,10 +17,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mount add game to list components (can be multiple on page)
     document.querySelectorAll('[data-vue-component="add-game-to-list"]').forEach(element => {
         const listId = parseInt(element.getAttribute('data-list-id'));
+        const platformsData = element.getAttribute('data-platforms');
+        let platforms = [];
+        if (platformsData) {
+            try {
+                platforms = JSON.parse(platformsData);
+            } catch (e) {
+                console.error('Failed to parse platforms data:', e);
+            }
+        }
         if (listId) {
             createApp({
                 render() {
-                    return h(AddGameToList, { listId: listId });
+                    return h(AddGameToList, { listId: listId, availablePlatforms: platforms });
                 }
             }).mount(element);
         }

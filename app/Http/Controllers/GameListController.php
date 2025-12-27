@@ -374,9 +374,38 @@ class GameListController extends Controller
 
         // Add game to list
         $maxOrder = $gameList->games()->max('order') ?? 0;
+        
+        // Get release_date from request or default to game's first_release_date
+        $releaseDate = $request->input('release_date');
+        if ($releaseDate) {
+            try {
+                $releaseDate = \Carbon\Carbon::parse($releaseDate);
+            } catch (\Exception $e) {
+                $releaseDate = $game->first_release_date;
+            }
+        } else {
+            $releaseDate = $game->first_release_date;
+        }
+        
+        // Get platforms from request or default to game's platforms
+        $platformIds = $request->input('platforms', []);
+        if (is_string($platformIds)) {
+            $platformIds = json_decode($platformIds, true) ?? [];
+        }
+        if (empty($platformIds)) {
+            // Default to game's platforms (IGDB IDs)
+            $game->load('platforms');
+            $platformIds = $game->platforms
+                ->filter(fn($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+                ->map(fn($p) => $p->igdb_id)
+                ->values()
+                ->toArray();
+        }
+        
         $gameList->games()->attach($game->id, [
             'order' => $maxOrder + 1,
-            'release_date' => $game->first_release_date,
+            'release_date' => $releaseDate,
+            'platforms' => json_encode($platformIds),
         ]);
 
         if ($request->wantsJson() || $request->ajax()) {
