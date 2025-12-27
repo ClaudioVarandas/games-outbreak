@@ -2,7 +2,6 @@
 
 ## Setup
 
-### Initial Setup
 
 ```bash
 # Run migrations and seeders
@@ -57,7 +56,7 @@ php artisan user:create-admin --email=admin@example.com --password=secure_passwo
 
 
 
-## project ideas
+## Goal
 
 This project is a web application for managing game lists and tracking game statuses.
 
@@ -100,3 +99,89 @@ Each user can have:
 - Users can add/remove games to/from their wishlist.
 - Displayed under the **Wishlist** tab on `/my-games`.
 - Useful for tracking games you want to buy or try in the future.
+
+## Monthly Game Lists
+
+Monthly game lists are **system lists** that showcase games releasing in a specific month. These lists are automatically created and managed by administrators.
+
+### Characteristics
+
+- **Type**: System lists (`is_system = true`)
+- **Visibility**: Public (`is_public = true`)
+- **Active Status**: Controlled by `is_active` flag and date ranges (`start_at`, `end_at`)
+- **Slug**: Auto-generated from month name (e.g., `january-2026`)
+- **Access**: Viewable by all users via `/list/{slug}` route
+
+### Creation
+
+Create monthly lists for a specific year using the Artisan command:
+
+```bash
+php artisan games:lists:create-monthly --year=2026
+```
+
+This creates 12 lists (one for each month) with:
+- Start date: First day of the month
+- End date: Last day of the month
+- Auto-generated unique slugs
+- Public and active flags set
+
+### Display
+
+- **Homepage**: The active monthly list (within current date range) is displayed as "Featured Games"
+- **Monthly Releases Page**: Full list view at `/monthly-releases`
+- **Public Slug View**: Accessible at `/list/{slug}` for any active/public list
+
+### Management
+
+- Lists are created by admin user (user_id = 1)
+- Games are added manually by admin or via seeders
+- Lists can be activated/deactivated via `is_active` flag
+- Date ranges control when lists appear on the homepage
+
+## Seasonal Banners
+
+The homepage features seasonal event banners displayed at the top of the page, above the Featured Games section.
+
+### Image Specifications
+
+**Location**: Place banner images in `public/images/` directory
+
+**Recommended Sizes**:
+- **Aspect Ratio**: 16:9 (rectangular)
+- **Two Banners Side-by-Side**:
+  - Minimum: 1200px × 675px
+  - Optimal: 1600px × 900px
+  - Maximum: 1920px × 1080px (Full HD)
+- **Single Banner (Full Width)**:
+  - Optimal: 1920px × 1080px (Full HD)
+
+**File Format**: JPG or WebP (optimized for web, < 500KB per image recommended)
+
+**Usage**: Update banner data in `resources/views/homepage/index.blade.php`:
+
+```php
+<x-seasonal-banners :banners="[
+    [
+        'image' => '/images/seasonal-event-1.jpg',
+        'link' => route('monthly-releases'),
+        'title' => 'January Releases',
+        'description' => 'Discover the best games releasing this month',
+        'alt' => 'January Releases Banner'
+    ],
+    [
+        'image' => '/images/seasonal-event-2.jpg',
+        'link' => route('upcoming'),
+        'title' => 'Upcoming Games',
+        'description' => 'See what\'s coming soon',
+        'alt' => 'Upcoming Games Banner'
+    ]
+]" />
+```
+
+**Layout Behavior**:
+- **2 Banners**: Displayed side-by-side on desktop, stacked on mobile
+- **1 Banner**: Spans full width on all screen sizes
+- **Responsive**: Automatically adapts to screen size
+
+**Note**: For retina/high-DPI displays, use 2x resolution (e.g., 1920px × 1080px for standard, 3840px × 2160px for retina).
