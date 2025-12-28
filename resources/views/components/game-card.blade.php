@@ -121,12 +121,10 @@
             @endif
             
             <!-- Quick Actions -->
-            @auth
-                <x-game-quick-actions 
-                    :game="$game" 
-                    :backlogList="$backlogList" 
-                    :wishlistList="$wishlistList" />
-            @endauth
+            <x-game-quick-actions 
+                :game="$game" 
+                :backlogList="$backlogList" 
+                :wishlistList="$wishlistList" />
             
             <!-- Remove Button (Lists Show) -->
             @if($showRemoveButton && $removeRoute)

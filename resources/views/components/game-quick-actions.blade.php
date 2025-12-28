@@ -153,3 +153,52 @@
     </div>
 @endauth
 
+@guest
+    <div class="absolute inset-0 flex flex-col items-center justify-center z-20 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300"
+         x-data="{}"
+         @click.stop>
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/15 backdrop-blur-sm rounded-xl"></div>
+        
+        <!-- Game Title -->
+        <div class="relative mb-4 px-4">
+            <h3 class="text-white font-semibold text-lg text-center line-clamp-2 drop-shadow-lg">
+                {{ $game->name }}
+            </h3>
+        </div>
+        
+        <!-- Action Buttons for Guests -->
+        <div class="relative flex items-center gap-4">
+            <!-- Backlog Button -->
+            <button @click.stop.prevent="$dispatch('open-modal', 'login-modal')"
+                    class="group/btn relative w-14 h-14 rounded-full bg-transparent hover:bg-white/10 text-white opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-200 flex items-center justify-center border border-white/30 hover:border-white/50 hover:shadow-lg hover:shadow-white/20"
+                    title="Login to add to Backlog">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+                </svg>
+                <!-- User Icon Badge -->
+                <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
+                    </svg>
+                </div>
+            </button>
+            
+            <!-- Wishlist Button -->
+            <button @click.stop.prevent="$dispatch('open-modal', 'login-modal')"
+                    class="group/btn relative w-14 h-14 rounded-full bg-transparent hover:bg-white/10 text-white opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-200 flex items-center justify-center border border-white/30 hover:border-white/50 hover:shadow-lg hover:shadow-white/20"
+                    title="Login to add to Wishlist">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
+                </svg>
+                <!-- User Icon Badge -->
+                <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
+                    </svg>
+                </div>
+            </button>
+        </div>
+    </div>
+@endguest
+
