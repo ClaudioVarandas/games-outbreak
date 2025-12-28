@@ -271,7 +271,7 @@ class IgdbService
 
                     // New: Fetch wishlist/followers from SteamDB
                     $wishlistCount = null;
-                    try {
+/*                    try {
                         $steamdbResponse = Http::timeout(10)
                             ->get("https://steamdb.info/app/{$appId}/");
 
@@ -284,11 +284,11 @@ class IgdbService
                         }
                     } catch (\Exception $e) {
                         \Log::warning("SteamDB wishlist fetch failed for AppID {$appId}", ['error' => $e->getMessage()]);
-                    }
+                    }*/
 
                     // Store wishlist count in steam data for later use
                     if (isset($steamDetails[$appId])) {
-                        $steamDetails[$appId]['_wishlist_count'] = $wishlistCount;
+                        $steamDetails[$appId]['_wishlist_count'] = 0;
                     }
 
                 } else {

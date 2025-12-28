@@ -185,3 +185,53 @@ The homepage features seasonal event banners displayed at the top of the page, a
 - **Responsive**: Automatically adapts to screen size
 
 **Note**: For retina/high-DPI displays, use 2x resolution (e.g., 1920px × 1080px for standard, 3840px × 2160px for retina).
+
+
+
+## Release Dates & Statuses
+
+Games can have **multiple release dates per platform**, each with a different status (e.g., Early Access, Full Release, Advanced Access).
+
+### Features
+
+- **Detailed Release Information**: See all release dates for each platform, not just the earliest
+- **Status Badges**: Color-coded status indicators show the type of release:
+    - 🟢 **Full Release** - The official 1.0 release
+    - 🟣 **Advanced Access** - Early access for pre-orders or special editions
+    - 🔵 **Early Access** - Public testing/beta release
+    - 🟡 **Alpha** / 🟠 **Beta** - Development builds
+    - 🔴 **Cancelled** - Cancelled releases
+    - 📱 **Digital Comp.** - Backward compatible digital releases
+    - ⚡ **Next-Gen Patch** - Performance optimization updates
+- **Platform Colors**: Each platform group has its own color (PlayStation = Blue, Xbox = Green, Nintendo = Red, PC = Gray)
+- **Expandable View**: Click a platform to see all its release dates when there are multiple
+
+### Sync Release Statuses
+
+Release date statuses are fetched from IGDB and stored locally for better performance:
+
+`php artisan igdb:sync-release-date-statuses`
+
+This command:
+- Fetches all release date status types from IGDB
+- Stores them in the `release_date_statuses` table with abbreviations
+- Caches the data for fast lookups
+- Should be run once during setup (statuses rarely change)
+
+### Display
+
+On the game details page, release dates are grouped by platform and show:
+- Platform name with colored border
+- Earliest release date prominently displayed
+- Badge showing count of additional releases (if any)
+- Expandable list showing all releases with dates and status badges
+
+**Example:**
+
+```shell
+PC 15/10/2025 [+2] 
+• 15/10/2025 [Adv. Access] 
+• 30/10/2025 [Full Release] 
+• 15/11/2025 [Next-Gen Patch]
+```
+
