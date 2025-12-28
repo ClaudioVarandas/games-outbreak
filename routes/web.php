@@ -9,32 +9,18 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomepageController::class, 'index'])->name('homepage');
 Route::get('/monthly-releases', [HomepageController::class, 'monthlyReleases'])->name('monthly-releases');
+Route::get('/upcoming', [GamesController::class, 'upcoming'])->name('upcoming');
+Route::get('/most-wanted', [GamesController::class, 'mostWanted'])->name('most-wanted');
+Route::get('/game/{game:igdb_id}', [GamesController::class, 'show'])->name('game.show');
 
+Route::get('/api/search', [GamesController::class, 'search'])->name('api.search');
+Route::get('/api/game/{game:igdb_id}/similar', [GamesController::class, 'similarGames'])->name('api.game.similar');
 
-Route::get('/upcoming', [GamesController::class, 'upcoming'])
-    ->name('upcoming');
+Route::get('/search', [GamesController::class, 'searchResults'])->name('search');
 
-Route::get('/most-wanted', [GamesController::class, 'mostWanted'])
-    ->name('most-wanted');
+Route::get('/game/{game:igdb_id}/similar-games-html', [GamesController::class, 'similarGamesHtml'])->name('game.similar.html');
 
-Route::get('/game/{game:igdb_id}', [GamesController::class, 'show'])
-    ->name('game.show');
-
-Route::get('/api/search', [GamesController::class, 'search'])
-    ->name('api.search');
-
-Route::get('/api/game/{game:igdb_id}/similar', [GamesController::class, 'similarGames'])
-    ->name('api.game.similar');
-
-Route::get('/game/{game:igdb_id}/similar-games-html', [GamesController::class, 'similarGamesHtml'])
-    ->name('game.similar.html');
-
-Route::get('/search', [GamesController::class, 'searchResults'])
-    ->name('search');
-
-// System list public route
-Route::get('/list/{slug}', [GameListController::class, 'showBySlug'])
-    ->name('system-list.show');
+Route::get('/list/{slug}', [GameListController::class, 'showBySlug'])->name('system-list.show');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
