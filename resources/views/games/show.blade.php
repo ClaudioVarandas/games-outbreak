@@ -220,23 +220,147 @@
                         <h3 class="text-xl font-bold mb-4">Release Dates</h3>
                         @php
                             $activePlatformIds = $platformEnums->keys()->toArray();
-                            $activeReleaseDates = collect($game->release_dates ?? [])
+
+                            // Filter for active platforms only
+                            $filteredDates = collect($game->release_dates ?? [])
                                 ->filter(function ($rd) use ($activePlatformIds) {
                                     return isset($rd['platform']) && in_array($rd['platform'], $activePlatformIds);
+                                });
+
+                            // Group by platform and sort each group by date
+                            $groupedByPlatform = $filteredDates
+                                ->groupBy('platform')
+                                ->map(function ($dates) {
+                                    return $dates->sortBy('date')->values();
                                 })
-                                ->sortBy('date')
-                                ->values();
+                                ->sortBy(function ($dates) {
+                                    // Sort platforms by earliest date
+                                    return $dates->first()['date'] ?? PHP_INT_MAX;
+                                });
                         @endphp
-                        @if($activeReleaseDates->count() > 0)
-                            <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2">
-                                @foreach($activeReleaseDates as $rd)
+                        @if($groupedByPlatform->count() > 0)
+                            <div class="space-y-3" x-data="{ expandedPlatforms: {} }">
+                                @foreach($groupedByPlatform as $platformId => $releaseDates)
                                     @php
-                                        $platformEnum = $platformEnums[$rd['platform']] ?? null;
-                                        $platformName = $platformEnum?->label() ?? ($rd['platform_name'] ?? 'Unknown Platform');
-                                        $releaseDate = $rd['release_date'] ?? 'TBA';
+                                        $platformEnum = $platformEnums[$platformId] ?? null;
+                                        $platformName = $platformEnum?->label() ?? 'Unknown Platform';
+                                        $earliestDate = $releaseDates->first();
+                                        $hasMultipleDates = $releaseDates->count() > 1;
+                                        $additionalCount = $releaseDates->count() - 1;
+                                        $platformKey = "platform_{$platformId}";
+
+                                        // Get platform color for border
+                                        $platformColor = $platformEnum?->color() ?? 'gray';
+                                        $borderColorClass = match($platformColor) {
+                                            'blue' => 'border-blue-500',
+                                            'green' => 'border-green-500',
+                                            'red' => 'border-red-500',
+                                            'gray' => 'border-gray-500',
+                                            default => 'border-gray-500',
+                                        };
                                     @endphp
-                                    <span class="text-gray-300 text-left">{{ $platformName }}</span>
-                                    <span class="text-gray-300 text-right font-medium">{{ $releaseDate }}</span>
+
+                                    <div class="border-l-2 {{ $borderColorClass }} pl-3">
+                                        {{-- Platform Row (always visible) --}}
+                                        <div
+                                            @class([
+                                                'flex items-center justify-between',
+                                                'cursor-pointer hover:bg-gray-700/30 -ml-3 pl-3 -mr-6 pr-6 py-1.5 rounded transition-colors' => $hasMultipleDates
+                                            ])
+                                            @if($hasMultipleDates)
+                                                @click="expandedPlatforms['{{ $platformKey }}'] = !expandedPlatforms['{{ $platformKey }}']"
+                                            @endif
+                                        >
+                                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                                {{-- Expand/Collapse Icon --}}
+                                                @if($hasMultipleDates)
+                                                    <svg
+                                                        class="w-4 h-4 text-gray-400 transition-transform flex-shrink-0"
+                                                        :class="{ 'rotate-90': expandedPlatforms['{{ $platformKey }}'] }"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                    </svg>
+                                                @else
+                                                    <div class="w-4 flex-shrink-0"></div>
+                                                @endif
+
+                                                <span class="text-gray-300 font-medium truncate">{{ $platformName }}</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 flex-shrink-0">
+                                                    <span class="text-gray-300 font-medium text-sm">
+                                                        {{ $earliestDate['release_date'] ?? 'TBA' }}
+                                                    </span>
+
+                                                @if($hasMultipleDates)
+                                                    <span class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full font-medium">
+                                                            +{{ $additionalCount }}
+                                                        </span>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        {{-- Expanded Dates (collapsible) --}}
+                                        @if($hasMultipleDates)
+                                            <div
+                                                x-show="expandedPlatforms['{{ $platformKey }}']"
+                                                x-collapse
+                                                class="mt-2 space-y-1.5 ml-6"
+                                            >
+                                                @foreach($releaseDates as $index => $rd)
+                                                    @php
+                                                        $releaseDate = $rd['release_date'] ?? 'TBA';
+                                                        $statusAbbr = $rd['status_abbreviation'] ?? $rd['status_name'] ?? '';
+
+                                                        // Color coding for statuses
+                                                        $statusColor = match($rd['status'] ?? null) {
+                                                            1 => 'text-yellow-400',      // Alpha
+                                                            2 => 'text-orange-400',      // Beta
+                                                            3 => 'text-blue-400',        // Early Access
+                                                            4 => 'text-gray-500',        // Offline
+                                                            5 => 'text-red-400',         // Cancelled
+                                                            6 => 'text-green-400',       // Full Release
+                                                            34 => 'text-purple-400',     // Advanced Access
+                                                            35 => 'text-cyan-400',       // Digital Compatibility
+                                                            36 => 'text-indigo-400',     // Next-Gen Optimization
+                                                            default => 'text-gray-300'
+                                                        };
+
+                                                        $statusBgColor = match($rd['status'] ?? null) {
+                                                            1 => 'bg-yellow-500/10',
+                                                            2 => 'bg-orange-500/10',
+                                                            3 => 'bg-blue-500/10',
+                                                            4 => 'bg-gray-500/10',
+                                                            5 => 'bg-red-500/10',
+                                                            6 => 'bg-green-500/10',
+                                                            34 => 'bg-purple-500/10',
+                                                            35 => 'bg-cyan-500/10',
+                                                            36 => 'bg-indigo-500/10',
+                                                            default => 'bg-gray-500/10'
+                                                        };
+                                                    @endphp
+
+                                                    <div class="flex items-center justify-between text-sm py-1">
+                                                        <div class="flex items-center gap-2">
+                                                            <svg class="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                <circle cx="10" cy="10" r="3"/>
+                                                            </svg>
+                                                            <span class="text-gray-400">{{ $releaseDate }}</span>
+                                                        </div>
+
+                                                        @if($statusAbbr)
+                                                            <span class="{{ $statusColor }} {{ $statusBgColor }} text-xs px-2 py-0.5 rounded font-medium">
+                                                                    {{ $statusAbbr }}
+                                                                </span>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
                                 @endforeach
                             </div>
                         @else

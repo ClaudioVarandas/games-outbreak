@@ -315,7 +315,7 @@ class GameListControllerTest extends TestCase
             'name' => 'My Private List',
             'is_public' => false,
         ]);
-        
+
         $privateList = GameList::where('name', 'My Private List')->first();
         $this->assertNotNull($privateList->slug);
         $this->assertEquals('my-private-list', $privateList->slug);
@@ -409,5 +409,152 @@ class GameListControllerTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('slug');
+    }
+
+    // === Admin Access Tests ===
+
+    public function test_admin_can_access_any_private_inactive_list(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $owner = User::factory()->create();
+        $list = GameList::factory()->create([
+            'user_id' => $owner->id,
+            'slug' => 'private-inactive-list',
+            'is_public' => false,
+            'is_active' => false,
+        ]);
+
+        // Admin can access even though it's private and inactive
+        $response = $this->actingAs($admin)->get('/list/private-inactive-list');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('gameList', $list);
+    }
+
+    public function test_admin_can_access_inactive_public_list(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $list = GameList::factory()->system()->create([
+            'slug' => 'inactive-public-list',
+            'is_public' => true,
+            'is_active' => false,
+        ]);
+
+        // Admin can access even though it's inactive
+        $response = $this->actingAs($admin)->get('/list/inactive-public-list');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('gameList', $list);
+    }
+
+    public function test_admin_can_access_another_users_private_list(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $owner = User::factory()->create();
+        $list = GameList::factory()->create([
+            'user_id' => $owner->id,
+            'slug' => 'other-user-private-list',
+            'is_public' => false,
+            'is_active' => true,
+        ]);
+
+        // Admin can access another user's private list
+        $response = $this->actingAs($admin)->get('/list/other-user-private-list');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('gameList', $list);
+    }
+
+    public function test_non_admin_cannot_access_inactive_public_list(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+        $list = GameList::factory()->system()->create([
+            'slug' => 'inactive-public-list-non-admin',
+            'is_public' => true,
+            'is_active' => false,
+        ]);
+
+        // Non-admin cannot access inactive list
+        $response = $this->actingAs($user)->get('/list/inactive-public-list-non-admin');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_non_admin_cannot_access_other_users_private_list(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+        $owner = User::factory()->create();
+        $list = GameList::factory()->create([
+            'user_id' => $owner->id,
+            'slug' => 'other-user-private-non-admin',
+            'is_public' => false,
+            'is_active' => true,
+        ]);
+
+        // Non-admin cannot access another user's private list
+        $response = $this->actingAs($user)->get('/list/other-user-private-non-admin');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_guest_cannot_access_inactive_public_list(): void
+    {
+        $list = GameList::factory()->system()->create([
+            'slug' => 'inactive-public-list-guest',
+            'is_public' => true,
+            'is_active' => false,
+        ]);
+
+        // Guest cannot access inactive list
+        $response = $this->get('/list/inactive-public-list-guest');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_guest_cannot_access_private_list(): void
+    {
+        $owner = User::factory()->create();
+        $list = GameList::factory()->create([
+            'user_id' => $owner->id,
+            'slug' => 'private-list-guest',
+            'is_public' => false,
+            'is_active' => true,
+        ]);
+
+        // Guest cannot access private list
+        $response = $this->get('/list/private-list-guest');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_authenticated_user_can_access_public_active_list(): void
+    {
+        $user = User::factory()->create();
+        $list = GameList::factory()->system()->create([
+            'slug' => 'public-active-list',
+            'is_public' => true,
+            'is_active' => true,
+        ]);
+
+        // Authenticated user can access public active list
+        $response = $this->actingAs($user)->get('/list/public-active-list');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('gameList', $list);
+    }
+
+    public function test_guest_can_access_public_active_list(): void
+    {
+        $list = GameList::factory()->system()->create([
+            'slug' => 'public-active-list-guest',
+            'is_public' => true,
+            'is_active' => true,
+        ]);
+
+        // Guest can access public active list
+        $response = $this->get('/list/public-active-list-guest');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('gameList', $list);
     }
 }

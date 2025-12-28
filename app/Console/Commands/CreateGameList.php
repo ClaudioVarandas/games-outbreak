@@ -43,7 +43,7 @@ class CreateGameList extends Command
             if (!$startDate) {
                 $startDate = $this->ask('Start date (Y-m-d format, e.g., 2026-01-01)');
             }
-            
+
             if ($startDate) {
                 try {
                     $startDateObj = Carbon::createFromFormat('Y-m-d', $startDate);
@@ -60,11 +60,11 @@ class CreateGameList extends Command
             if (!$endDate) {
                 $endDate = $this->ask('End date (Y-m-d format, e.g., 2026-01-31)');
             }
-            
+
             if ($endDate) {
                 try {
                     $endDateObj = Carbon::createFromFormat('Y-m-d', $endDate);
-                    
+
                     // Validate date range
                     if ($startDateObj->gt($endDateObj)) {
                         $this->error('End date must be after or equal to start date.');
@@ -84,11 +84,11 @@ class CreateGameList extends Command
             if (!$igdbIds) {
                 $igdbIds = $this->ask('IGDB game IDs (comma-separated, e.g., 12345,67890,11111)');
             }
-            
+
             if ($igdbIds) {
                 $igdbIdArray = array_map('trim', explode(',', $igdbIds));
                 $igdbIdArray = array_filter($igdbIdArray, fn($id) => !empty($id) && is_numeric($id));
-                
+
                 if (empty($igdbIdArray)) {
                     $this->error('Please provide at least one valid numeric IGDB ID.');
                     $igdbIds = null;
@@ -169,7 +169,7 @@ class CreateGameList extends Command
                     ->map(fn($p) => $p->igdb_id)
                     ->values()
                     ->toArray();
-                
+
                 $gameList->games()->attach($game->id, [
                     'order' => $order,
                     'release_date' => $game->first_release_date,
@@ -219,16 +219,18 @@ class CreateGameList extends Command
 
         try {
             $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
-                         genres.name, genres.id, game_modes.name, game_modes.id,
-                         screenshots.image_id, videos.video_id,
-                         external_games.category, external_games.uid,
-                         websites.category, websites.url,
-                         similar_games.name, similar_games.cover.image_id, similar_games.id, game_type,
-                         release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d,
-                         involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
-                         game_engines.name, game_engines.id,
-                         player_perspectives.name, player_perspectives.id;
-                  where id = {$igdbId}; limit 1;";
+                             genres.name, genres.id,
+                             game_modes.name, game_modes.id,
+                             similar_games.name, similar_games.cover.image_id, similar_games.id,
+                             screenshots.image_id,
+                             videos.video_id,
+                             external_games.category, external_games.uid,
+                             websites.category, websites.url, game_type,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
+                             involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
+                             game_engines.name, game_engines.id,
+                             player_perspectives.name, player_perspectives.id;
+                         where id = {$igdbId}; limit 1;";
 
             $response = Http::igdb()
                 ->withBody($query, 'text/plain')
@@ -250,7 +252,7 @@ class CreateGameList extends Command
 
             // Store IGDB cover.image_id in cover_image_id
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
-            
+
             // If IGDB didn't provide a cover, try SteamGridDB
             if (!$coverImageId) {
                 $steamGridDbCover = $igdbService->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
@@ -355,7 +357,7 @@ class CreateGameList extends Command
         }
 
         $value = strtolower(trim($value));
-        
+
         return in_array($value, ['1', 'true', 'yes', 'y', 'on'], true);
     }
 }

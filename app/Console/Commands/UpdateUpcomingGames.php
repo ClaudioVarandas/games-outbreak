@@ -25,12 +25,12 @@ class UpdateUpcomingGames extends Command
     public function handle(IgdbService $igdb): int
     {
         $igdbId = $this->option('igdb-id');
-        
+
         // If --igdb-id is provided, fetch only that game
         if ($igdbId) {
             $igdbId = (int) $igdbId;
             $this->info("Fetching game with IGDB ID: {$igdbId}...");
-            
+
             try {
                 $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
                              genres.name, genres.id,
@@ -40,7 +40,7 @@ class UpdateUpcomingGames extends Command
                              videos.video_id,
                              external_games.category, external_games.uid,
                              websites.category, websites.url, game_type,
-                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
                              game_engines.name, game_engines.id,
                              player_perspectives.name, player_perspectives.id;
@@ -61,7 +61,7 @@ class UpdateUpcomingGames extends Command
                 // Enrich with Steam data
                 $igdbGame = $igdb->enrichWithSteamData([$igdbGame])[0] ?? $igdbGame;
                 $games = [$igdbGame];
-                
+
                 // Store raw JSON before enrichment
                 $rawJson = $rawIgdbResponse;
             } catch (\Exception $e) {
@@ -87,7 +87,7 @@ class UpdateUpcomingGames extends Command
             } else {
                 $startDate = Carbon::today();
             }
-            
+
             $endDate = $startDate->copy()->addDays($days);
 
             $this->info("Fetching upcoming games from {$startDate->format('Y-m-d')} to {$endDate->format('Y-m-d')}...");
@@ -106,9 +106,9 @@ class UpdateUpcomingGames extends Command
                 while ($totalFetched < $limit) {
                     $remaining = $limit - $totalFetched;
                     $currentLimit = min($remaining, $igdbMaxPerQuery);
-                    
+
                     $this->info("Fetching batch: offset {$offset}, limit {$currentLimit}...");
-                    
+
                     $batchGames = $igdb->fetchUpcomingGames(
                         platformIds: $platformIds,
                         startDate: $startDate,
@@ -160,19 +160,19 @@ class UpdateUpcomingGames extends Command
         foreach ($games as $index => $igdbGame) {
             // Get raw JSON for this game (only if fetching single game)
             $gameRawJson = ($igdbId && isset($rawJson)) ? $rawJson : null;
-            
+
             $gameName = $igdbGame['name'] ?? 'Unknown Game';
             $steamAppId = $igdbGame['steam']['appid'] ?? null;
             $igdbGameId = $igdbGame['id'] ?? null;
 
             // Store IGDB cover.image_id in cover_image_id
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
-            
+
             // If IGDB didn't provide a cover, try SteamGridDB
             if (!$coverImageId) {
                 $this->line("No IGDB cover for {$gameName}, trying SteamGridDB...");
                 $steamGridDbCover = $igdb->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
-                
+
                 if ($steamGridDbCover) {
                     $coverImageId = $steamGridDbCover;
                     $this->info("  ✓ Found SteamGridDB cover: {$steamGridDbCover}");
@@ -192,7 +192,7 @@ class UpdateUpcomingGames extends Command
 
             // For logo: Fetch from SteamGridDB
             $logoImageId = $igdb->fetchImageFromSteamGridDb($gameName, 'logo', $steamAppId, $igdbGameId);
-            
+
             $game = Game::updateOrCreate(
                 ['igdb_id' => $igdbGame['id']],
                 [
@@ -258,12 +258,12 @@ class UpdateUpcomingGames extends Command
                     if (empty($involvedCompany['company'])) {
                         continue;
                     }
-                    
+
                     $company = \App\Models\Company::firstOrCreate(
                         ['igdb_id' => $involvedCompany['company']['id']],
                         ['name' => $involvedCompany['company']['name'] ?? 'Unknown']
                     );
-                    
+
                     $syncData[$company->id] = [
                         'is_developer' => $involvedCompany['developer'] ?? false,
                         'is_publisher' => $involvedCompany['publisher'] ?? false,

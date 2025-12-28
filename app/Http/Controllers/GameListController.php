@@ -279,17 +279,19 @@ class GameListController extends Controller
             if (!$game) {
                 try {
                     $igdbService = app(\App\Services\IgdbService::class);
-                    $query = "fields name, first_release_date, summary, platforms.name, cover.image_id,
-                                 genres.name, genres.id, game_modes.name, game_modes.id,
-                                 screenshots.image_id, videos.video_id,
-                                 external_games.category, external_games.uid,
-                                 websites.category, websites.url,
-                                 similar_games.name, similar_games.cover.image_id, similar_games.id, game_type,
-                                 release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d,
-                                 involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
-                                 game_engines.name, game_engines.id,
-                                 player_perspectives.name, player_perspectives.id;
-                          where id = {$igdbId}; limit 1;";
+                    $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
+                             genres.name, genres.id,
+                             game_modes.name, game_modes.id,
+                             similar_games.name, similar_games.cover.image_id, similar_games.id,
+                             screenshots.image_id,
+                             videos.video_id,
+                             external_games.category, external_games.uid,
+                             websites.category, websites.url, game_type,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
+                             involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
+                             game_engines.name, game_engines.id,
+                             player_perspectives.name, player_perspectives.id;
+                         where id = {$igdbId}; limit 1;";
 
                     $response = \Http::igdb()
                         ->withBody($query, 'text/plain')
@@ -547,10 +549,14 @@ class GameListController extends Controller
     /**
      * Display list by slug (public interface).
      * Shows visible lists OR if the authenticated user is the owner.
-     * - Visible = is_public = true (for guests, regardless of is_active status)
-     * - OR is_active = true (for system/featured lists)
+     * - Visible = is_public = true AND is_active = true
      * - Owner exception: Owner can always access their own list regardless of visibility
      * Note: Slug-based views are read-only (no add/remove games functionality)
+     *
+     * ✅ Admins: Can see all lists (no restrictions)
+     * ✅ Owners: Can see their own lists (regardless of public/active status)
+     * ✅ Authenticated non-owners: Can only see lists where is_public = true AND is_active = true
+     * ✅ Guests: Can only see lists where is_public = true AND is_active = true
      */
     public function showBySlug(string $slug): View
     {
@@ -560,17 +566,23 @@ class GameListController extends Controller
             ->whereNotNull('slug')
             ->where(function ($query) use ($user) {
                 if ($user) {
-                    // Owner can always see their own list
+                    // Admins can see all lists
+                    if ($user->is_admin) {
+                        // No additional conditions - admins see everything
+                        return;
+                    }
+
+                    // Owner can always see their own list (even if inactive/private)
                     $query->where('user_id', $user->id)
                         ->orWhere(function ($q) {
-                            // Visible lists: public OR active
+                            // Non-owners see lists that are BOTH public AND active
                             $q->where('is_public', true)
-                              ->orWhere('is_active', true);
+                                ->where('is_active', true);
                         });
                 } else {
-                    // Non-authenticated users see public lists OR active lists
+                    // Non-authenticated users (guests) see lists that are BOTH public AND active
                     $query->where('is_public', true)
-                          ->orWhere('is_active', true);
+                        ->where('is_active', true);
                 }
             })
             ->firstOrFail();

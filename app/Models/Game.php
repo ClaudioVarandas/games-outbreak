@@ -222,15 +222,15 @@ class Game extends Model
     {
         $gameType = $this->game_type ?? 0;
         $gameName = $this->name ?? '';
-        
+
         // Detect bundles by name (IGDB sometimes classifies bundles as PORT/3 instead of BUNDLE/5)
         $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
-        
+
         // If it's a bundle by name, treat it as bundle regardless of game_type
         if ($isBundle && $gameType !== 5) {
             $gameType = 5; // Force to BUNDLE
         }
-        
+
         return GameTypeEnum::fromValue($gameType) ?? GameTypeEnum::MAIN;
     }
 
@@ -245,7 +245,7 @@ class Game extends Model
     }
 
     /**
-     * Transform release_dates array to include release_date (dd/mm/yyyy) and platform_name
+     * Transform release_dates array to include release_date (dd/mm/yyyy), platform_name, and status info
      */
     public static function transformReleaseDates(?array $releaseDates): ?array
     {
@@ -253,7 +253,15 @@ class Game extends Model
             return null;
         }
 
-        return collect($releaseDates)->map(function ($releaseDate) {
+        // Fetch all statuses once (cached) - wrap in try-catch for tests/migrations
+        try {
+            $statuses = ReleaseDateStatus::getAllCached();
+        } catch (\Exception $e) {
+            // Table might not exist yet (during migrations or tests)
+            $statuses = collect();
+        }
+
+        return collect($releaseDates)->map(function ($releaseDate) use ($statuses) {
             $transformed = $releaseDate;
 
             // Add formatted release_date (dd/mm/yyyy)
@@ -272,6 +280,16 @@ class Game extends Model
                 $transformed['platform_name'] = null;
             }
 
+            // Add status_name and status_abbreviation
+            if (isset($releaseDate['status'])) {
+                $status = $statuses->get($releaseDate['status']);
+                $transformed['status_name'] = $status?->name ?? null;
+                $transformed['status_abbreviation'] = $status?->abbreviation ?? null;
+            } else {
+                $transformed['status_name'] = null;
+                $transformed['status_abbreviation'] = null;
+            }
+
             return $transformed;
         })->toArray();
     }
@@ -288,16 +306,19 @@ class Game extends Model
         }
 
         try {
-            $query = "fields name, first_release_date, summary, platforms.name, cover.image_id,
-                         genres.name, genres.id, game_modes.name, game_modes.id,
-                         screenshots.image_id, videos.video_id,
-                         external_games.category, external_games.uid,
-                         websites.category, websites.url, game_type,
-                         release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d,
-                         involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
-                         game_engines.name, game_engines.id,
-                         player_perspectives.name, player_perspectives.id;
-                  where id = {$igdbId}; limit 1;";
+            $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
+                             genres.name, genres.id,
+                             game_modes.name, game_modes.id,
+                             similar_games.name, similar_games.cover.image_id, similar_games.id,
+                             screenshots.image_id,
+                             videos.video_id,
+                             external_games.category, external_games.uid,
+                             websites.category, websites.url, game_type,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
+                             involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
+                             game_engines.name, game_engines.id,
+                             player_perspectives.name, player_perspectives.id;
+                         where id = {$igdbId}; limit 1;";
 
             $response = \Illuminate\Support\Facades\Http::igdb()
                 ->withBody($query, 'text/plain')
@@ -415,12 +436,12 @@ class Game extends Model
                 if (empty($involvedCompany['company'])) {
                     continue;
                 }
-                
+
                 $company = \App\Models\Company::firstOrCreate(
                     ['igdb_id' => $involvedCompany['company']['id']],
                     ['name' => $involvedCompany['company']['name'] ?? 'Unknown']
                 );
-                
+
                 $syncData[$company->id] = [
                     'is_developer' => $involvedCompany['developer'] ?? false,
                     'is_publisher' => $involvedCompany['publisher'] ?? false,

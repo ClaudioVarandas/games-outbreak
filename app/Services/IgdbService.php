@@ -34,7 +34,7 @@ class IgdbService
 
     /**
      * Fetch upcoming games from IGDB
-     * 
+     *
      * @param array $platformIds Platform IDs to filter by
      * @param Carbon|null $startDate Start date for filtering
      * @param Carbon|null $endDate End date for filtering
@@ -66,7 +66,7 @@ class IgdbService
                             videos.video_id,
                             external_games.category, external_games.uid,
                             websites.category, websites.url, game_type,
-                            release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d,
+                            release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
                             involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
                             game_engines.name, game_engines.id,
                             player_perspectives.name, player_perspectives.id;
@@ -240,7 +240,7 @@ class IgdbService
             // Check cache first (24 hour TTL)
             $cacheKey = "steam_app_details_{$appId}";
             $cachedData = Cache::get($cacheKey);
-            
+
             if ($cachedData !== null) {
                 $steamDetails[$appId] = $cachedData;
                 continue;
@@ -264,7 +264,7 @@ class IgdbService
                     if ($info['success'] ?? false) {
                         $steamData = $info['data'];
                         $steamDetails[$appId] = $steamData;
-                        
+
                         // Cache for 24 hours
                         Cache::put($cacheKey, $steamData, now()->addHours(24));
                     }
@@ -516,13 +516,13 @@ class IgdbService
                 return $grid;
             }
         }
-        
+
         foreach ($grids as $grid) {
             if (isset($grid['style']) && $grid['style'] === 'alternate') {
                 return $grid;
             }
         }
-        
+
         return null;
     }
 
@@ -537,7 +537,7 @@ class IgdbService
                 return $grid;
             }
         }
-        
+
         return null;
     }
 
@@ -552,7 +552,7 @@ class IgdbService
                 return $grid;
             }
         }
-        
+
         return null;
     }
 }
