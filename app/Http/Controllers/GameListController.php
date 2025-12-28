@@ -125,14 +125,16 @@ class GameListController extends Controller
 
     /**
      * Display the specified resource.
-     * 
+     *
      * @param bool $readOnly If true, hides all edit/add/remove functionality
      */
     public function show(GameList $gameList, bool $readOnly = false): View
     {
         // Check if user can view this list
         $user = auth()->user();
-        if (!$gameList->is_public && (!$user || !$gameList->canBeEditedBy($user))) {
+
+        // Allow viewing if: user is owner/admin OR (list is public AND active)
+        if (!$gameList->canBeEditedBy($user) && !($gameList->is_public && $gameList->is_active)) {
             abort(403);
         }
 
@@ -144,7 +146,7 @@ class GameListController extends Controller
                 ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
                 ->orderBy('games.id', 'ASC') // Secondary sort for null dates
                 ->get();
-            
+
             // Assign to gameList for view compatibility
             $gameList->setRelation('games', $games);
             $gameList->load('user');
@@ -374,7 +376,7 @@ class GameListController extends Controller
 
         // Add game to list
         $maxOrder = $gameList->games()->max('order') ?? 0;
-        
+
         // Get release_date from request or default to game's first_release_date
         $releaseDate = $request->input('release_date');
         if ($releaseDate) {
@@ -386,7 +388,7 @@ class GameListController extends Controller
         } else {
             $releaseDate = $game->first_release_date;
         }
-        
+
         // Get platforms from request or default to game's platforms
         $platformIds = $request->input('platforms', []);
         if (is_string($platformIds)) {
@@ -401,7 +403,7 @@ class GameListController extends Controller
                 ->values()
                 ->toArray();
         }
-        
+
         $gameList->games()->attach($game->id, [
             'order' => $maxOrder + 1,
             'release_date' => $releaseDate,
@@ -454,34 +456,34 @@ class GameListController extends Controller
     {
         $user = auth()->user();
         $user->ensureSpecialLists();
-        
+
         $backlogList = $user->gameLists()
             ->backlog()
             ->with('games')
             ->first();
-        
+
         $viewMode = $request->query('view', 'grid'); // 'grid' or 'list'
         $page = (int) $request->query('page', 1);
         $perPage = 25;
-        
+
         $games = collect();
         $totalResults = 0;
         $totalPages = 1;
         $hasMore = false;
-        
+
         if ($backlogList) {
             $allGames = $backlogList->games;
             $totalResults = $allGames->count();
             $totalPages = (int) ceil($totalResults / $perPage);
-            
+
             $games = $allGames->skip(($page - 1) * $perPage)->take($perPage);
             $hasMore = $page < $totalPages;
         }
-        
+
         $platformEnums = PlatformEnum::getActivePlatforms();
-        
+
         $currentPage = $page;
-        
+
         return view('backlog.index', compact(
             'games',
             'viewMode',
@@ -500,34 +502,34 @@ class GameListController extends Controller
     {
         $user = auth()->user();
         $user->ensureSpecialLists();
-        
+
         $wishlistList = $user->gameLists()
             ->wishlist()
             ->with('games')
             ->first();
-        
+
         $viewMode = $request->query('view', 'grid'); // 'grid' or 'list'
         $page = (int) $request->query('page', 1);
         $perPage = 25;
-        
+
         $games = collect();
         $totalResults = 0;
         $totalPages = 1;
         $hasMore = false;
-        
+
         if ($wishlistList) {
             $allGames = $wishlistList->games;
             $totalResults = $allGames->count();
             $totalPages = (int) ceil($totalResults / $perPage);
-            
+
             $games = $allGames->skip(($page - 1) * $perPage)->take($perPage);
             $hasMore = $page < $totalPages;
         }
-        
+
         $platformEnums = PlatformEnum::getActivePlatforms();
-        
+
         $currentPage = $page;
-        
+
         return view('wishlist.index', compact(
             'games',
             'viewMode',
@@ -542,24 +544,30 @@ class GameListController extends Controller
     /**
      * Display list by slug (public interface).
      * Shows visible lists OR if the authenticated user is the owner.
-     * - Visible = is_active = true (for all list types)
+     * - Visible = is_public = true (for guests, regardless of is_active status)
+     * - OR is_active = true (for system/featured lists)
      * - Owner exception: Owner can always access their own list regardless of visibility
      * Note: Slug-based views are read-only (no add/remove games functionality)
      */
     public function showBySlug(string $slug): View
     {
         $user = auth()->user();
-        
+
         $gameList = GameList::where('slug', $slug)
             ->whereNotNull('slug')
             ->where(function ($query) use ($user) {
                 if ($user) {
                     // Owner can always see their own list
                     $query->where('user_id', $user->id)
-                        ->orWhere('is_active', true);
+                        ->orWhere(function ($q) {
+                            // Visible lists: public OR active
+                            $q->where('is_public', true)
+                              ->orWhere('is_active', true);
+                        });
                 } else {
-                    // Non-authenticated users only see visible lists (visible = is_active = true)
-                    $query->where('is_active', true);
+                    // Non-authenticated users see public lists OR active lists
+                    $query->where('is_public', true)
+                          ->orWhere('is_active', true);
                 }
             })
             ->firstOrFail();
