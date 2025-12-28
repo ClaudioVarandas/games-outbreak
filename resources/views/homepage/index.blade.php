@@ -4,6 +4,21 @@
 
 @section('content')
     <div class="container mx-auto px-4 py-8">
+
+        <h1 class="text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-4">
+            <div class="flex gap-2">
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+            </div>
+            Special lists
+            <div class="flex gap-2">
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+            </div>
+        </h1>
+
         <!-- Seasonal Events Section -->
         <section class="mb-12">
             <x-seasonal-banners :banners="[
