@@ -35,7 +35,7 @@
                 <div class="w-2 h-2 rounded-full bg-orange-500"></div>
                 <div class="w-2 h-2 rounded-full bg-orange-400"></div>
             </div>
-            Special lists
+            Seasoned lists
             <div class="flex gap-2">
                 <div class="w-2 h-2 rounded-full bg-orange-400"></div>
                 <div class="w-2 h-2 rounded-full bg-orange-500"></div>
