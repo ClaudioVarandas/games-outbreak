@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\GameTypeEnum;
 use App\Enums\PlatformEnum;
+use App\Services\IgdbService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -24,6 +25,8 @@ class Game extends Model
         'game_type' => 'integer',
         'raw_igdb_json' => 'array',
         'release_dates' => 'array',
+        'last_igdb_sync_at' => 'datetime',
+        'last_viewed_at' => 'datetime',
     ];
 
     public function platforms(): BelongsToMany
@@ -463,5 +466,230 @@ class Game extends Model
             );
             $game->playerPerspectives()->sync($ids);
         }
+    }
+
+    // === UPDATE TRACKING & PRIORITY METHODS ===
+
+    /**
+     * Mark game as viewed by user
+     */
+    public function markAsViewed(): void
+    {
+        $this->increment('view_count');
+        $this->update(['last_viewed_at' => now()]);
+        $this->calculateAndSaveUpdatePriority();
+    }
+
+    /**
+     * Calculate update priority score (0-100)
+     * Higher score = higher priority for updates
+     */
+    public function calculateUpdatePriority(): int
+    {
+        $score = 0;
+
+        // 1. View count (0-40 points) - logarithmic scale
+        if ($this->view_count > 0) {
+            $score += min(log($this->view_count + 1, 2) * 5, 40);
+        }
+
+        // 2. Days since release (0-30 points) - newer games = higher priority
+        if ($this->first_release_date) {
+            $daysSinceRelease = abs($this->first_release_date->diffInDays(now()));
+
+            if ($daysSinceRelease <= 30) {
+                $score += 30; // Recently released
+            } elseif ($daysSinceRelease <= 90) {
+                $score += 20; // Released in last 3 months
+            } elseif ($daysSinceRelease <= 180) {
+                $score += 10; // Released in last 6 months
+            }
+        }
+
+        // 3. Days since last sync (0-20 points) - older sync = higher priority
+        if ($this->last_igdb_sync_at) {
+            $daysSinceSync = $this->last_igdb_sync_at->diffInDays(now());
+
+            if ($daysSinceSync > 90) {
+                $score += 20; // Very stale
+            } elseif ($daysSinceSync > 60) {
+                $score += 15;
+            } elseif ($daysSinceSync > 30) {
+                $score += 10;
+            } elseif ($daysSinceSync > 14) {
+                $score += 5;
+            }
+        } else {
+            // Never synced = high priority
+            $score += 20;
+        }
+
+        // 4. Missing data (0-10 points)
+        if (!$this->cover_image_id || !$this->summary || !$this->steam_data) {
+            $score += 10;
+        }
+
+        return min((int) round($score), 100);
+    }
+
+    /**
+     * Calculate and save update priority
+     */
+    public function calculateAndSaveUpdatePriority(): void
+    {
+        $this->update(['update_priority' => $this->calculateUpdatePriority()]);
+    }
+
+    /**
+     * Determine if game should be updated
+     */
+    public function shouldUpdate(int $minDaysSinceSync = 30): bool
+    {
+        // Never synced
+        if (!$this->last_igdb_sync_at) {
+            return true;
+        }
+
+        // Check if stale
+        if ($this->last_igdb_sync_at->diffInDays(now()) >= $minDaysSinceSync) {
+            return true;
+        }
+
+        // High priority games get more frequent updates
+        if ($this->update_priority >= 80 && $this->last_igdb_sync_at->diffInDays(now()) >= 7) {
+            return true;
+        }
+
+        // Missing critical data
+        if (!$this->cover_image_id || !$this->summary) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Refresh game data from IGDB with change detection
+     */
+    public function refreshFromIgdb(IgdbService $igdbService): bool
+    {
+        try {
+            // Fetch fresh data from IGDB
+            $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
+                             genres.name, genres.id,
+                             game_modes.name, game_modes.id,
+                             similar_games.name, similar_games.cover.image_id, similar_games.id,
+                             screenshots.image_id,
+                             videos.video_id,
+                             external_games.category, external_games.uid,
+                             websites.category, websites.url, game_type,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
+                             involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
+                             game_engines.name, game_engines.id,
+                             player_perspectives.name, player_perspectives.id;
+                         where id = {$this->igdb_id}; limit 1;";
+
+            $response = \Illuminate\Support\Facades\Http::igdb()
+                ->withBody($query, 'text/plain')
+                ->post('https://api.igdb.com/v4/games');
+
+            if ($response->failed() || empty($response->json())) {
+                \Log::warning("Failed to refresh game data from IGDB", ['igdb_id' => $this->igdb_id]);
+                return false;
+            }
+
+            $igdbGame = $response->json()[0];
+
+            // Enrich with Steam data
+            $igdbGame = $igdbService->enrichWithSteamData([$igdbGame])[0] ?? $igdbGame;
+
+            // Detect changes using hash comparison
+            $currentHash = $this->generateDataHash();
+
+            // Prepare update data
+            $updateData = [
+                'name' => $igdbGame['name'] ?? $this->name,
+                'summary' => $igdbGame['summary'] ?? $this->summary,
+                'first_release_date' => isset($igdbGame['first_release_date'])
+                    ? Carbon::createFromTimestamp($igdbGame['first_release_date'])
+                    : $this->first_release_date,
+                'cover_image_id' => $igdbGame['cover']['image_id'] ?? $this->cover_image_id,
+                'game_type' => $igdbGame['game_type'] ?? $this->game_type,
+                'release_dates' => self::transformReleaseDates($igdbGame['release_dates'] ?? null) ?? $this->release_dates,
+                'steam_data' => $igdbGame['steam'] ?? $this->steam_data,
+                'steam_wishlist_count' => $igdbGame['steam']['wishlist_count'] ?? $this->steam_wishlist_count,
+                'similar_games' => $igdbGame['similar_games'] ?? $this->similar_games,
+                'screenshots' => $igdbGame['screenshots'] ?? $this->screenshots,
+                'trailers' => $igdbGame['videos'] ?? $this->trailers,
+                'last_igdb_sync_at' => now(),
+            ];
+
+            // Create temporary model with new data to compare hashes
+            $tempAttributes = array_merge($this->attributes, $updateData);
+            $newHash = $this->generateDataHash($tempAttributes);
+
+            // Only update if data actually changed
+            if ($currentHash !== $newHash) {
+                $this->update($updateData);
+
+                // Sync relations
+                self::syncRelations($this, $igdbGame);
+
+                \Log::info("Updated game data from IGDB", [
+                    'igdb_id' => $this->igdb_id,
+                    'name' => $this->name,
+                    'changes_detected' => true
+                ]);
+
+                return true;
+            }
+
+            // Even if no changes, update sync timestamp
+            $this->update(['last_igdb_sync_at' => now()]);
+
+            \Log::info("No changes detected for game", [
+                'igdb_id' => $this->igdb_id,
+                'name' => $this->name
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            \Log::error("Error refreshing game from IGDB", [
+                'igdb_id' => $this->igdb_id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Generate hash of critical game data for change detection
+     */
+    private function generateDataHash(?array $attributes = null): string
+    {
+        $data = $attributes ?? $this->attributes;
+
+        $criticalFields = [
+            'name' => $data['name'] ?? '',
+            'summary' => $data['summary'] ?? '',
+            'first_release_date' => $data['first_release_date'] ?? '',
+            'cover_image_id' => $data['cover_image_id'] ?? '',
+            'game_type' => $data['game_type'] ?? 0,
+            'release_dates' => is_string($data['release_dates'] ?? null)
+                ? $data['release_dates']
+                : json_encode($data['release_dates'] ?? []),
+            'steam_data' => is_string($data['steam_data'] ?? null)
+                ? $data['steam_data']
+                : json_encode($data['steam_data'] ?? []),
+            'screenshots' => is_string($data['screenshots'] ?? null)
+                ? $data['screenshots']
+                : json_encode($data['screenshots'] ?? []),
+            'trailers' => is_string($data['trailers'] ?? null)
+                ? $data['trailers']
+                : json_encode($data['trailers'] ?? []),
+        ];
+
+        return md5(json_encode($criticalFields));
     }
 }

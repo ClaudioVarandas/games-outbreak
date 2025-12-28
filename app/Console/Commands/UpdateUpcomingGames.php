@@ -212,8 +212,14 @@ class UpdateUpcomingGames extends Command
                     'similar_games' => $igdbGame['similar_games'] ?? null,
                     'screenshots' => $igdbGame['screenshots'] ?? null,
                     'trailers' => $igdbGame['game_videos'] ?? null,
+                    'last_igdb_sync_at' => now(),
                 ]
             );
+
+            // Update priority for existing games
+            if ($game->wasRecentlyCreated === false) {
+                $game->calculateAndSaveUpdatePriority();
+            }
 
             // Sync platforms
             if (!empty($igdbGame['platforms'])) {

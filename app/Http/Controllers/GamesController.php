@@ -144,6 +144,21 @@ class GamesController extends Controller
 
         // If exists → show it
         if ($game) {
+            // Track view and update priority
+            $game->markAsViewed();
+
+            // Check if game is missing critical relationship data (created from search with minimal data)
+            $isMissingRelationships = $game->companies->isEmpty()
+                || $game->genres->isEmpty()
+                || $game->gameModes->isEmpty();
+
+            // Trigger background update if:
+            // 1. Data is stale (30+ days), OR
+            // 2. Missing critical relationships (likely created from search results)
+            if ($game->shouldUpdate(30) || $isMissingRelationships) {
+                \App\Jobs\RefreshGameData::dispatch($game->id, false);
+            }
+
             $platformEnums = PlatformEnum::getActivePlatforms();
             return view('games.show', compact('game', 'platformEnums'));
         }
@@ -235,6 +250,9 @@ class GamesController extends Controller
             }
 
             $game->load(['platforms', 'genres', 'gameModes']);
+
+            // Track initial view for newly created game
+            $game->markAsViewed();
 
             $platformEnums = PlatformEnum::getActivePlatforms();
             return view('games.show', compact('game', 'platformEnums'));
@@ -822,6 +840,50 @@ class GamesController extends Controller
             GameMode::firstOrCreate(['igdb_id' => $m['id']], ['name' => $m['name'] ?? 'Unknown'])->id
             );
             $game->gameModes()->sync($ids);
+        }
+
+        // Sync companies (developers and publishers)
+        if (!empty($igdbGame['involved_companies'])) {
+            $companyData = [];
+            foreach ($igdbGame['involved_companies'] as $involvedCompany) {
+                $company = $involvedCompany['company'] ?? null;
+                if (!$company || empty($company['id'])) {
+                    continue;
+                }
+
+                $companyModel = \App\Models\Company::firstOrCreate(
+                    ['igdb_id' => $company['id']],
+                    ['name' => $company['name'] ?? 'Unknown']
+                );
+
+                $companyData[$companyModel->id] = [
+                    'is_developer' => $involvedCompany['developer'] ?? false,
+                    'is_publisher' => $involvedCompany['publisher'] ?? false,
+                ];
+            }
+            $game->companies()->sync($companyData);
+        }
+
+        // Sync game engines
+        if (!empty($igdbGame['game_engines'])) {
+            $ids = collect($igdbGame['game_engines'])->map(fn($engine) =>
+            \App\Models\GameEngine::firstOrCreate(
+                ['igdb_id' => $engine['id']],
+                ['name' => $engine['name'] ?? 'Unknown']
+            )->id
+            );
+            $game->gameEngines()->sync($ids);
+        }
+
+        // Sync player perspectives
+        if (!empty($igdbGame['player_perspectives'])) {
+            $ids = collect($igdbGame['player_perspectives'])->map(fn($perspective) =>
+            \App\Models\PlayerPerspective::firstOrCreate(
+                ['igdb_id' => $perspective['id']],
+                ['name' => $perspective['name'] ?? 'Unknown']
+            )->id
+            );
+            $game->playerPerspectives()->sync($ids);
         }
     }
 }
