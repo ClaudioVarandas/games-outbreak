@@ -18,13 +18,13 @@
         <!-- Hero with Trailer or Header -->
         <div class="relative h-96 overflow-hidden">
             @if($game->steam_data['header_image'] ?? null)
-            <img src="{{ $game->steam_data['header_image'] }}" 
+            <img src="{{ $game->steam_data['header_image'] }}"
                  class="absolute inset-0 w-full h-full object-cover"
                  onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
             <x-game-cover-placeholder :gameName="$game->name" class="absolute inset-0 w-full h-full" style="display: none;" />
             @else
             <div class="absolute inset-0 w-full h-full z-0 bg-gradient-to-br from-gray-800 to-gray-900 flex flex-col items-center justify-center p-4 text-center">
-                <img src="{{ $game->getHeroImageUrl() }}" 
+                <img src="{{ $game->getHeroImageUrl() }}"
                      id="hero-background-image"
                      class="absolute inset-0 w-full h-full object-cover"
                      loading="eager"
@@ -33,8 +33,8 @@
                 <p class="text-white font-semibold text-sm md:text-base mb-6 line-clamp-2 px-2 relative z-10" style="display: none;">
                     {{ $game->name }}
                 </p>
-                <img src="{{ asset('images/game-controller.svg') }}" 
-                     alt="Game Controller" 
+                <img src="{{ asset('images/game-controller.svg') }}"
+                     alt="Game Controller"
                      class="w-24 h-24 max-w-full opacity-70 relative z-10"
                      style="display: none;">
             </div>
@@ -50,11 +50,31 @@
                         {{ $game->name }}
                     </h1>
 
+                    <!-- Developers -->
+                    @if($game->getDevelopers()->count() > 0)
+                        <div class="mb-0">
+                            <span class="text-gray-400 text-sm">Developer{{ $game->getDevelopers()->count() > 1 ? 's' : '' }}: </span>
+                            <span class="text-white text-sm font-semibold">
+                                {{ $game->getDevelopers()->pluck('name')->join(', ') }}
+                            </span>
+                        </div>
+                    @endif
+
+                    <!-- Publishers -->
+                    @if($game->getPublishers()->count() > 0)
+                        <div class="mb-4">
+                            <span class="text-gray-400 text-sm">Publisher{{ $game->getPublishers()->count() > 1 ? 's' : '' }}: </span>
+                            <span class="text-white text-sm font-semibold">
+                                {{ $game->getPublishers()->pluck('name')->join(', ') }}
+                            </span>
+                        </div>
+                    @endif
+
                     <!-- Platforms -->
                     @php
                         // On game detail page, show ALL platforms (not just active ones)
                         // Filter out platforms that don't have an enum AND have "Unknown Platform" name
-                        $displayPlatforms = $game->platforms 
+                        $displayPlatforms = $game->platforms
                             ? $game->platforms->filter(function($p) {
                                 $enum = \App\Enums\PlatformEnum::fromIgdbId($p->igdb_id);
                                 $hasEnum = $enum !== null;
@@ -66,7 +86,7 @@
                     @if($displayPlatforms->count() > 0)
                         <div class="flex flex-wrap gap-2 mb-4">
                             @foreach($displayPlatforms as $plat)
-                                @php 
+                                @php
                                     $enum = \App\Enums\PlatformEnum::fromIgdbId($plat->igdb_id);
                                     $colorClass = match($enum?->color() ?? 'gray') {
                                         'blue' => 'bg-blue-600',
@@ -99,28 +119,6 @@
                         </p>
                     @endif
 
-                    <!-- Release Date -->
-                    @if($game->first_release_date)
-                        @php
-                            $daysDiff = (int) round($game->first_release_date->diffInDays(now(), false));
-                            $releaseText = '';
-                            if ($daysDiff >= 0) {
-                                // Past or today
-                                if ($daysDiff < 1) {
-                                    $releaseText = 'Released ' . $game->first_release_date->format('d/m/Y') . ' (Today)';
-                                } else {
-                                    $releaseText = 'Released ' . $game->first_release_date->format('d/m/Y') . " ({$daysDiff} " . ($daysDiff === 1 ? 'day' : 'days') . " ago)";
-                                }
-                            } else {
-                                // Future
-                                $daysUntil = abs($daysDiff);
-                                $releaseText = 'Release date ' . $game->first_release_date->format('d/m/Y') . " (in {$daysUntil} " . ($daysUntil === 1 ? 'day' : 'days') . ")";
-                            }
-                        @endphp
-                        <p class="text-lg text-gray-300 mt-4 text-left">
-                            {{ $releaseText }}
-                        </p>
-                    @endif
                 </div>
             </div>
         </div>
@@ -248,21 +246,17 @@
                         @endif
                     </div>
 
-                    <!-- Add to List -->
-                    <x-add-to-list :game="$game" />
-
-                    <!-- Genres & Modes -->
                     <div class="bg-gray-800 p-6 rounded-xl">
-                        <h3 class="text-xl font-bold mb-4">Genres</h3>
+                        <h3 class="text-xl font-bold mb-4">Game Info</h3>
+                        <!-- Game Genres -->
+                        <p class="text-xs text-gray-400 uppercase tracking-wide mb-5">Genres</p>
                         <div class="flex flex-wrap gap-2">
                             @foreach($game->genres as $genre)
-                                <span class="px-4 py-2 bg-purple-700 rounded-full text-sm">{{ $genre->name }}</span>
+                                <span class="px-3 py-1.5 bg-purple-700 rounded-md text-sm">{{ $genre->name }}</span>
                             @endforeach
                         </div>
-                    </div>
-
-                    <div class="bg-gray-800 p-6 rounded-xl">
-                        <h3 class="text-xl font-bold mb-4">Game Modes</h3>
+                        <!-- Game Modes -->
+                        <p class="text-xs text-gray-400 uppercase tracking-wide mt-5 mb-5">Modes</p>
                         <div class="flex flex-wrap gap-2">
                             @foreach($game->gameModes as $mode)
                                 @php
@@ -277,7 +271,7 @@
                                         default => '<path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>', // Default - Users icon
                                     };
                                 @endphp
-                                <span class="px-4 py-2 bg-indigo-700 rounded-full text-sm flex items-center">
+                                <span class="px-3 py-1.5 bg-indigo-700 rounded-md text-sm flex items-center">
                                     <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                         {!! $iconSvg !!}
                                     </svg>
@@ -285,7 +279,24 @@
                                 </span>
                             @endforeach
                         </div>
+                        <!-- Game Engine -->
+                        <p class="text-xs text-gray-400 uppercase tracking-wide mt-5 mb-5">Engine</p>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($game->gameEngines as $engine)
+                                <span class="px-3 py-1.5 bg-cyan-700 rounded-md text-sm">{{ $engine->name }}</span>
+                            @endforeach
+                        </div>
+                        <!-- Player Perspectives -->
+                        <p class="text-xs text-gray-400 uppercase tracking-wide mt-5 mb-5">Player Perspectives</p>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($game->playerPerspectives as $perspective)
+                                <span class="px-3 py-1.5 bg-teal-700 rounded-md text-sm">{{ $perspective->name }}</span>
+                            @endforeach
+                        </div>
                     </div>
+
+                    <!-- Add to List -->
+                    <x-add-to-list :game="$game" />
                 </div>
             </div>
 
@@ -314,7 +325,7 @@
                     const gameIgdbId = {{ $game->igdb_id }};
                     const loadingEl = document.getElementById('similar-games-loading');
                     const contentEl = document.getElementById('similar-games-content');
-                    
+
                     if (!loadingEl || !contentEl) {
                         return;
                     }

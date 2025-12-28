@@ -48,6 +48,25 @@ class Game extends Model
             ->withTimestamps();
     }
 
+    public function companies(): BelongsToMany
+    {
+        return $this->belongsToMany(Company::class, 'company_game')
+            ->withPivot('is_developer', 'is_publisher')
+            ->withTimestamps();
+    }
+
+    public function gameEngines(): BelongsToMany
+    {
+        return $this->belongsToMany(GameEngine::class, 'game_engine_game')
+            ->withTimestamps();
+    }
+
+    public function playerPerspectives(): BelongsToMany
+    {
+        return $this->belongsToMany(PlayerPerspective::class, 'game_player_perspective')
+            ->withTimestamps();
+    }
+
     // === HELPER METHODS ===
 
     /**
@@ -215,6 +234,16 @@ class Game extends Model
         return GameTypeEnum::fromValue($gameType) ?? GameTypeEnum::MAIN;
     }
 
+    public function getDevelopers()
+    {
+        return $this->companies()->wherePivot('is_developer', true)->get();
+    }
+
+    public function getPublishers()
+    {
+        return $this->companies()->wherePivot('is_publisher', true)->get();
+    }
+
     /**
      * Transform release_dates array to include release_date (dd/mm/yyyy) and platform_name
      */
@@ -264,7 +293,10 @@ class Game extends Model
                          screenshots.image_id, videos.video_id,
                          external_games.category, external_games.uid,
                          websites.category, websites.url, game_type,
-                         release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d;
+                         release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d,
+                         involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
+                         game_engines.name, game_engines.id,
+                         player_perspectives.name, player_perspectives.id;
                   where id = {$igdbId}; limit 1;";
 
             $response = \Illuminate\Support\Facades\Http::igdb()
@@ -375,6 +407,40 @@ class Game extends Model
                 \App\Models\GameMode::firstOrCreate(['igdb_id' => $m['id']], ['name' => $m['name'] ?? 'Unknown'])->id
             );
             $game->gameModes()->sync($ids);
+        }
+
+        if (!empty($igdbGame['involved_companies'])) {
+            $syncData = [];
+            foreach ($igdbGame['involved_companies'] as $involvedCompany) {
+                if (empty($involvedCompany['company'])) {
+                    continue;
+                }
+                
+                $company = \App\Models\Company::firstOrCreate(
+                    ['igdb_id' => $involvedCompany['company']['id']],
+                    ['name' => $involvedCompany['company']['name'] ?? 'Unknown']
+                );
+                
+                $syncData[$company->id] = [
+                    'is_developer' => $involvedCompany['developer'] ?? false,
+                    'is_publisher' => $involvedCompany['publisher'] ?? false,
+                ];
+            }
+            $game->companies()->sync($syncData);
+        }
+
+        if (!empty($igdbGame['game_engines'])) {
+            $ids = collect($igdbGame['game_engines'])->map(fn($e) =>
+                \App\Models\GameEngine::firstOrCreate(['igdb_id' => $e['id']], ['name' => $e['name'] ?? 'Unknown'])->id
+            );
+            $game->gameEngines()->sync($ids);
+        }
+
+        if (!empty($igdbGame['player_perspectives'])) {
+            $ids = collect($igdbGame['player_perspectives'])->map(fn($p) =>
+                \App\Models\PlayerPerspective::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
+            );
+            $game->playerPerspectives()->sync($ids);
         }
     }
 }

@@ -40,7 +40,10 @@ class UpdateUpcomingGames extends Command
                              videos.video_id,
                              external_games.category, external_games.uid,
                              websites.category, websites.url, game_type,
-                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d;
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d,
+                             involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
+                             game_engines.name, game_engines.id,
+                             player_perspectives.name, player_perspectives.id;
                          where id = {$igdbId}; limit 1;";
 
                 $response = \Illuminate\Support\Facades\Http::igdb()
@@ -246,6 +249,51 @@ class UpdateUpcomingGames extends Command
                 })->all();
 
                 $game->gameModes()->sync($modeIds);
+            }
+
+            // Sync companies (developers/publishers)
+            if (!empty($igdbGame['involved_companies'])) {
+                $syncData = [];
+                foreach ($igdbGame['involved_companies'] as $involvedCompany) {
+                    if (empty($involvedCompany['company'])) {
+                        continue;
+                    }
+                    
+                    $company = \App\Models\Company::firstOrCreate(
+                        ['igdb_id' => $involvedCompany['company']['id']],
+                        ['name' => $involvedCompany['company']['name'] ?? 'Unknown']
+                    );
+                    
+                    $syncData[$company->id] = [
+                        'is_developer' => $involvedCompany['developer'] ?? false,
+                        'is_publisher' => $involvedCompany['publisher'] ?? false,
+                    ];
+                }
+                $game->companies()->sync($syncData);
+            }
+
+            // Sync game engines
+            if (!empty($igdbGame['game_engines'])) {
+                $engineIds = collect($igdbGame['game_engines'])->map(function ($engine) {
+                    return \App\Models\GameEngine::firstOrCreate(
+                        ['igdb_id' => $engine['id']],
+                        ['name' => $engine['name'] ?? 'Unknown']
+                    )->id;
+                })->all();
+
+                $game->gameEngines()->sync($engineIds);
+            }
+
+            // Sync player perspectives
+            if (!empty($igdbGame['player_perspectives'])) {
+                $perspectiveIds = collect($igdbGame['player_perspectives'])->map(function ($perspective) {
+                    return \App\Models\PlayerPerspective::firstOrCreate(
+                        ['igdb_id' => $perspective['id']],
+                        ['name' => $perspective['name'] ?? 'Unknown']
+                    )->id;
+                })->all();
+
+                $game->playerPerspectives()->sync($perspectiveIds);
             }
 
             $bar->advance();

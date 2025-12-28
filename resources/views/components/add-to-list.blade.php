@@ -7,12 +7,12 @@
         $backlogList = $user->gameLists()->backlog()->with('games')->first();
         $wishlistList = $user->gameLists()->wishlist()->with('games')->first();
         $regularLists = $user->gameLists()->userLists()->regular()->with('games')->get();
-        
+
         $isInBacklog = $backlogList && $backlogList->games->contains('id', $game->id);
         $isInWishlist = $wishlistList && $wishlistList->games->contains('id', $game->id);
     @endphp
 
-    <div class="bg-gray-800 p-6 rounded-xl" x-data="{ 
+    <div class="bg-gray-800 p-6 rounded-xl" x-data="{
         open: false,
         backlogLoading: false,
         wishlistLoading: false,
@@ -29,19 +29,19 @@
             if (this.backlogLoading) return;
             this.backlogLoading = true;
             try {
-                const url = this.isInBacklog 
+                const url = this.isInBacklog
                     ? '{{ route('lists.games.remove', ['gameList' => $backlogList, 'game' => $game]) }}'
                     : '{{ route('lists.games.add', $backlogList) }}';
                 const method = this.isInBacklog ? 'DELETE' : 'POST';
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
-                
+
                 if (method === 'POST') {
                     formData.append('game_id', '{{ $game->id }}');
                 } else {
                     formData.append('_method', 'DELETE');
                 }
-                
+
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -50,7 +50,7 @@
                     },
                     body: formData,
                 });
-                
+
                 const data = await response.json();
                 if (data.success || data.info) {
                     this.isInBacklog = !this.isInBacklog;
@@ -65,19 +65,19 @@
             if (this.wishlistLoading) return;
             this.wishlistLoading = true;
             try {
-                const url = this.isInWishlist 
+                const url = this.isInWishlist
                     ? '{{ route('lists.games.remove', ['gameList' => $wishlistList, 'game' => $game]) }}'
                     : '{{ route('lists.games.add', $wishlistList) }}';
                 const method = this.isInWishlist ? 'DELETE' : 'POST';
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
-                
+
                 if (method === 'POST') {
                     formData.append('game_id', '{{ $game->id }}');
                 } else {
                     formData.append('_method', 'DELETE');
                 }
-                
+
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -86,7 +86,7 @@
                     },
                     body: formData,
                 });
-                
+
                 const data = await response.json();
                 if (data.success || data.info) {
                     this.isInWishlist = !this.isInWishlist;
@@ -104,7 +104,7 @@
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
                 formData.append('game_id', '{{ $game->id }}');
-                
+
                 const response = await fetch(`/user/lists/${this.selectedListId}/games`, {
                     method: 'POST',
                     headers: {
@@ -113,7 +113,7 @@
                     },
                     body: formData,
                 });
-                
+
                 const data = await response.json();
                 if (data.success) {
                     // Reset dropdown
@@ -133,7 +133,7 @@
         }
     }">
         <!-- Notification Toast -->
-        <div x-show="notification.show" 
+        <div x-show="notification.show"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 translate-y-2"
              x-transition:enter-end="opacity-100 translate-y-0"
@@ -151,7 +151,7 @@
         </div>
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-xl font-bold">Add to List</h3>
-            <button @click="open = !open" 
+            <button @click="open = !open"
                     class="text-orange-400 hover:text-orange-300 transition">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -159,13 +159,13 @@
             </button>
         </div>
 
-        <div x-show="open" 
+        <div x-show="open"
              x-transition
              class="space-y-6">
             <!-- Special Lists Section -->
             @if($backlogList || $wishlistList)
                 <div>
-                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-4">Special Lists</p>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-4">Backlog and Wishlist</p>
                     <div class="flex items-center justify-center gap-4">
                         <!-- Backlog Button -->
                         @if($backlogList)
@@ -192,7 +192,7 @@
                                 </svg>
                             </button>
                         @endif
-                        
+
                         <!-- Wishlist Button -->
                         @if($wishlistList)
                             <button @click="toggleWishlist()"
@@ -226,7 +226,7 @@
             <div>
                 <p class="text-xs text-gray-400 uppercase tracking-wide mb-4">Custom Lists</p>
                 <div class="flex items-stretch gap-2">
-                    <select x-model="selectedListId" 
+                    <select x-model="selectedListId"
                             :disabled="addToListLoading || {{ $regularLists->count() === 0 ? 'true' : 'false' }}"
                             class="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
                         @if($regularLists->count() > 0)
@@ -262,7 +262,7 @@
 
             <!-- Create New List Link -->
             <div class="pt-2 border-t border-gray-700">
-                <a href="{{ route('lists.create') }}" 
+                <a href="{{ route('lists.create') }}"
                    class="block text-center text-sm text-orange-400 hover:text-orange-300 transition">
                     + Create New List
                 </a>
