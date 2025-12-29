@@ -12,6 +12,12 @@ class SmokeTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
+    }
+
     public function test_homepage_loads_without_errors(): void
     {
         $response = $this->get('/');

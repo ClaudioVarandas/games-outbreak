@@ -77,6 +77,7 @@ class User extends Authenticatable
                 [
                     'name' => 'Backlog',
                     'description' => 'Games I plan to play',
+                    'slug' => 'backlog-user-' . $this->id,
                     'is_public' => false,
                     'is_system' => false,
                 ]
@@ -94,6 +95,7 @@ class User extends Authenticatable
                 [
                     'name' => 'Wishlist',
                     'description' => 'Games I want to buy',
+                    'slug' => 'wishlist-user-' . $this->id,
                     'is_public' => false,
                     'is_system' => false,
                 ]

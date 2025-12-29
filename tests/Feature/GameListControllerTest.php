@@ -13,6 +13,12 @@ class GameListControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
+    }
+
     public function test_lists_index_requires_authentication(): void
     {
         $response = $this->get('/user/lists');

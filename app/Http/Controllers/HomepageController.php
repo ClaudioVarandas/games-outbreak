@@ -11,16 +11,28 @@ use Illuminate\View\View;
 class HomepageController extends Controller
 {
     /**
-     * Get the active system list for the current month.
+     * Get the active monthly system list for the current month.
      */
     private function getActiveMonthlyList(): ?GameList
     {
-        return GameList::where('is_system', true)
+        return GameList::monthly()
             ->where('is_active', true)
             ->where('start_at', '<=', now())
             ->where('end_at', '>=', now())
             ->with('games')
             ->first();
+    }
+
+    /**
+     * Get all active seasoned system lists.
+     */
+    private function getSeasonedLists(): \Illuminate\Database\Eloquent\Collection
+    {
+        return GameList::seasoned()
+            ->where('is_active', true)
+            ->where('is_public', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -44,6 +56,7 @@ class HomepageController extends Controller
     public function index(): View
     {
         $activeList = $this->getActiveMonthlyList();
+        $seasonedLists = $this->getSeasonedLists();
         $featuredGames = collect();
         $weeklyUpcomingGames = $this->getWeeklyUpcomingGames();
         $platformEnums = PlatformEnum::getActivePlatforms();
@@ -56,7 +69,7 @@ class HomepageController extends Controller
                 ->get();
         }
 
-        return view('homepage.index', compact('activeList', 'featuredGames', 'weeklyUpcomingGames', 'platformEnums'));
+        return view('homepage.index', compact('activeList', 'seasonedLists', 'featuredGames', 'weeklyUpcomingGames', 'platformEnums'));
     }
 
     /**

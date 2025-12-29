@@ -83,12 +83,27 @@
                     
                     <div id="system_fields" class="mt-4 {{ old('is_system') ? '' : 'hidden' }}">
                         <div class="mb-4">
+                            <label for="list_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                System List Type <span class="text-red-500">*</span>
+                            </label>
+                            <select name="list_type"
+                                    id="list_type"
+                                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                                <option value="seasoned" {{ old('list_type', 'seasoned') === 'seasoned' ? 'selected' : '' }}>Seasoned (Featured curated list)</option>
+                                <option value="monthly" {{ old('list_type') === 'monthly' ? 'selected' : '' }}>Monthly (Auto-generated monthly list)</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Seasoned lists appear in homepage banners. Monthly lists feed the featured games section.</p>
+                            @error('list_type')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div class="mb-4">
                             <label for="slug" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 URL Slug (auto-generated if left empty)
                             </label>
-                            <input type="text" 
-                                   name="slug" 
-                                   id="slug" 
+                            <input type="text"
+                                   name="slug"
+                                   id="slug"
                                    value="{{ old('slug') }}"
                                    pattern="[a-z0-9-]+"
                                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
@@ -99,8 +114,8 @@
                         </div>
                         <div class="mb-4">
                             <label class="flex items-center">
-                                <input type="checkbox" 
-                                       name="is_active" 
+                                <input type="checkbox"
+                                       name="is_active"
                                        value="1"
                                        {{ old('is_active', true) ? 'checked' : '' }}
                                        class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">

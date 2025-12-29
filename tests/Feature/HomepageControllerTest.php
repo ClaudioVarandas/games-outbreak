@@ -21,7 +21,7 @@ class HomepageControllerTest extends TestCase
 
     public function test_homepage_displays_active_monthly_list(): void
     {
-        $activeList = GameList::factory()->system()->active()->create([
+        $activeList = GameList::factory()->system()->monthly()->active()->create([
             'start_at' => now()->subDays(1),
             'end_at' => now()->addDays(30),
         ]);
@@ -98,7 +98,7 @@ class HomepageControllerTest extends TestCase
 
     public function test_monthly_releases_displays_active_list_games(): void
     {
-        $activeList = GameList::factory()->system()->active()->create([
+        $activeList = GameList::factory()->system()->monthly()->active()->create([
             'start_at' => now()->subDays(1),
             'end_at' => now()->addDays(30),
         ]);

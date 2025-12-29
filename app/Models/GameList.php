@@ -83,6 +83,16 @@ class GameList extends Model
         return $query->where('list_type', ListTypeEnum::WISHLIST->value);
     }
 
+    public function scopeMonthly(Builder $query): Builder
+    {
+        return $query->where('list_type', ListTypeEnum::MONTHLY->value);
+    }
+
+    public function scopeSeasoned(Builder $query): Builder
+    {
+        return $query->where('list_type', ListTypeEnum::SEASONED->value);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)
@@ -115,6 +125,16 @@ class GameList extends Model
     public function isWishlist(): bool
     {
         return $this->list_type === ListTypeEnum::WISHLIST;
+    }
+
+    public function isMonthly(): bool
+    {
+        return $this->list_type === ListTypeEnum::MONTHLY;
+    }
+
+    public function isSeasoned(): bool
+    {
+        return $this->list_type === ListTypeEnum::SEASONED;
     }
 
     public function isSpecialList(): bool

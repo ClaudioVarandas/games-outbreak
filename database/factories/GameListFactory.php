@@ -85,6 +85,26 @@ class GameListFactory extends Factory
     }
 
     /**
+     * Indicate that the list is a monthly system list.
+     */
+    public function monthly(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'list_type' => ListTypeEnum::MONTHLY,
+        ]);
+    }
+
+    /**
+     * Indicate that the list is a seasoned system list.
+     */
+    public function seasoned(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'list_type' => ListTypeEnum::SEASONED,
+        ]);
+    }
+
+    /**
      * Indicate that the list is active (for system lists).
      */
     public function active(): static

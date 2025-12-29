@@ -66,6 +66,7 @@ class CreateMonthlyGameLists extends Command
                 'is_public' => true,
                 'is_system' => true,
                 'is_active' => true,
+                'list_type' => \App\Enums\ListTypeEnum::MONTHLY->value,
                 'start_at' => $startDate,
                 'end_at' => $endDate,
             ]);

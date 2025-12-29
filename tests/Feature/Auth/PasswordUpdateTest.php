@@ -11,6 +11,12 @@ class PasswordUpdateTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
+    }
+
     public function test_password_can_be_updated(): void
     {
         $user = User::factory()->create();

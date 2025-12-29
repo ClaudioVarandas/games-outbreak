@@ -8,6 +8,8 @@ enum ListTypeEnum: string
     case REGULAR = 'regular';
     case BACKLOG = 'backlog';
     case WISHLIST = 'wishlist';
+    case MONTHLY = 'monthly';
+    case SEASONED = 'seasoned';
 
     public function label(): string
     {
@@ -15,6 +17,8 @@ enum ListTypeEnum: string
             self::REGULAR => 'Regular',
             self::BACKLOG => 'Backlog',
             self::WISHLIST => 'Wishlist',
+            self::MONTHLY => 'Monthly',
+            self::SEASONED => 'Seasoned',
         };
     }
 
@@ -24,6 +28,17 @@ enum ListTypeEnum: string
             self::REGULAR => false,
             self::BACKLOG => true,
             self::WISHLIST => true,
+            self::MONTHLY => false,
+            self::SEASONED => false,
+        };
+    }
+
+    public function isSystemListType(): bool
+    {
+        return match ($this) {
+            self::MONTHLY => true,
+            self::SEASONED => true,
+            default => false,
         };
     }
 
@@ -33,6 +48,8 @@ enum ListTypeEnum: string
             'regular' => self::REGULAR,
             'backlog' => self::BACKLOG,
             'wishlist' => self::WISHLIST,
+            'monthly' => self::MONTHLY,
+            'seasoned' => self::SEASONED,
             default => null,
         };
     }

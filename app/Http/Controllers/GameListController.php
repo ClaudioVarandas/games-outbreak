@@ -87,14 +87,23 @@ class GameListController extends Controller
         $data = $request->validated();
         $data['user_id'] = auth()->id();
 
-        // Set list_type to 'regular' for user-created lists
-        $data['list_type'] = \App\Enums\ListTypeEnum::REGULAR->value;
-
         // Handle checkbox fields - if not present, set to false
         if ($request->user() && $request->user()->isAdmin()) {
             $data['is_system'] = $request->has('is_system') ? (bool)$request->input('is_system') : false;
             $data['is_active'] = $request->has('is_active') ? (bool)$request->input('is_active') : false;
+
+            // If creating a system list, use the provided list_type (seasoned or monthly)
+            // Otherwise, set to 'regular' for user-created lists
+            if ($data['is_system'] && !empty($request->input('list_type'))) {
+                $data['list_type'] = $request->input('list_type');
+            } else {
+                $data['list_type'] = \App\Enums\ListTypeEnum::REGULAR->value;
+            }
+        } else {
+            // Set list_type to 'regular' for user-created lists
+            $data['list_type'] = \App\Enums\ListTypeEnum::REGULAR->value;
         }
+
         $data['is_public'] = $request->has('is_public') ? (bool)$request->input('is_public') : false;
 
         // Handle slug generation for all lists (mandatory)
@@ -184,11 +193,6 @@ class GameListController extends Controller
     {
         $data = $request->validated();
 
-        // Prevent changing list_type
-        if (isset($data['list_type']) && $data['list_type'] !== $gameList->list_type?->value) {
-            abort(403, 'List type cannot be changed.');
-        }
-
         // Prevent renaming backlog/wishlist lists
         if ($gameList->isSpecialList() && isset($data['name']) && $data['name'] !== $gameList->name) {
             abort(403, 'Backlog and wishlist lists cannot be renamed.');
@@ -198,6 +202,11 @@ class GameListController extends Controller
         if ($request->user() && $request->user()->isAdmin()) {
             $data['is_system'] = $request->has('is_system') ? (bool)$request->input('is_system') : false;
             $data['is_active'] = $request->has('is_active') ? (bool)$request->input('is_active') : false;
+
+            // Allow admins to change list_type for system lists
+            if ($data['is_system'] && !empty($request->input('list_type'))) {
+                $data['list_type'] = $request->input('list_type');
+            }
         }
         $data['is_public'] = $request->has('is_public') ? (bool)$request->input('is_public') : false;
 
