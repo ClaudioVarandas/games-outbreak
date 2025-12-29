@@ -46,26 +46,18 @@
 
         <!-- Seasonal Events Section -->
         <section class="mb-12">
-            @if($seasonedLists->count() > 0)
-                @php
-                    $banners = $seasonedLists->map(function($list) {
-                        // Map list to banner format
-                        // Expected banner image naming: slug.png (e.g., best-games-of-2025.png)
-                        return [
-                            'image' => '/images/' . $list->slug . '.png',
-                            'link' => route('system-list.show', ['slug' => $list->slug]),
-                            'alt' => $list->name . ' banner'
-                        ];
-                    })->toArray();
-                @endphp
-                <x-seasonal-banners :banners="$banners"/>
-            @else
-                <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
-                    <p class="text-lg text-gray-600 dark:text-gray-400">
-                        No seasoned lists available at this time.
-                    </p>
-                </div>
-            @endif
+            <x-seasonal-banners :banners="[
+                [
+                    'image' => '/images/best_of_2025.png',
+                    'link' => route('system-list.show',['slug' => 'best-games-of-2025']),
+                    'alt' => 'best games of 2025 banner'
+                ],
+                [
+                    'image' => '/images/most_wanted_2026.png',
+                    'link' => route('system-list.show',['slug' => 'most-wanted-2026']),
+                    'alt' => 'Most Wanted Games 2026 banner'
+                ]
+            ]"/>
         </section>
 
         <h1 class="text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-4">
