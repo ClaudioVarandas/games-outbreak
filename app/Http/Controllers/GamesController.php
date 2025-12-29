@@ -803,7 +803,8 @@ class GamesController extends Controller
         } catch (\Exception $e) {
             \Log::error('IGDB search results exception', [
                 'query' => $query,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return view('search.results', [
@@ -814,6 +815,7 @@ class GamesController extends Controller
                 'currentPage' => 1,
                 'totalPages' => 1,
                 'platformEnums' => PlatformEnum::getActivePlatforms(),
+                'error' => app()->environment('local') ? $e->getMessage() : 'An error occurred while searching. Please try again.',
             ]);
         }
     }

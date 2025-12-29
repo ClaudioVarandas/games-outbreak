@@ -91,6 +91,11 @@
                     <p class="text-lg text-gray-600 dark:text-gray-400">
                         No games found for "{{ $query }}"
                     </p>
+                    @if(isset($error))
+                        <p class="mt-4 text-sm text-red-600 dark:text-red-400">
+                            Error: {{ $error }}
+                        </p>
+                    @endif
                 </div>
             @endif
         @else
