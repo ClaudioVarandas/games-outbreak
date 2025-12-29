@@ -654,8 +654,6 @@ class GamesController extends Controller
 
     public function searchResults(Request $request): \Illuminate\View\View
     {
-        \Log::info('SEARCH DEBUG: searchResults called', ['query' => $request->query('q')]);
-        
         $query = trim($request->query('q', ''));
         $page = (int) $request->query('page', 1);
         $viewMode = $request->query('view', 'grid'); // 'grid' or 'list'

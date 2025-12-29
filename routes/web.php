@@ -13,12 +13,12 @@ Route::get('/upcoming', [GamesController::class, 'upcoming'])->name('upcoming');
 Route::get('/most-wanted', [GamesController::class, 'mostWanted'])->name('most-wanted');
 Route::get('/game/{game:igdb_id}', [GamesController::class, 'show'])->name('game.show');
 
-Route::get('/api/search', [GamesController::class, 'search'])->name('api.search');
-Route::get('/api/game/{game:igdb_id}/similar', [GamesController::class, 'similarGames'])->name('api.game.similar');
+Route::get('/api/search', [GamesController::class, 'search'])->middleware('prevent-caching')->name('api.search');
+Route::get('/api/game/{game:igdb_id}/similar', [GamesController::class, 'similarGames'])->middleware('prevent-caching')->name('api.game.similar');
 
-Route::get('/search', [GamesController::class, 'searchResults'])->name('search');
+Route::get('/search', [GamesController::class, 'searchResults'])->middleware('prevent-caching')->name('search');
 
-Route::get('/game/{game:igdb_id}/similar-games-html', [GamesController::class, 'similarGamesHtml'])->name('game.similar.html');
+Route::get('/game/{game:igdb_id}/similar-games-html', [GamesController::class, 'similarGamesHtml'])->middleware('prevent-caching')->name('game.similar.html');
 
 Route::get('/list/{slug}', [GameListController::class, 'showBySlug'])->name('system-list.show');
 
@@ -26,7 +26,7 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware('auth')
+Route::middleware(['auth', 'prevent-caching'])
     ->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -52,7 +52,7 @@ Route::middleware('auth')
     });
 
 // Admin System Lists Management
-Route::middleware(['auth', EnsureAdminUser::class])
+Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
     ->prefix('admin/lists/system')
     ->name('admin.system-lists.')
     ->group(function () {
