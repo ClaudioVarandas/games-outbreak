@@ -22,12 +22,12 @@
     >
     
     @if($title || $description)
-        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-6">
+        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-4 md:p-6">
             @if($title)
-                <h3 class="text-2xl font-bold text-white mb-2">{{ $title }}</h3>
+                <h3 class="text-xl md:text-2xl font-bold text-white mb-2">{{ $title }}</h3>
             @endif
             @if($description)
-                <p class="text-sm text-gray-200">{{ $description }}</p>
+                <p class="text-xs md:text-sm text-gray-200">{{ $description }}</p>
             @endif
         </div>
     @endif

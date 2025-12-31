@@ -80,7 +80,7 @@
     };
 @endphp
 
-<a href="{{ $linkUrl }}" class="group block {{ ($variant === 'carousel' || $carousel) ? 'flex-shrink-0 w-64 transition-all duration-300 hover:z-30' : '' }}">
+<a href="{{ $linkUrl }}" class="group block {{ ($variant === 'carousel' || $carousel) ? 'flex-shrink-0 w-56 md:w-64 transition-all duration-300 hover:z-30' : '' }}">
     <div class="{{ $containerClasses }}">
         <!-- Cover Image Container -->
         <div class="{{ $imageContainerClasses }} group/card">
