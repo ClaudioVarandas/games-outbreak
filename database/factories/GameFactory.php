@@ -32,7 +32,6 @@ class GameFactory extends Factory
             'screenshots' => null,
             'trailers' => null,
             'similar_games' => null,
-            'release_dates' => null,
         ];
     }
 

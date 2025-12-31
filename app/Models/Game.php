@@ -24,7 +24,6 @@ class Game extends Model
         'similar_games' => 'array',
         'game_type' => 'integer',
         'raw_igdb_json' => 'array',
-        'release_dates' => 'array',
         'last_igdb_sync_at' => 'datetime',
         'last_viewed_at' => 'datetime',
     ];
@@ -68,6 +67,11 @@ class Game extends Model
     {
         return $this->belongsToMany(PlayerPerspective::class, 'game_player_perspective')
             ->withTimestamps();
+    }
+
+    public function releaseDates(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(GameReleaseDate::class);
     }
 
     // === HELPER METHODS ===
@@ -248,53 +252,149 @@ class Game extends Model
     }
 
     /**
-     * Transform release_dates array to include release_date (dd/mm/yyyy), platform_name, and status info
+     * Sync release dates from IGDB data to game_release_dates table
      */
-    public static function transformReleaseDates(?array $releaseDates): ?array
+    public static function syncReleaseDates(Game $game, ?array $igdbReleaseDates): void
     {
-        if (empty($releaseDates)) {
-            return null;
+        if (empty($igdbReleaseDates)) {
+            // Remove all existing release dates if IGDB has none
+            $game->releaseDates()->where('is_manual', false)->delete();
+            return;
         }
 
-        // Fetch all statuses once (cached) - wrap in try-catch for tests/migrations
-        try {
-            $statuses = ReleaseDateStatus::getAllCached();
-        } catch (\Exception $e) {
-            // Table might not exist yet (during migrations or tests)
-            $statuses = collect();
+        // Get all existing IGDB-synced release dates
+        $existingReleaseDates = $game->releaseDates()
+            ->where('is_manual', false)
+            ->get();
+
+        // Track which records we've processed to avoid orphans
+        $processedRecordIds = [];
+
+        foreach ($igdbReleaseDates as $igdbReleaseDate) {
+            $igdbId = $igdbReleaseDate['id'] ?? null;
+
+            // Find platform_id
+            $platformId = null;
+            if (isset($igdbReleaseDate['platform'])) {
+                $platform = Platform::where('igdb_id', $igdbReleaseDate['platform'])->first();
+                $platformId = $platform?->id;
+
+                // Skip if platform doesn't exist - critical data missing
+                if (!$platformId) {
+                    \Log::warning("Skipping release date - platform not found", [
+                        'game_id' => $game->id,
+                        'igdb_platform_id' => $igdbReleaseDate['platform'],
+                        'igdb_release_date_id' => $igdbReleaseDate['id'] ?? null,
+                    ]);
+                    continue;
+                }
+            }
+
+            // Find status_id
+            $statusId = null;
+            if (isset($igdbReleaseDate['status'])) {
+                $status = ReleaseDateStatus::where('igdb_id', $igdbReleaseDate['status'])->first();
+                $statusId = $status?->id;
+            }
+
+            // Parse date
+            $date = null;
+            if (isset($igdbReleaseDate['date'])) {
+                try {
+                    $date = Carbon::createFromTimestamp($igdbReleaseDate['date']);
+                } catch (\Exception $e) {
+                    continue; // Skip invalid dates
+                }
+            }
+
+            $data = [
+                'game_id' => $game->id,
+                'platform_id' => $platformId,
+                'status_id' => $statusId,
+                'igdb_release_date_id' => $igdbId,
+                'date' => $date,
+                'year' => $igdbReleaseDate['y'] ?? null,
+                'month' => $igdbReleaseDate['m'] ?? null,
+                'day' => $igdbReleaseDate['d'] ?? null,
+                'region' => $igdbReleaseDate['region'] ?? null,
+                'human_readable' => $igdbReleaseDate['human'] ?? null,
+                'is_manual' => false,
+            ];
+
+            // Find existing record
+            $existing = self::findExistingReleaseDate(
+                $existingReleaseDates,
+                $igdbId,
+                $game->id,
+                $platformId,
+                $date,
+                $igdbReleaseDate['region'] ?? null
+            );
+
+            if ($existing) {
+                // Update existing record
+                $existing->update($data);
+                $processedRecordIds[] = $existing->id;
+            } else {
+                // Create new record
+                $created = GameReleaseDate::create($data);
+                $processedRecordIds[] = $created->id;
+            }
         }
 
-        return collect($releaseDates)->map(function ($releaseDate) use ($statuses) {
-            $transformed = $releaseDate;
+        // Delete IGDB release dates that no longer exist in IGDB data
+        $game->releaseDates()
+            ->where('is_manual', false)
+            ->whereNotIn('id', $processedRecordIds)
+            ->delete();
+    }
 
-            // Add formatted release_date (dd/mm/yyyy)
-            if (isset($releaseDate['date'])) {
-                $date = Carbon::createFromTimestamp($releaseDate['date']);
-                $transformed['release_date'] = $date->format('d/m/Y');
-            } else {
-                $transformed['release_date'] = null;
+    /**
+     * Find existing release date record
+     * Tries matching by igdb_release_date_id first, falls back to composite key
+     */
+    private static function findExistingReleaseDate(
+        $existingReleaseDates,
+        ?int $igdbId,
+        int $gameId,
+        ?int $platformId,
+        $date,
+        ?int $region
+    ): ?GameReleaseDate {
+        // Try matching by IGDB ID first (most reliable)
+        if ($igdbId) {
+            $match = $existingReleaseDates->firstWhere('igdb_release_date_id', $igdbId);
+            if ($match) {
+                return $match;
+            }
+        }
+
+        // Fallback: Match by composite key (game_id, platform_id, date, region)
+        // This handles cases where IGDB doesn't provide an ID
+        return $existingReleaseDates->first(function ($releaseDate) use ($gameId, $platformId, $date, $region) {
+            // Must match game, platform, and date
+            if ($releaseDate->game_id !== $gameId) {
+                return false;
             }
 
-            // Add platform_name using PlatformEnum
-            if (isset($releaseDate['platform'])) {
-                $platformEnum = PlatformEnum::fromIgdbId($releaseDate['platform']);
-                $transformed['platform_name'] = $platformEnum?->label() ?? null;
-            } else {
-                $transformed['platform_name'] = null;
+            if ($releaseDate->platform_id !== $platformId) {
+                return false;
             }
 
-            // Add status_name and status_abbreviation
-            if (isset($releaseDate['status'])) {
-                $status = $statuses->get($releaseDate['status']);
-                $transformed['status_name'] = $status?->name ?? null;
-                $transformed['status_abbreviation'] = $status?->abbreviation ?? null;
-            } else {
-                $transformed['status_name'] = null;
-                $transformed['status_abbreviation'] = null;
+            // Compare dates (handle null dates)
+            $existingDate = $releaseDate->date?->format('Y-m-d');
+            $newDate = $date ? $date->format('Y-m-d') : null;
+            if ($existingDate !== $newDate) {
+                return false;
             }
 
-            return $transformed;
-        })->toArray();
+            // Region can be null, so handle that
+            if ($releaseDate->region !== $region) {
+                return false;
+            }
+
+            return true;
+        });
     }
 
     /**
@@ -373,15 +473,15 @@ class Game extends Model
                 'hero_image_id' => $heroImageId,
                 'logo_image_id' => $logoImageId,
                 'game_type' => $igdbGame['game_type'] ?? 0,
-                'release_dates' => self::transformReleaseDates($igdbGame['release_dates'] ?? null),
                 'steam_data' => $igdbGame['steam'] ?? null,
                 'screenshots' => $igdbGame['screenshots'] ?? null,
                 'trailers' => $igdbGame['videos'] ?? null,
                 'similar_games' => $igdbGame['similar_games'] ?? null,
             ]);
 
-            // Sync relations (platforms, genres, game modes)
+            // Sync relations (platforms, genres, game modes, release dates)
             self::syncRelations($game, $igdbGame);
+            self::syncReleaseDates($game, $igdbGame['release_dates'] ?? null);
 
             // Dispatch job to fetch missing images asynchronously
             if (!empty($imagesToFetch)) {
@@ -615,7 +715,6 @@ class Game extends Model
                     : $this->first_release_date,
                 'cover_image_id' => $igdbGame['cover']['image_id'] ?? $this->cover_image_id,
                 'game_type' => $igdbGame['game_type'] ?? $this->game_type,
-                'release_dates' => self::transformReleaseDates($igdbGame['release_dates'] ?? null) ?? $this->release_dates,
                 'steam_data' => $igdbGame['steam'] ?? $this->steam_data,
                 'steam_wishlist_count' => $igdbGame['steam']['wishlist_count'] ?? $this->steam_wishlist_count,
                 'similar_games' => $igdbGame['similar_games'] ?? $this->similar_games,
@@ -632,8 +731,9 @@ class Game extends Model
             if ($currentHash !== $newHash) {
                 $this->update($updateData);
 
-                // Sync relations
+                // Sync relations and release dates
                 self::syncRelations($this, $igdbGame);
+                self::syncReleaseDates($this, $igdbGame['release_dates'] ?? null);
 
                 \Log::info("Updated game data from IGDB", [
                     'igdb_id' => $this->igdb_id,
@@ -676,9 +776,6 @@ class Game extends Model
             'first_release_date' => $data['first_release_date'] ?? '',
             'cover_image_id' => $data['cover_image_id'] ?? '',
             'game_type' => $data['game_type'] ?? 0,
-            'release_dates' => is_string($data['release_dates'] ?? null)
-                ? $data['release_dates']
-                : json_encode($data['release_dates'] ?? []),
             'steam_data' => is_string($data['steam_data'] ?? null)
                 ? $data['steam_data']
                 : json_encode($data['steam_data'] ?? []),

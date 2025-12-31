@@ -178,35 +178,135 @@ class GameTest extends TestCase
         $this->assertNull($result);
     }
 
-    public function test_transform_release_dates_formats_dates_correctly(): void
+    public function test_sync_release_dates_creates_release_dates(): void
     {
-        $releaseDates = [
+        $game = Game::factory()->create();
+        $platform = Platform::factory()->create(['igdb_id' => 6]);
+
+        $igdbReleaseDates = [
             [
+                'id' => 12345,
                 'platform' => 6,
                 'date' => strtotime('2024-01-15'),
+                'y' => 2024,
+                'm' => 1,
+                'd' => 15,
                 'region' => 1,
+                'human' => 'Jan 15, 2024',
             ],
         ];
 
-        $transformed = Game::transformReleaseDates($releaseDates);
+        Game::syncReleaseDates($game, $igdbReleaseDates);
 
-        $this->assertNotNull($transformed);
-        $this->assertEquals('15/01/2024', $transformed[0]['release_date']);
-        $this->assertArrayHasKey('platform_name', $transformed[0]);
+        $this->assertEquals(1, $game->releaseDates()->count());
+        $releaseDate = $game->releaseDates()->first();
+        $this->assertEquals($platform->id, $releaseDate->platform_id);
+        $this->assertEquals('15/01/2024', $releaseDate->formatted_date);
     }
 
-    public function test_transform_release_dates_returns_null_for_empty_array(): void
+    public function test_sync_release_dates_removes_all_when_null(): void
     {
-        $result = Game::transformReleaseDates([]);
+        $game = Game::factory()->create();
+        $platform = Platform::factory()->create(['igdb_id' => 6]);
 
-        $this->assertNull($result);
+        // Create initial release date
+        \App\Models\GameReleaseDate::create([
+            'game_id' => $game->id,
+            'platform_id' => $platform->id,
+            'date' => now(),
+            'is_manual' => false,
+        ]);
+
+        Game::syncReleaseDates($game, null);
+
+        $this->assertEquals(0, $game->releaseDates()->count());
     }
 
-    public function test_transform_release_dates_returns_null_for_null(): void
+    public function test_sync_release_dates_preserves_manual_dates(): void
     {
-        $result = Game::transformReleaseDates(null);
+        $game = Game::factory()->create();
+        $platform = Platform::factory()->create(['igdb_id' => 6]);
 
-        $this->assertNull($result);
+        // Create manual release date
+        \App\Models\GameReleaseDate::create([
+            'game_id' => $game->id,
+            'platform_id' => $platform->id,
+            'date' => now(),
+            'is_manual' => true,
+        ]);
+
+        Game::syncReleaseDates($game, null);
+
+        // Manual dates should be preserved
+        $this->assertEquals(1, $game->releaseDates()->count());
+    }
+
+    public function test_sync_release_dates_handles_null_igdb_ids_without_duplicates(): void
+    {
+        $game = Game::factory()->create();
+        $platform = Platform::factory()->create(['igdb_id' => 6]);
+
+        // First sync with release date without IGDB ID
+        $igdbReleaseDates = [
+            [
+                // No 'id' field - simulating IGDB data without ID
+                'platform' => 6,
+                'date' => strtotime('2024-03-27'),
+                'y' => 2024,
+                'm' => 3,
+                'd' => 27,
+                'region' => null,
+                'human' => 'Mar 27, 2024',
+            ],
+        ];
+
+        Game::syncReleaseDates($game, $igdbReleaseDates);
+        $this->assertEquals(1, $game->releaseDates()->count());
+
+        // Sync again with same data - should NOT create duplicate
+        Game::syncReleaseDates($game, $igdbReleaseDates);
+        $this->assertEquals(1, $game->releaseDates()->count(), 'Should not create duplicate when syncing null IGDB ID again');
+
+        // Sync third time - still no duplicate
+        Game::syncReleaseDates($game, $igdbReleaseDates);
+        $this->assertEquals(1, $game->releaseDates()->count(), 'Should remain stable across multiple syncs');
+    }
+
+    public function test_sync_release_dates_updates_existing_when_status_changes(): void
+    {
+        $game = Game::factory()->create();
+        $platform = Platform::factory()->create(['igdb_id' => 6]);
+        $status1 = \App\Models\ReleaseDateStatus::factory()->create(['igdb_id' => 1, 'name' => 'TBA']);
+        $status2 = \App\Models\ReleaseDateStatus::factory()->create(['igdb_id' => 2, 'name' => 'Released']);
+
+        // Initial sync with status TBA
+        $igdbReleaseDates = [
+            [
+                'id' => 12345,
+                'platform' => 6,
+                'date' => strtotime('2024-03-27'),
+                'y' => 2024,
+                'm' => 3,
+                'd' => 27,
+                'region' => null,
+                'status' => 1,
+                'human' => 'Mar 27, 2024',
+            ],
+        ];
+
+        Game::syncReleaseDates($game, $igdbReleaseDates);
+        $this->assertEquals(1, $game->releaseDates()->count());
+        $releaseDate = $game->releaseDates()->first();
+        $this->assertEquals('TBA', $releaseDate->status->name);
+
+        // Update status to Released
+        $igdbReleaseDates[0]['status'] = 2;
+        Game::syncReleaseDates($game, $igdbReleaseDates);
+
+        $game->refresh();
+        $this->assertEquals(1, $game->releaseDates()->count(), 'Should not create duplicate on status change');
+        $releaseDate = $game->releaseDates()->first();
+        $this->assertEquals('Released', $releaseDate->status->name, 'Status should be updated');
     }
 
     public function test_game_has_platforms_relationship(): void

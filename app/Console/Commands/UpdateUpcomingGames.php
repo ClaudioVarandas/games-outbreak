@@ -205,7 +205,6 @@ class UpdateUpcomingGames extends Command
                     'hero_image_id' => $heroImageId,
                     'logo_image_id' => $logoImageId,
                     'game_type' => $igdbGame['game_type'] ?? 0,
-                    'release_dates' => \App\Models\Game::transformReleaseDates($igdbGame['release_dates'] ?? null),
                     'raw_igdb_json' => $gameRawJson,
                     'steam_data' => $igdbGame['steam'] ?? null,
                     'steam_wishlist_count' => $igdbGame['steam']['wishlist_count'] ?? null,
@@ -215,6 +214,9 @@ class UpdateUpcomingGames extends Command
                     'last_igdb_sync_at' => now(),
                 ]
             );
+
+            // Sync release dates
+            Game::syncReleaseDates($game, $igdbGame['release_dates'] ?? null);
 
             // Update priority for existing games
             if ($game->wasRecentlyCreated === false) {

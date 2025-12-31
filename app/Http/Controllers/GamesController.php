@@ -138,7 +138,7 @@ class GamesController extends Controller
     public function show($igdbId, IgdbService $igdb): View
     {
         // Try to find existing game
-        $game = Game::with(['platforms', 'genres', 'gameModes', 'companies', 'gameEngines', 'playerPerspectives'])
+        $game = Game::with(['platforms', 'genres', 'gameModes', 'companies', 'gameEngines', 'playerPerspectives', 'releaseDates.platform', 'releaseDates.status'])
             ->where('igdb_id', $igdbId)
             ->first();
 
@@ -228,15 +228,15 @@ class GamesController extends Controller
                 'hero_image_id' => $heroImageId,
                 'logo_image_id' => $logoImageId,
                 'game_type' => $igdbGame['game_type'] ?? 0,
-                'release_dates' => Game::transformReleaseDates($igdbGame['release_dates'] ?? null),
                 'steam_data' => $igdbGame['steam'] ?? null,
                 'screenshots' => $igdbGame['screenshots'] ?? null,
                 'trailers' => $igdbGame['videos'] ?? null,
                 'similar_games' => $igdbGame['similar_games'] ?? null,
             ]);
 
-            // Sync relations
+            // Sync relations and release dates
             $this->syncRelations($game, $igdbGame);
+            Game::syncReleaseDates($game, $igdbGame['release_dates'] ?? null);
 
             // Dispatch job to fetch missing images asynchronously
             if (!empty($imagesToFetch)) {

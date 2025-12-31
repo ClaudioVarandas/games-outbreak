@@ -143,7 +143,6 @@ class RefreshGameListGames extends Command
                     'hero_image_id' => $heroImageId,
                     'logo_image_id' => $logoImageId,
                     'game_type' => $igdbGame['game_type'] ?? 0,
-                    'release_dates' => \App\Models\Game::transformReleaseDates($igdbGame['release_dates'] ?? null),
                     'raw_igdb_json' => $rawIgdbResponse,
                     'steam_data' => $igdbGame['steam'] ?? null,
                     'steam_wishlist_count' => $igdbGame['steam']['wishlist_count'] ?? null,
@@ -152,6 +151,9 @@ class RefreshGameListGames extends Command
                     'trailers' => $igdbGame['game_videos'] ?? null,
                     'last_igdb_sync_at' => now(),
                 ]);
+
+                // Sync release dates
+                \App\Models\Game::syncReleaseDates($game, $igdbGame['release_dates'] ?? null);
 
                 // Update priority for existing games
                 $game->calculateAndSaveUpdatePriority();

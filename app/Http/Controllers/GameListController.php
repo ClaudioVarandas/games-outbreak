@@ -354,14 +354,14 @@ class GameListController extends Controller
                         'hero_image_id' => $heroImageId,
                         'logo_image_id' => $logoImageId,
                         'game_type' => $igdbGame['game_type'] ?? 0,
-                        'release_dates' => Game::transformReleaseDates($igdbGame['release_dates'] ?? null),
                         'steam_data' => $igdbGame['steam'] ?? null,
                         'screenshots' => $igdbGame['screenshots'] ?? null,
                         'trailers' => $igdbGame['videos'] ?? null,
                         'similar_games' => $igdbGame['similar_games'] ?? null,
                     ]);
 
-                    // Sync relations (platforms, genres, game modes)
+                    // Sync relations (platforms, genres, game modes) and release dates
+                    Game::syncReleaseDates($game, $igdbGame['release_dates'] ?? null);
                     $this->syncRelations($game, $igdbGame);
                 } catch (\Exception $e) {
                     \Log::error("Failed to fetch game from IGDB", ['igdb_id' => $igdbId, 'error' => $e->getMessage()]);

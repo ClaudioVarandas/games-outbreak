@@ -221,11 +221,34 @@
                         @php
                             $activePlatformIds = $platformEnums->keys()->toArray();
 
-                            // Filter for active platforms only
-                            $filteredDates = collect($game->release_dates ?? [])
+                            // Get release dates from relationship and filter for active platforms only
+                            $filteredDates = $game->releaseDates
                                 ->filter(function ($rd) use ($activePlatformIds) {
-                                    return isset($rd['platform']) && in_array($rd['platform'], $activePlatformIds);
+                                    return $rd->platform_id && in_array($rd->platform->igdb_id ?? null, $activePlatformIds);
+                                })
+                                ->map(function ($rd) {
+                                    // Transform to array format for compatibility with existing view logic
+                                    return [
+                                        'platform' => $rd->platform->igdb_id ?? null,
+                                        'date' => $rd->date?->timestamp,
+                                        'date_only' => $rd->date?->format('Y-m-d'),
+                                        'release_date' => $rd->formatted_date,
+                                        'status' => $rd->status?->igdb_id,
+                                        'status_name' => $rd->status_name,
+                                        'status_abbreviation' => $rd->status_abbreviation,
+                                        'human' => $rd->human_readable,
+                                        'region' => $rd->region,
+                                    ];
                                 });
+
+                            // Filter out dates without status when there's a date with status for the same platform/day
+                            $filteredDates = $filteredDates->groupBy(function($rd) {
+                                return $rd['platform'] . '_' . $rd['date_only'];
+                            })->map(function($group) {
+                                // If any date in this platform/day group has a status, only keep those with status
+                                $withStatus = $group->filter(fn($rd) => $rd['status_name'] !== null);
+                                return $withStatus->isNotEmpty() ? $withStatus : $group;
+                            })->flatten(1);
 
                             // Group by platform and sort each group by date
                             $groupedByPlatform = $filteredDates
