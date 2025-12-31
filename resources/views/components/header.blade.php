@@ -187,38 +187,43 @@
     <!-- Mobile Search Modal/Overlay -->
     <div x-show="mobileSearchOpen"
          x-cloak
-         class="fixed inset-0 z-50 md:hidden">
+         @keydown.escape.window="mobileSearchOpen = false"
+         class="md:hidden"
+         style="display: none;">
         <!-- Backdrop -->
         <div @click="mobileSearchOpen = false"
-             class="absolute inset-0 bg-black bg-opacity-50 z-0"
-             x-transition:enter="transition ease-out duration-200"
+             x-show="mobileSearchOpen"
+             x-transition:enter="ease-out duration-200"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave="ease-in duration-150"
              x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"></div>
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-black/50 z-[60]"></div>
 
         <!-- Search Panel -->
-        <div class="absolute top-0 left-0 right-0 bg-gray-800 p-4 shadow-2xl z-10 max-h-screen overflow-y-auto"
-             @click.stop
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="transform -translate-y-full"
-             x-transition:enter-end="transform translate-y-0"
-             x-transition:leave="transition ease-in duration-150"
-             x-transition:leave-start="transform translate-y-0"
-             x-transition:leave-end="transform -translate-y-full">
-            <!-- Close Button and Title -->
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-white">Search Games</h3>
-                <button @click="mobileSearchOpen = false" class="p-2 hover:bg-gray-700 rounded-lg transition" type="button">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-            <!-- Search Component -->
-            <div id="app-search-mobile">
-                <global-search></global-search>
+        <div x-show="mobileSearchOpen"
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="-translate-y-full"
+             x-transition:enter-end="translate-y-0"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="translate-y-0"
+             x-transition:leave-end="-translate-y-full"
+             class="fixed top-0 left-0 right-0 z-[70] bg-gray-800 shadow-2xl">
+            <div class="p-4">
+                <!-- Close Button and Title -->
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-white">Search Games</h3>
+                    <button @click="mobileSearchOpen = false" class="p-2 hover:bg-gray-700 rounded-lg transition" type="button">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Search Component -->
+                <div id="app-search-mobile">
+                    <global-search></global-search>
+                </div>
             </div>
         </div>
     </div>

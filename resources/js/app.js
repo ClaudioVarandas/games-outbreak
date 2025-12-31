@@ -6,12 +6,20 @@ import './components/AuthModals.js';
 
 // Wait for DOM to be ready before mounting Vue
 document.addEventListener('DOMContentLoaded', () => {
-    // Mount global search in header
+    // Mount global search in header (desktop)
     const appSearchElement = document.getElementById('app-search');
     if (appSearchElement) {
         createApp({})
             .component('global-search', GlobalSearch)
             .mount('#app-search');
+    }
+
+    // Mount global search for mobile
+    const appSearchMobileElement = document.getElementById('app-search-mobile');
+    if (appSearchMobileElement) {
+        createApp({})
+            .component('global-search', GlobalSearch)
+            .mount('#app-search-mobile');
     }
 
     // Mount add game to list components (can be multiple on page)

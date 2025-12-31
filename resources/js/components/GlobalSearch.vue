@@ -21,7 +21,7 @@
     <!-- Dropdown -->
     <div
       v-show="isOpen"
-      class="absolute top-full left-0 right-0 mt-2 bg-gray-800 rounded-lg shadow-2xl overflow-hidden z-50 border border-gray-700"
+      class="absolute top-full left-0 right-0 mt-2 bg-gray-800 rounded-lg shadow-2xl overflow-hidden z-[80] border border-gray-700"
       v-cloak
       @click.stop
     >
