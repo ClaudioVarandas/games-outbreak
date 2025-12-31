@@ -27,8 +27,8 @@
             </div>
         </div>--}}
         <div class="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-400">
-            <p>&copy; {{ date('Y') }} Games Outbreak. All rights reserved. Made with love by
-                <a href="https://github.com/ClaudioVarandas" class="hover:text-orange-400 transition">Cláudio Varandas</a>
+            <p>&copy; {{ date('Y') }} Games Outbreak. All rights reserved. Made with <span class="text-red-500">❤️</span> by
+                <a href="https://github.com/ClaudioVarandas" class="text-orange-400 hover:underline transition">Cláudio Varandas</a>
             </p>
         </div>
     </div>
