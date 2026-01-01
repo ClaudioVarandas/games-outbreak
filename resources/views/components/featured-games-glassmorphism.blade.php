@@ -17,13 +17,22 @@
     <div id="featured-games-container">
         <div id="featured-games-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             @foreach($initialGames as $index => $game)
+                @php
+                    // Convert pivot release_date string to Carbon instance if present
+                    $displayDate = $game->first_release_date;
+                    if (isset($game->pivot->release_date) && $game->pivot->release_date) {
+                        $displayDate = \Carbon\Carbon::parse($game->pivot->release_date);
+                    }
+                @endphp
                 <div class="featured-game-item" data-index="{{ $index }}">
-                    <x-game-card 
+                    <x-game-card
                         :game="$game"
                         variant="glassmorphism"
                         layout="overlay"
                         aspectRatio="3/4"
-                        :platformEnums="$platformEnums" />
+                        :platformEnums="$platformEnums"
+                        :displayReleaseDate="$displayDate"
+                        :displayPlatforms="isset($game->pivot) ? ($game->pivot->platforms ?? null) : null" />
                 </div>
             @endforeach
         </div>
@@ -31,13 +40,22 @@
         @if($remainingGames->count() > 0)
             <div id="featured-games-hidden" style="display: none;">
                 @foreach($remainingGames as $index => $game)
+                    @php
+                        // Convert pivot release_date string to Carbon instance if present
+                        $displayDate = $game->first_release_date;
+                        if (isset($game->pivot->release_date) && $game->pivot->release_date) {
+                            $displayDate = \Carbon\Carbon::parse($game->pivot->release_date);
+                        }
+                    @endphp
                     <div class="featured-game-item" data-index="{{ $initialLimit + $index }}">
-                        <x-game-card 
+                        <x-game-card
                             :game="$game"
                             variant="glassmorphism"
                             layout="overlay"
                             aspectRatio="3/4"
-                            :platformEnums="$platformEnums" />
+                            :platformEnums="$platformEnums"
+                            :displayReleaseDate="$displayDate"
+                            :displayPlatforms="isset($game->pivot) ? ($game->pivot->platforms ?? null) : null" />
                     </div>
                 @endforeach
             </div>

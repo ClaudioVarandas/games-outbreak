@@ -14,6 +14,7 @@
     'wishlistList' => null,
     'carousel' => false, // Whether this card is used in a carousel context
     'displayReleaseDate' => null, // Optional: overrides game->first_release_date
+    'displayPlatforms' => null, // Optional: JSON array of platform IDs to display (from pivot)
 ])
 
 @php
@@ -29,18 +30,28 @@
     
     // Determine which release date to display
     $releaseDate = $displayReleaseDate ?? $game->first_release_date;
-    
+
     $coverUrl = $game->cover_image_id
         ? $game->getCoverUrl('cover_big')
         : ($game->steam_data['header_image'] ?? null);
     $linkUrl = route('game.show', $game);
-    
+
     // Platform badges logic
     $validPlatformIds = $platformEnums->keys()->toArray();
-    $filteredPlatforms = $game->platforms 
-        ? $game->platforms->filter(fn($p) => in_array($p->igdb_id, $validPlatformIds))
-        : collect();
-    
+
+    // If displayPlatforms is provided (from pivot), decode and filter by those IDs
+    if ($displayPlatforms) {
+        $decodedPlatformIds = is_string($displayPlatforms) ? json_decode($displayPlatforms, true) : $displayPlatforms;
+        $filteredPlatforms = $game->platforms
+            ? $game->platforms->filter(fn($p) => in_array($p->igdb_id, $decodedPlatformIds) && in_array($p->igdb_id, $validPlatformIds))
+            : collect();
+    } else {
+        // Default: use all game platforms
+        $filteredPlatforms = $game->platforms
+            ? $game->platforms->filter(fn($p) => in_array($p->igdb_id, $validPlatformIds))
+            : collect();
+    }
+
     $sortedPlatforms = $filteredPlatforms->sortBy(function($platform) {
         return \App\Enums\PlatformEnum::getPriority($platform->igdb_id);
     })->values();

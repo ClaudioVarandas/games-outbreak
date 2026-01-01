@@ -54,6 +54,12 @@
                     @foreach($games as $carouselGame)
                         @php
                             $platformEnums = $platformEnums ?? \App\Enums\PlatformEnum::getActivePlatforms();
+
+                            // Convert pivot release_date string to Carbon instance if present
+                            $displayDate = $carouselGame->first_release_date;
+                            if (isset($carouselGame->pivot->release_date) && $carouselGame->pivot->release_date) {
+                                $displayDate = \Carbon\Carbon::parse($carouselGame->pivot->release_date);
+                            }
                         @endphp
                         <div class="snap-start">
                             <x-game-card
@@ -62,7 +68,9 @@
                                 layout="overlay"
                                 aspectRatio="3/4"
                                 :carousel="true"
-                                :platformEnums="$platformEnums" />
+                                :platformEnums="$platformEnums"
+                                :displayReleaseDate="$displayDate"
+                                :displayPlatforms="isset($carouselGame->pivot) ? ($carouselGame->pivot->platforms ?? null) : null" />
                         </div>
                     @endforeach
                 </div>
