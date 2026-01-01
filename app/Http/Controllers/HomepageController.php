@@ -64,9 +64,11 @@ class HomepageController extends Controller
         if ($activeList) {
             // Get all games from the active list (no date filtering)
             // Order by pivot release_date, fallback to game's first_release_date if null
+            // Note: We need to override the default orderByPivot('order') from the relationship
             $featuredGames = $activeList->games()
                 ->with('platforms')
-                ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date)')
+                ->reorder() // Clear default ordering
+                ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
                 ->get();
         }
 
@@ -86,7 +88,8 @@ class HomepageController extends Controller
             // Order by pivot release_date, fallback to game's first_release_date if null
             $monthGames = $activeList->games()
                 ->with('platforms')
-                ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date)')
+                ->reorder() // Clear default ordering
+                ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
                 ->get();
         }
 
