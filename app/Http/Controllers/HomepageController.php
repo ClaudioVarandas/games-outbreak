@@ -63,9 +63,10 @@ class HomepageController extends Controller
 
         if ($activeList) {
             // Get all games from the active list (no date filtering)
+            // Order by pivot release_date, fallback to game's first_release_date if null
             $featuredGames = $activeList->games()
                 ->with('platforms')
-                ->orderBy('first_release_date')
+                ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date)')
                 ->get();
         }
 
@@ -82,9 +83,10 @@ class HomepageController extends Controller
         $platformEnums = PlatformEnum::getActivePlatforms();
 
         if ($activeList) {
+            // Order by pivot release_date, fallback to game's first_release_date if null
             $monthGames = $activeList->games()
                 ->with('platforms')
-                ->orderBy('first_release_date')
+                ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date)')
                 ->get();
         }
 
