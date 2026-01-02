@@ -327,31 +327,42 @@ class GameListControllerTest extends TestCase
         $this->assertEquals('my-private-list', $privateList->slug);
     }
 
-    public function test_store_enforces_slug_uniqueness_for_all_lists(): void
+    public function test_store_enforces_slug_uniqueness_per_list_type(): void
     {
         $user = User::factory()->create();
+
+        // Create a regular list with slug 'my-games'
         GameList::factory()->create([
-            'slug' => 'existing-slug',
+            'slug' => 'my-games',
+            'list_type' => ListTypeEnum::REGULAR,
             'is_public' => true,
         ]);
 
-        // Cannot use existing slug for public list
+        // Cannot use same slug for another regular list
         $response = $this->actingAs($user)->post('/user/lists', [
             'name' => 'New List',
             'is_public' => true,
-            'slug' => 'existing-slug',
+            'slug' => 'my-games',
         ]);
 
         $response->assertSessionHasErrors('slug');
 
-        // Cannot use existing slug for private list either
-        $response = $this->actingAs($user)->post('/user/lists', [
-            'name' => 'Another List',
-            'is_public' => false,
-            'slug' => 'existing-slug',
+        // But CAN use same slug for a different list_type (admin creating system list)
+        $admin = User::factory()->create(['is_admin' => true]);
+        $response = $this->actingAs($admin)->post('/user/lists', [
+            'name' => 'System List',
+            'is_public' => true,
+            'is_system' => true,
+            'list_type' => 'indie-games',
+            'slug' => 'my-games', // Same slug, different list_type
+            'is_active' => true,
         ]);
 
-        $response->assertSessionHasErrors('slug');
+        $response->assertRedirect();
+        $this->assertDatabaseHas('game_lists', [
+            'slug' => 'my-games',
+            'list_type' => 'indie-games',
+        ]);
     }
 
 
@@ -395,19 +406,26 @@ class GameListControllerTest extends TestCase
         $response->assertViewHas('gameList', $list);
     }
 
-    public function test_update_enforces_slug_uniqueness(): void
+    public function test_update_enforces_slug_uniqueness_per_list_type(): void
     {
         $user = User::factory()->create();
+
+        // Create a regular list with slug 'taken-slug'
         $existingList = GameList::factory()->create([
             'slug' => 'taken-slug',
+            'list_type' => ListTypeEnum::REGULAR,
             'is_public' => true,
         ]);
+
+        // Create another regular list
         $list = GameList::factory()->create([
             'user_id' => $user->id,
+            'list_type' => ListTypeEnum::REGULAR,
             'is_public' => true,
             'slug' => 'my-slug',
         ]);
 
+        // Cannot update to use the same slug within the same list_type
         $response = $this->actingAs($user)->patch('/user/lists/' . $list->id, [
             'name' => $list->name,
             'is_public' => true,
@@ -415,6 +433,26 @@ class GameListControllerTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('slug');
+
+        // But CAN use a slug that exists in a different list_type
+        $admin = User::factory()->create(['is_admin' => true]);
+        $indieList = GameList::factory()->indieGames()->system()->create([
+            'slug' => 'unique-indie-slug',
+        ]);
+
+        // Update indie list to use a slug that exists in regular lists
+        $response = $this->actingAs($admin)->patch('/user/lists/' . $indieList->id, [
+            'name' => $indieList->name,
+            'is_public' => true,
+            'is_system' => true,
+            'list_type' => 'indie-games',
+            'slug' => 'taken-slug', // Exists in regular, but OK for indie-games
+            'is_active' => true,
+        ]);
+
+        $response->assertRedirect();
+        $indieList->refresh();
+        $this->assertEquals('taken-slug', $indieList->slug);
     }
 
     // === Admin Access Tests ===
@@ -562,5 +600,76 @@ class GameListControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
+    }
+
+    public function test_indie_games_lists_dont_appear_in_regular_lists_index(): void
+    {
+        $user = User::factory()->create();
+        $regularList = GameList::factory()->create([
+            'user_id' => $user->id,
+            'list_type' => ListTypeEnum::REGULAR,
+        ]);
+        $indieGamesList = GameList::factory()->indieGames()->system()->create([
+            'is_public' => true,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($user)->get('/user/lists');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('regularLists', function ($lists) use ($regularList, $indieGamesList) {
+            return $lists->contains('id', $regularList->id) &&
+                   !$lists->contains('id', $indieGamesList->id);
+        });
+    }
+
+    public function test_admin_can_update_system_list_with_list_type_field(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $list = GameList::factory()->indieGames()->system()->create([
+            'name' => 'Original Name',
+            'description' => 'Original Description',
+        ]);
+
+        // Update the list - including list_type field (which should be allowed as long as it doesn't change)
+        $response = $this->actingAs($admin)->patch('/user/lists/' . $list->id, [
+            'name' => 'Updated Name',
+            'description' => 'Updated Description',
+            'is_public' => true,
+            'is_system' => true,
+            'list_type' => 'indie-games', // Same as current value
+            'is_active' => true,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('game_lists', [
+            'id' => $list->id,
+            'name' => 'Updated Name',
+            'description' => 'Updated Description',
+            'list_type' => 'indie-games', // Unchanged
+        ]);
+    }
+
+    public function test_cannot_change_list_type_when_updating(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $list = GameList::factory()->indieGames()->system()->create([
+            'name' => 'Test List',
+        ]);
+
+        // Attempt to change list_type from indie-games to monthly
+        $response = $this->actingAs($admin)->patch('/user/lists/' . $list->id, [
+            'name' => 'Test List',
+            'is_public' => true,
+            'is_system' => true,
+            'list_type' => 'monthly', // Trying to change type
+            'is_active' => true,
+        ]);
+
+        $response->assertSessionHasErrors('list_type');
+
+        // Verify list_type didn't change
+        $list->refresh();
+        $this->assertEquals('indie-games', $list->list_type->value);
     }
 }

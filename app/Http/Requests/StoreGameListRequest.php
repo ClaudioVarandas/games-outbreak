@@ -26,11 +26,20 @@ class StoreGameListRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Determine the list_type for validation
+        $listType = $this->input('list_type', 'regular');
+
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_public' => ['boolean'],
-            'slug' => ['nullable', 'string', 'alpha_dash', 'unique:game_lists,slug'],
+            'slug' => [
+                'nullable',
+                'string',
+                'alpha_dash',
+                // Slug must be unique per list_type
+                \Illuminate\Validation\Rule::unique('game_lists', 'slug')->where('list_type', $listType)
+            ],
         ];
 
         // Only admins can create system lists

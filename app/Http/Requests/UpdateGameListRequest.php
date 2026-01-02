@@ -30,17 +30,27 @@ class UpdateGameListRequest extends FormRequest
     {
         $gameList = $this->route('gameList');
         $gameListId = $gameList ? $gameList->id : null;
+        $listType = $gameList ? $gameList->list_type->value : 'regular';
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_public' => ['boolean'],
-            'slug' => ['nullable', 'string', 'alpha_dash', 'unique:game_lists,slug,' . $gameListId],
+            'slug' => [
+                'nullable',
+                'string',
+                'alpha_dash',
+                // Slug must be unique per list_type
+                \Illuminate\Validation\Rule::unique('game_lists', 'slug')
+                    ->where('list_type', $listType)
+                    ->ignore($gameListId)
+            ],
         ];
 
-        // Prevent list_type from being changed
-        if ($this->has('list_type')) {
-            $rules['list_type'] = ['prohibited'];
+        // Allow list_type field but prevent it from being changed
+        // This allows the field to be present in the form but ensures it matches the current value
+        if ($gameList) {
+            $rules['list_type'] = ['nullable', 'string', 'in:' . $gameList->list_type->value];
         }
 
         // Prevent renaming backlog/wishlist lists

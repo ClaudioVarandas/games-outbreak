@@ -10,6 +10,7 @@ enum ListTypeEnum: string
     case WISHLIST = 'wishlist';
     case MONTHLY = 'monthly';
     case SEASONED = 'seasoned';
+    case INDIE_GAMES = 'indie-games';
 
     public function label(): string
     {
@@ -19,6 +20,7 @@ enum ListTypeEnum: string
             self::WISHLIST => 'Wishlist',
             self::MONTHLY => 'Monthly',
             self::SEASONED => 'Seasoned',
+            self::INDIE_GAMES => 'Indie Games',
         };
     }
 
@@ -30,6 +32,7 @@ enum ListTypeEnum: string
             self::WISHLIST => true,
             self::MONTHLY => false,
             self::SEASONED => false,
+            self::INDIE_GAMES => false,
         };
     }
 
@@ -38,6 +41,7 @@ enum ListTypeEnum: string
         return match ($this) {
             self::MONTHLY => true,
             self::SEASONED => true,
+            self::INDIE_GAMES => true,
             default => false,
         };
     }
@@ -50,6 +54,7 @@ enum ListTypeEnum: string
             'wishlist' => self::WISHLIST,
             'monthly' => self::MONTHLY,
             'seasoned' => self::SEASONED,
+            'indie-games' => self::INDIE_GAMES,
             default => null,
         };
     }

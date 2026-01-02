@@ -93,6 +93,11 @@ class GameList extends Model
         return $query->where('list_type', ListTypeEnum::SEASONED->value);
     }
 
+    public function scopeIndieGames(Builder $query): Builder
+    {
+        return $query->where('list_type', ListTypeEnum::INDIE_GAMES->value);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)
@@ -135,6 +140,11 @@ class GameList extends Model
     public function isSeasoned(): bool
     {
         return $this->list_type === ListTypeEnum::SEASONED;
+    }
+
+    public function isIndieGames(): bool
+    {
+        return $this->list_type === ListTypeEnum::INDIE_GAMES;
     }
 
     public function isSpecialList(): bool

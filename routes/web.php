@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomepageController::class, 'index'])->name('homepage');
 Route::get('/monthly-releases', [HomepageController::class, 'monthlyReleases'])->name('monthly-releases');
+Route::get('/indie-games', [HomepageController::class, 'indieGames'])->name('indie-games');
 Route::get('/upcoming', [GamesController::class, 'upcoming'])->name('upcoming');
 Route::get('/most-wanted', [GamesController::class, 'mostWanted'])->name('most-wanted');
 Route::get('/game/{game:igdb_id}', [GamesController::class, 'show'])->name('game.show');

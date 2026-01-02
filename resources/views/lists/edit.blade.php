@@ -113,24 +113,10 @@
                                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
                                 <option value="seasoned" {{ old('list_type', $gameList->list_type?->value) === 'seasoned' ? 'selected' : '' }}>Seasoned (Featured curated list)</option>
                                 <option value="monthly" {{ old('list_type', $gameList->list_type?->value) === 'monthly' ? 'selected' : '' }}>Monthly (Auto-generated monthly list)</option>
+                                <option value="indie-games" {{ old('list_type', $gameList->list_type?->value) === 'indie-games' ? 'selected' : '' }}>Indie Games (Curated indie games list)</option>
                             </select>
-                            <p class="mt-1 text-xs text-gray-500">Seasoned lists appear in homepage banners. Monthly lists feed the featured games section.</p>
+                            <p class="mt-1 text-xs text-gray-500">Seasoned lists appear in homepage banners. Monthly lists feed the featured games section. Indie Games lists appear on the dedicated indie games page.</p>
                             @error('list_type')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div class="mb-4">
-                            <label for="slug" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                URL Slug
-                            </label>
-                            <input type="text"
-                                   name="slug"
-                                   id="slug"
-                                   value="{{ old('slug', $gameList->slug) }}"
-                                   pattern="[a-z0-9-]+"
-                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
-                            <p class="mt-1 text-xs text-gray-500">Only lowercase letters, numbers, and hyphens. Auto-generated if left empty.</p>
-                            @error('slug')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>

@@ -105,6 +105,16 @@ class GameListFactory extends Factory
     }
 
     /**
+     * Indicate that the list is an indie games system list.
+     */
+    public function indieGames(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'list_type' => ListTypeEnum::INDIE_GAMES,
+        ]);
+    }
+
+    /**
      * Indicate that the list is active (for system lists).
      */
     public function active(): static

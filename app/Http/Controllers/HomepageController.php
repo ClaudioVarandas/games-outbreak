@@ -95,5 +95,23 @@ class HomepageController extends Controller
 
         return view('homepage.monthly-releases', compact('activeList', 'monthGames', 'platformEnums'));
     }
+
+    /**
+     * Display indie games lists.
+     */
+    public function indieGames(): View
+    {
+        // Get all active indie games system lists
+        $indieGamesLists = GameList::indieGames()
+            ->where('is_active', true)
+            ->where('is_public', true)
+            ->with('games.platforms')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $platformEnums = PlatformEnum::getActivePlatforms();
+
+        return view('homepage.indie-games', compact('indieGamesLists', 'platformEnums'));
+    }
 }
 

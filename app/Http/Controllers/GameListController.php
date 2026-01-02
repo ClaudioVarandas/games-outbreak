@@ -108,14 +108,14 @@ class GameListController extends Controller
 
         // Handle slug generation for all lists (mandatory)
         if (empty($data['slug'])) {
-            $data['slug'] = $this->generateUniqueSlug($data['name']);
+            $data['slug'] = $this->generateUniqueSlug($data['name'], $data['list_type']);
         } else {
             // Slugify the provided slug to ensure proper format
             $data['slug'] = Str::slug($data['slug']);
-            // Check uniqueness and append number if needed
+            // Check uniqueness per list_type and append number if needed
             $originalSlug = $data['slug'];
             $counter = 1;
-            while (GameList::where('slug', $data['slug'])->exists()) {
+            while (GameList::where('slug', $data['slug'])->where('list_type', $data['list_type'])->exists()) {
                 $data['slug'] = $originalSlug . '-' . $counter;
                 $counter++;
             }
@@ -214,7 +214,8 @@ class GameListController extends Controller
         if (empty($data['slug'])) {
             // Generate slug if not provided and list doesn't have one
             if (!$gameList->slug) {
-                $data['slug'] = $this->generateUniqueSlug($data['name']);
+                $listType = $data['list_type'] ?? $gameList->list_type->value;
+                $data['slug'] = $this->generateUniqueSlug($data['name'], $listType);
             }
             // If list already has a slug and none provided, keep existing slug (don't overwrite)
         } else {
@@ -222,7 +223,11 @@ class GameListController extends Controller
             $data['slug'] = Str::slug($data['slug']);
             $originalSlug = $data['slug'];
             $counter = 1;
-            while (GameList::where('slug', $data['slug'])->where('id', '!=', $gameList->id)->exists()) {
+            $listType = $data['list_type'] ?? $gameList->list_type->value;
+            while (GameList::where('slug', $data['slug'])
+                ->where('list_type', $listType)
+                ->where('id', '!=', $gameList->id)
+                ->exists()) {
                 $data['slug'] = $originalSlug . '-' . $counter;
                 $counter++;
             }
@@ -628,7 +633,8 @@ class GameListController extends Controller
 
         // Generate slug if not provided
         if (empty($data['slug'])) {
-            $data['slug'] = $this->generateUniqueSlug($data['name']);
+            $listType = $data['list_type'] ?? 'regular';
+            $data['slug'] = $this->generateUniqueSlug($data['name'], $listType);
         }
 
         $gameList = GameList::create($data);
@@ -678,13 +684,13 @@ class GameListController extends Controller
     /**
      * Generate a unique slug from name.
      */
-    private function generateUniqueSlug(string $name): string
+    private function generateUniqueSlug(string $name, string $listType = 'regular'): string
     {
         $slug = Str::slug($name);
         $originalSlug = $slug;
         $counter = 1;
 
-        while (GameList::where('slug', $slug)->exists()) {
+        while (GameList::where('slug', $slug)->where('list_type', $listType)->exists()) {
             $slug = $originalSlug . '-' . $counter;
             $counter++;
         }
