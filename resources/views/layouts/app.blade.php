@@ -29,6 +29,10 @@
 
 <x-header />
 
+@if(request()->is('/'))
+    <x-releases-nav active="" />
+@endif
+
 <main class="flex-1">
     @yield('content')
 </main>

@@ -89,7 +89,7 @@
                     @endif
                 </h2>
                 @if($activeList)
-                    <a href="{{ route('monthly-releases') }}"
+                    <a href="{{ route('releases', 'monthly') }}"
                        class="text-sm md:text-base text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition whitespace-nowrap">
                         See all ->
                     </a>
@@ -107,7 +107,7 @@
                     <p class="text-lg text-gray-600 dark:text-gray-400 mb-4">
                         No featured games available.
                     </p>
-                    <a href="{{ route('monthly-releases') }}"
+                    <a href="{{ route('releases', 'monthly') }}"
                        class="inline-block text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition">
                         See all ->
                     </a>

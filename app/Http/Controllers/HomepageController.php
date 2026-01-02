@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ListTypeEnum;
 use App\Enums\PlatformEnum;
 use App\Models\Game;
 use App\Models\GameList;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class HomepageController extends Controller
@@ -112,6 +114,58 @@ class HomepageController extends Controller
         $platformEnums = PlatformEnum::getActivePlatforms();
 
         return view('homepage.indie-games', compact('indieGamesLists', 'platformEnums'));
+    }
+
+    /**
+     * Display unified releases page for different list types.
+     */
+    public function releases(string $type, Request $request): View
+    {
+        // Get year/month from query params (for monthly type)
+        $year = $request->query('year', now()->year);
+        $month = $request->query('month', now()->month);
+
+        // Determine list type enum
+        $listTypeEnum = match($type) {
+            'monthly' => ListTypeEnum::MONTHLY,
+            'indie-games' => ListTypeEnum::INDIE_GAMES,
+            'seasoned' => ListTypeEnum::SEASONED,
+            default => abort(404)
+        };
+
+        // Get lists based on type
+        $lists = GameList::where('list_type', $listTypeEnum->value)
+            ->where('is_active', true)
+            ->where('is_public', true)
+            ->with('games.platforms')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // For monthly and indie-games: filter by year/month based on start_at
+        if (in_array($type, ['monthly', 'indie-games'])) {
+            $lists = $lists->filter(function($list) use ($year, $month) {
+                return $list->start_at &&
+                       $list->start_at->year == $year &&
+                       $list->start_at->month == $month;
+            });
+        }
+
+        // Get the selected list (first active one or from query param)
+        $selectedListId = $request->query('list');
+        $selectedList = $selectedListId
+            ? $lists->firstWhere('id', $selectedListId)
+            : $lists->first();
+
+        $platformEnums = PlatformEnum::getActivePlatforms();
+
+        return view('releases.index', compact(
+            'type',
+            'lists',
+            'selectedList',
+            'platformEnums',
+            'year',
+            'month'
+        ));
     }
 }
 

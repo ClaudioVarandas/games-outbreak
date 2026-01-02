@@ -88,17 +88,26 @@ class HomepageControllerTest extends TestCase
         });
     }
 
-    public function test_monthly_releases_page_loads(): void
+    public function test_old_monthly_releases_redirects(): void
     {
         $response = $this->get('/monthly-releases');
 
-        $response->assertStatus(200);
-        $response->assertViewIs('homepage.monthly-releases');
+        $response->assertStatus(301);
+        $response->assertRedirect('/releases/monthly');
     }
 
-    public function test_monthly_releases_displays_active_list_games(): void
+    public function test_releases_monthly_loads(): void
     {
-        $activeList = GameList::factory()->system()->monthly()->active()->create([
+        $response = $this->get('/releases/monthly');
+
+        $response->assertStatus(200);
+        $response->assertViewIs('releases.index');
+        $response->assertViewHas('type', 'monthly');
+    }
+
+    public function test_releases_monthly_displays_active_list_games(): void
+    {
+        $activeList = GameList::factory()->system()->monthly()->active()->public()->create([
             'start_at' => now()->subDays(1),
             'end_at' => now()->addDays(30),
         ]);
@@ -106,12 +115,92 @@ class HomepageControllerTest extends TestCase
         $game = Game::factory()->create();
         $activeList->games()->attach($game->id);
 
-        $response = $this->get('/monthly-releases');
+        $response = $this->get('/releases/monthly');
 
         $response->assertStatus(200);
-        $response->assertViewHas('activeList', $activeList);
-        $response->assertViewHas('monthGames', function ($games) use ($game) {
-            return $games->contains('id', $game->id);
+        $response->assertViewHas('selectedList', $activeList);
+        $response->assertViewHas('selectedList', function ($list) use ($game) {
+            return $list && $list->games->contains('id', $game->id);
         });
+    }
+
+    public function test_old_indie_games_redirects(): void
+    {
+        $response = $this->get('/indie-games');
+
+        $response->assertStatus(301);
+        $response->assertRedirect('/releases/indie-games');
+    }
+
+    public function test_releases_indie_games_loads(): void
+    {
+        $response = $this->get('/releases/indie-games');
+
+        $response->assertStatus(200);
+        $response->assertViewIs('releases.index');
+        $response->assertViewHas('type', 'indie-games');
+    }
+
+    public function test_releases_seasoned_loads(): void
+    {
+        $response = $this->get('/releases/seasoned');
+
+        $response->assertStatus(200);
+        $response->assertViewIs('releases.index');
+        $response->assertViewHas('type', 'seasoned');
+    }
+
+    public function test_releases_monthly_navigation(): void
+    {
+        // Create list for January 2026
+        $list = GameList::factory()->system()->monthly()->active()->public()->create([
+            'start_at' => \Carbon\Carbon::create(2026, 1, 1),
+            'end_at' => \Carbon\Carbon::create(2026, 1, 31),
+        ]);
+
+        // Test accessing specific month
+        $response = $this->get('/releases/monthly?year=2026&month=1');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('year', '2026');
+        $response->assertViewHas('month', '1');
+        $response->assertViewHas('selectedList', $list);
+    }
+
+    public function test_releases_indie_games_navigation(): void
+    {
+        // Create indie-games list for January 2026
+        $list = GameList::factory()->system()->indieGames()->active()->public()->create([
+            'start_at' => \Carbon\Carbon::create(2026, 1, 1),
+            'end_at' => \Carbon\Carbon::create(2026, 1, 31),
+        ]);
+
+        // Test accessing specific month
+        $response = $this->get('/releases/indie-games?year=2026&month=1');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('year', '2026');
+        $response->assertViewHas('month', '1');
+        $response->assertViewHas('selectedList', $list);
+    }
+
+    public function test_releases_list_selection(): void
+    {
+        // Create two seasoned lists
+        $list1 = GameList::factory()->system()->seasoned()->active()->public()->create(['name' => 'Seasoned List 1']);
+        $list2 = GameList::factory()->system()->seasoned()->active()->public()->create(['name' => 'Seasoned List 2']);
+
+        // Test selecting specific list
+        $response = $this->get('/releases/seasoned?list=' . $list2->id);
+
+        $response->assertStatus(200);
+        $response->assertViewHas('selectedList', $list2);
+    }
+
+    public function test_releases_invalid_type_404(): void
+    {
+        $response = $this->get('/releases/invalid-type');
+
+        $response->assertStatus(404);
     }
 }
