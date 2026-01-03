@@ -49,12 +49,12 @@
             <x-seasonal-banners :banners="[
                 [
                     'image' => '/images/best_of_2025.png',
-                    'link' => route('system-list.show',['slug' => 'best-games-of-2025']),
+                    'link' => route('lists.show', ['seasoned', 'best-games-of-2025']),
                     'alt' => 'best games of 2025 banner'
                 ],
                 [
                     'image' => '/images/most_wanted_2026.png',
-                    'link' => route('system-list.show',['slug' => 'most-wanted-2026']),
+                    'link' => route('lists.show', ['seasoned', 'most-wanted-2026']),
                     'alt' => 'Most Wanted Games 2026 banner'
                 ]
             ]"/>

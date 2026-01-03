@@ -81,7 +81,7 @@ class SmokeTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/user/lists', [
+        $response = $this->actingAs($user)->post('/lists', [
             'name' => 'My List',
             'description' => 'Test',
             'is_public' => false,
@@ -99,12 +99,12 @@ class SmokeTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->create();
 
-        $response = $this->actingAs($user)->post('/user/lists/' . $user->getOrCreateBacklogList()->id . '/games', [
+        $backlogList = $user->getOrCreateBacklogList();
+        $response = $this->actingAs($user)->post('/list/' . $backlogList->list_type->toSlug() . '/' . $backlogList->slug . '/games', [
             'game_id' => $game->igdb_id,
         ]);
 
         $response->assertRedirect();
-        $backlogList = $user->getOrCreateBacklogList();
         $backlogList->refresh();
         $this->assertTrue($backlogList->games()->where('game_id', $game->id)->exists());
     }
@@ -114,12 +114,12 @@ class SmokeTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->create();
 
-        $response = $this->actingAs($user)->post('/user/lists/' . $user->getOrCreateWishlistList()->id . '/games', [
+        $wishlistList = $user->getOrCreateWishlistList();
+        $response = $this->actingAs($user)->post('/list/' . $wishlistList->list_type->toSlug() . '/' . $wishlistList->slug . '/games', [
             'game_id' => $game->igdb_id,
         ]);
 
         $response->assertRedirect();
-        $wishlistList = $user->getOrCreateWishlistList();
         $wishlistList->refresh();
         $this->assertTrue($wishlistList->games()->where('game_id', $game->id)->exists());
     }
@@ -129,7 +129,7 @@ class SmokeTest extends TestCase
         $user = User::factory()->create();
         GameList::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->get('/user/lists');
+        $response = $this->actingAs($user)->get('/lists');
 
         $response->assertStatus(200);
         $response->assertViewIs('lists.index');
@@ -144,7 +144,7 @@ class SmokeTest extends TestCase
 
     public function test_protected_routes_require_authentication(): void
     {
-        $this->get('/user/lists')->assertRedirect('/login');
+        $this->get('/lists')->assertRedirect('/login');
         $this->get('/backlog')->assertRedirect('/login');
         $this->get('/wishlist')->assertRedirect('/login');
     }

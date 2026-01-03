@@ -200,7 +200,7 @@ class IndieGamesTest extends TestCase
     {
         $admin = User::factory()->create(['is_admin' => true]);
 
-        $response = $this->actingAs($admin)->post('/user/lists', [
+        $response = $this->actingAs($admin)->post('/lists', [
             'name' => 'Best Indie Platformers',
             'description' => 'A curated list of the best indie platformers',
             'is_public' => true,
@@ -221,7 +221,7 @@ class IndieGamesTest extends TestCase
     {
         $user = User::factory()->create(['is_admin' => false]);
 
-        $response = $this->actingAs($user)->post('/user/lists', [
+        $response = $this->actingAs($user)->post('/lists', [
             'name' => 'My Indie Games',
             'is_system' => true,
             'list_type' => 'indie-games',
@@ -247,7 +247,7 @@ class IndieGamesTest extends TestCase
             'is_public' => true,
         ]);
 
-        $response = $this->get('/list/best-indie-games-2026');
+        $response = $this->get('/list/indie/best-indie-games-2026');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);

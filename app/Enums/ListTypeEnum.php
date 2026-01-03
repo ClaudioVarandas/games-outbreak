@@ -58,6 +58,31 @@ enum ListTypeEnum: string
             default => null,
         };
     }
+
+    public function toSlug(): string
+    {
+        return match ($this) {
+            self::REGULAR => 'regular',
+            self::BACKLOG => 'backlog',
+            self::WISHLIST => 'wishlist',
+            self::MONTHLY => 'monthly',
+            self::SEASONED => 'seasoned',
+            self::INDIE_GAMES => 'indie',
+        };
+    }
+
+    public static function fromSlug(string $slug): ?self
+    {
+        return match ($slug) {
+            'regular' => self::REGULAR,
+            'backlog' => self::BACKLOG,
+            'wishlist' => self::WISHLIST,
+            'monthly' => self::MONTHLY,
+            'seasoned' => self::SEASONED,
+            'indie' => self::INDIE_GAMES,
+            default => null,
+        };
+    }
 }
 
 

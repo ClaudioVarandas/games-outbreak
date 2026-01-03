@@ -30,8 +30,8 @@
             this.backlogLoading = true;
             try {
                 const url = this.isInBacklog
-                    ? '{{ route('lists.games.remove', ['gameList' => $backlogList, 'game' => $game]) }}'
-                    : '{{ route('lists.games.add', $backlogList) }}';
+                    ? '{{ route('lists.games.remove', [$backlogList->list_type->toSlug(), $backlogList->slug, $game]) }}'
+                    : '{{ route('lists.games.add', [$backlogList->list_type->toSlug(), $backlogList->slug]) }}';
                 const method = this.isInBacklog ? 'DELETE' : 'POST';
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
@@ -66,8 +66,8 @@
             this.wishlistLoading = true;
             try {
                 const url = this.isInWishlist
-                    ? '{{ route('lists.games.remove', ['gameList' => $wishlistList, 'game' => $game]) }}'
-                    : '{{ route('lists.games.add', $wishlistList) }}';
+                    ? '{{ route('lists.games.remove', [$wishlistList->list_type->toSlug(), $wishlistList->slug, $game]) }}'
+                    : '{{ route('lists.games.add', [$wishlistList->list_type->toSlug(), $wishlistList->slug]) }}';
                 const method = this.isInWishlist ? 'DELETE' : 'POST';
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
@@ -101,11 +101,14 @@
             if (!this.selectedListId || this.addToListLoading) return;
             this.addToListLoading = true;
             try {
+                // Parse type:slug format
+                const [type, slug] = this.selectedListId.split(':');
+
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
                 formData.append('game_id', '{{ $game->id }}');
 
-                const response = await fetch(`/user/lists/${this.selectedListId}/games`, {
+                const response = await fetch(`/list/${type}/${slug}/games`, {
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -235,7 +238,7 @@
                                 @php
                                     $isInList = $list->games->contains('id', $game->id);
                                 @endphp
-                                <option value="{{ $list->id }}" {{ $isInList ? 'disabled' : '' }}>
+                                <option value="{{ $list->list_type->toSlug() }}:{{ $list->slug }}" {{ $isInList ? 'disabled' : '' }}>
                                     {{ $list->name }}{{ $isInList ? ' (already added)' : '' }}
                                 </option>
                             @endforeach

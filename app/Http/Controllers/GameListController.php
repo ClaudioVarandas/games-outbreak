@@ -128,7 +128,7 @@ class GameListController extends Controller
 
         $gameList = GameList::create($data);
 
-        return redirect()->route('lists.show', $gameList)
+        return redirect()->route('lists.show', [$gameList->list_type->toSlug(), $gameList->slug])
             ->with('success', 'List created successfully.');
     }
 
@@ -172,8 +172,18 @@ class GameListController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(GameList $gameList): View
+    public function edit(string $type, string $slug): View
     {
+        // Validate and convert type slug to enum
+        $listType = \App\Enums\ListTypeEnum::fromSlug($type);
+        if ($listType === null) {
+            abort(404, 'Invalid list type');
+        }
+
+        $gameList = GameList::where('slug', $slug)
+            ->where('list_type', $listType->value)
+            ->firstOrFail();
+
         $user = auth()->user();
         if (!$user || !$gameList->canBeEditedBy($user)) {
             abort(403);
@@ -189,8 +199,23 @@ class GameListController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateGameListRequest $request, GameList $gameList): RedirectResponse
+    public function update(UpdateGameListRequest $request, string $type, string $slug): RedirectResponse
     {
+        // Validate and convert type slug to enum
+        $listType = \App\Enums\ListTypeEnum::fromSlug($type);
+        if ($listType === null) {
+            abort(404, 'Invalid list type');
+        }
+
+        $gameList = GameList::where('slug', $slug)
+            ->where('list_type', $listType->value)
+            ->firstOrFail();
+
+        // Authorization check
+        if (!$gameList->canBeEditedBy(auth()->user())) {
+            abort(403);
+        }
+
         $data = $request->validated();
 
         // Prevent renaming backlog/wishlist lists
@@ -240,15 +265,29 @@ class GameListController extends Controller
 
         $gameList->update($data);
 
-        return redirect()->route('lists.show', $gameList)
+        // If slug or type changed, redirect to new URL
+        $newType = isset($data['list_type']) ? \App\Enums\ListTypeEnum::from($data['list_type']) : $gameList->fresh()->list_type;
+        $newSlug = $data['slug'] ?? $gameList->fresh()->slug;
+
+        return redirect()->route('lists.show', [$newType->toSlug(), $newSlug])
             ->with('success', 'List updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(GameList $gameList): RedirectResponse
+    public function destroy(string $type, string $slug): RedirectResponse
     {
+        // Validate and convert type slug to enum
+        $listType = \App\Enums\ListTypeEnum::fromSlug($type);
+        if ($listType === null) {
+            abort(404, 'Invalid list type');
+        }
+
+        $gameList = GameList::where('slug', $slug)
+            ->where('list_type', $listType->value)
+            ->firstOrFail();
+
         if (!$gameList->canBeEditedBy(auth()->user())) {
             abort(403);
         }
@@ -267,8 +306,18 @@ class GameListController extends Controller
     /**
      * Add a game to the list.
      */
-    public function addGame(Request $request, GameList $gameList): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function addGame(Request $request, string $type, string $slug): RedirectResponse|\Illuminate\Http\JsonResponse
     {
+        // Validate and convert type slug to enum
+        $listType = \App\Enums\ListTypeEnum::fromSlug($type);
+        if ($listType === null) {
+            abort(404, 'Invalid list type');
+        }
+
+        $gameList = GameList::where('slug', $slug)
+            ->where('list_type', $listType->value)
+            ->firstOrFail();
+
         if (!$gameList->canBeEditedBy(auth()->user())) {
             abort(403);
         }
@@ -446,8 +495,18 @@ class GameListController extends Controller
     /**
      * Remove a game from the list.
      */
-    public function removeGame(Request $request, GameList $gameList, Game $game): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function removeGame(Request $request, string $type, string $slug, Game $game): RedirectResponse|\Illuminate\Http\JsonResponse
     {
+        // Validate and convert type slug to enum
+        $listType = \App\Enums\ListTypeEnum::fromSlug($type);
+        if ($listType === null) {
+            abort(404, 'Invalid list type');
+        }
+
+        $gameList = GameList::where('slug', $slug)
+            ->where('list_type', $listType->value)
+            ->firstOrFail();
+
         if (!$gameList->canBeEditedBy(auth()->user())) {
             abort(403);
         }
@@ -572,11 +631,18 @@ class GameListController extends Controller
      * ✅ Authenticated non-owners: Can only see lists where is_public = true AND is_active = true
      * ✅ Guests: Can only see lists where is_public = true AND is_active = true
      */
-    public function showBySlug(string $slug): View
+    public function showBySlug(string $type, string $slug): View
     {
+        // Validate and convert type slug to enum
+        $listType = \App\Enums\ListTypeEnum::fromSlug($type);
+        if ($listType === null) {
+            abort(404, 'Invalid list type');
+        }
+
         $user = auth()->user();
 
         $gameList = GameList::where('slug', $slug)
+            ->where('list_type', $listType->value)
             ->whereNotNull('slug')
             ->where(function ($query) use ($user) {
                 if ($user) {

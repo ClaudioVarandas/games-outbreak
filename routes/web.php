@@ -23,7 +23,8 @@ Route::get('/search', [GamesController::class, 'searchResults'])->middleware('pr
 
 Route::get('/game/{game:igdb_id}/similar-games-html', [GamesController::class, 'similarGamesHtml'])->middleware('prevent-caching')->name('game.similar.html');
 
-Route::get('/list/{slug}', [GameListController::class, 'showBySlug'])->name('system-list.show');
+// Public list view (read-only)
+Route::get('/list/{type}/{slug}', [GameListController::class, 'showBySlug'])->name('lists.show');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -39,19 +40,15 @@ Route::middleware(['auth', 'prevent-caching'])
         Route::get('/backlog', [GameListController::class, 'backlog'])->name('backlog');
         Route::get('/wishlist', [GameListController::class, 'wishlist'])->name('wishlist');
 
-        // User Lists
-        Route::prefix('user')
-            ->group(function () {
-                Route::get('/lists', [GameListController::class, 'index'])->name('lists.index');
-                Route::get('/lists/create', [GameListController::class, 'create'])->name('lists.create');
-                Route::post('/lists', [GameListController::class, 'store'])->name('lists.store');
-                Route::get('/lists/{gameList}', [GameListController::class, 'show'])->name('lists.show');
-                Route::get('/lists/{gameList}/edit', [GameListController::class, 'edit'])->name('lists.edit');
-                Route::patch('/lists/{gameList}', [GameListController::class, 'update'])->name('lists.update');
-                Route::delete('/lists/{gameList}', [GameListController::class, 'destroy'])->name('lists.destroy');
-                Route::post('/lists/{gameList}/games', [GameListController::class, 'addGame'])->name('lists.games.add');
-                Route::delete('/lists/{gameList}/games/{game}', [GameListController::class, 'removeGame'])->name('lists.games.remove');
-            });
+        // User Lists CRUD
+        Route::get('/lists', [GameListController::class, 'index'])->name('lists.index');
+        Route::get('/lists/create', [GameListController::class, 'create'])->name('lists.create');
+        Route::post('/lists', [GameListController::class, 'store'])->name('lists.store');
+        Route::get('/list/{type}/{slug}/edit', [GameListController::class, 'edit'])->name('lists.edit');
+        Route::patch('/list/{type}/{slug}', [GameListController::class, 'update'])->name('lists.update');
+        Route::delete('/list/{type}/{slug}', [GameListController::class, 'destroy'])->name('lists.destroy');
+        Route::post('/list/{type}/{slug}/games', [GameListController::class, 'addGame'])->name('lists.games.add');
+        Route::delete('/list/{type}/{slug}/games/{game}', [GameListController::class, 'removeGame'])->name('lists.games.remove');
     });
 
 // Admin System Lists Management

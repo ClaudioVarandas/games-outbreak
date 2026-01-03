@@ -11,13 +11,29 @@ class UpdateGameListRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $gameList = $this->route('gameList');
+        // Route now uses type and slug parameters instead of gameList model binding
+        $type = $this->route('type');
+        $slug = $this->route('slug');
         $user = $this->user();
-        
-        if (!$gameList || !$user) {
+
+        if (!$type || !$slug || !$user) {
             return false;
         }
-        
+
+        // Load the game list by type and slug
+        $listType = \App\Enums\ListTypeEnum::fromSlug($type);
+        if ($listType === null) {
+            return false;
+        }
+
+        $gameList = \App\Models\GameList::where('slug', $slug)
+            ->where('list_type', $listType->value)
+            ->first();
+
+        if (!$gameList) {
+            return false;
+        }
+
         return $gameList->canBeEditedBy($user);
     }
 
@@ -28,7 +44,20 @@ class UpdateGameListRequest extends FormRequest
      */
     public function rules(): array
     {
-        $gameList = $this->route('gameList');
+        // Load game list by type and slug parameters
+        $type = $this->route('type');
+        $slug = $this->route('slug');
+
+        $gameList = null;
+        if ($type && $slug) {
+            $listTypeEnum = \App\Enums\ListTypeEnum::fromSlug($type);
+            if ($listTypeEnum) {
+                $gameList = \App\Models\GameList::where('slug', $slug)
+                    ->where('list_type', $listTypeEnum->value)
+                    ->first();
+            }
+        }
+
         $gameListId = $gameList ? $gameList->id : null;
         $listType = $gameList ? $gameList->list_type->value : 'regular';
 

@@ -1,5 +1,5 @@
 @php
-    $listRoute = isset($isSystem) && $isSystem ? route('system-list.show', $list->slug) : route('lists.show', $list);
+    $listRoute = route('lists.show', [$list->list_type->toSlug(), $list->slug]);
     $games = $list->games->take(4); // Show up to 4 covers
 @endphp
 
@@ -140,22 +140,22 @@
         @if(isset($showActions) && $showActions)
             @if($list->isSpecialList())
                 <div class="flex gap-2 mt-auto">
-                    <a href="{{ route('lists.show', $list) }}" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-center text-sm transition">
+                    <a href="{{ route('lists.show', [$list->list_type->toSlug(), $list->slug]) }}" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-center text-sm transition">
                         View
                     </a>
-                    <a href="{{ route('lists.edit', $list) }}" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded text-center text-sm transition">
+                    <a href="{{ route('lists.edit', [$list->list_type->toSlug(), $list->slug]) }}" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded text-center text-sm transition">
                         Edit
                     </a>
                 </div>
             @else
                 <div class="flex gap-2 mt-auto">
-                    <a href="{{ route('lists.show', $list) }}" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-center text-sm transition">
+                    <a href="{{ route('lists.show', [$list->list_type->toSlug(), $list->slug]) }}" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-center text-sm transition">
                         View
                     </a>
-                    <a href="{{ route('lists.edit', $list) }}" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded text-center text-sm transition">
+                    <a href="{{ route('lists.edit', [$list->list_type->toSlug(), $list->slug]) }}" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded text-center text-sm transition">
                         Edit
                     </a>
-                    <form action="{{ route('lists.destroy', $list) }}" method="POST" class="flex-1" onsubmit="return confirm('Are you sure you want to delete this list?');">
+                    <form action="{{ route('lists.destroy', [$list->list_type->toSlug(), $list->slug]) }}" method="POST" class="flex-1" onsubmit="return confirm('Are you sure you want to delete this list?');">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition">

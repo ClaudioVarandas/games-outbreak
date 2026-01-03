@@ -21,7 +21,7 @@ class GameListControllerTest extends TestCase
 
     public function test_lists_index_requires_authentication(): void
     {
-        $response = $this->get('/user/lists');
+        $response = $this->get('/lists');
 
         $response->assertRedirect('/login');
     }
@@ -31,7 +31,7 @@ class GameListControllerTest extends TestCase
         $user = User::factory()->create();
         $list = GameList::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->get('/user/lists');
+        $response = $this->actingAs($user)->get('/lists');
 
         $response->assertStatus(200);
         $response->assertViewIs('lists.index');
@@ -44,7 +44,7 @@ class GameListControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->get('/user/lists');
+        $response = $this->actingAs($user)->get('/lists');
 
         $response->assertStatus(200);
         $this->assertDatabaseHas('game_lists', [
@@ -59,7 +59,7 @@ class GameListControllerTest extends TestCase
 
     public function test_create_list_form_requires_authentication(): void
     {
-        $response = $this->get('/user/lists/create');
+        $response = $this->get('/lists/create');
 
         $response->assertRedirect('/login');
     }
@@ -68,7 +68,7 @@ class GameListControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->get('/user/lists/create');
+        $response = $this->actingAs($user)->get('/lists/create');
 
         $response->assertStatus(200);
         $response->assertViewIs('lists.create');
@@ -78,7 +78,7 @@ class GameListControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/user/lists', [
+        $response = $this->actingAs($user)->post('/lists', [
             'name' => 'My New List',
             'description' => 'Test description',
             'is_public' => false,
@@ -96,7 +96,7 @@ class GameListControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/user/lists', []);
+        $response = $this->actingAs($user)->post('/lists', []);
 
         $response->assertSessionHasErrors('name');
     }
@@ -105,7 +105,7 @@ class GameListControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/user/lists', [
+        $response = $this->actingAs($user)->post('/lists', [
             'name' => 'Backlog',
             'list_type' => 'backlog',
         ]);
@@ -118,7 +118,7 @@ class GameListControllerTest extends TestCase
         $user = User::factory()->create();
         $list = GameList::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->get('/user/lists/' . $list->id);
+        $response = $this->actingAs($user)->get('/list/' . $list->list_type->toSlug() . '/' . $list->slug);
 
         $response->assertStatus(200);
         $response->assertViewIs('lists.show');
@@ -127,11 +127,11 @@ class GameListControllerTest extends TestCase
 
     public function test_show_requires_authentication(): void
     {
-        $list = GameList::factory()->create();
+        $list = GameList::factory()->create(['is_public' => false]);
 
-        $response = $this->get('/user/lists/' . $list->id);
+        $response = $this->get('/list/' . $list->list_type->toSlug() . '/' . $list->slug);
 
-        $response->assertRedirect('/login');
+        $response->assertStatus(404); // Private lists return 404 for non-owners
     }
 
     public function test_add_game_to_list(): void
@@ -140,7 +140,7 @@ class GameListControllerTest extends TestCase
         $list = GameList::factory()->create(['user_id' => $user->id]);
         $game = Game::factory()->create();
 
-        $response = $this->actingAs($user)->post('/user/lists/' . $list->id . '/games', [
+        $response = $this->actingAs($user)->post('/list/' . $list->list_type->toSlug() . '/' . $list->slug . '/games', [
             'game_id' => $game->igdb_id,
         ]);
 
@@ -156,7 +156,7 @@ class GameListControllerTest extends TestCase
         $game = Game::factory()->create();
         $list->games()->attach($game->id);
 
-        $response = $this->actingAs($user)->delete('/user/lists/' . $list->id . '/games/' . $game->id);
+        $response = $this->actingAs($user)->delete('/list/' . $list->list_type->toSlug() . '/' . $list->slug . '/games/' . $game->id);
 
         $response->assertRedirect();
         $this->assertFalse($list->fresh()->games->contains($game));
@@ -189,7 +189,7 @@ class GameListControllerTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->get('/list/test-list');
+        $response = $this->get('/list/regular/test-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -207,7 +207,7 @@ class GameListControllerTest extends TestCase
             'end_at' => null,
         ]);
 
-        $response = $this->get('/list/my-public-list');
+        $response = $this->get('/list/regular/my-public-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -225,11 +225,11 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Non-owner cannot access inactive private list
-        $response = $this->actingAs($otherUser)->get('/list/private-list');
+        $response = $this->actingAs($otherUser)->get('/list/regular/private-list');
         $response->assertStatus(404);
 
         // Non-authenticated user cannot access inactive private list
-        $response = $this->get('/list/private-list');
+        $response = $this->get('/list/regular/private-list');
         $response->assertStatus(404);
     }
 
@@ -243,7 +243,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Owner can access their own private list
-        $response = $this->actingAs($user)->get('/list/private-list');
+        $response = $this->actingAs($user)->get('/list/regular/private-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -256,7 +256,7 @@ class GameListControllerTest extends TestCase
             'is_active' => false,
         ]);
 
-        $response = $this->get('/list/inactive-list');
+        $response = $this->get('/list/regular/inactive-list');
 
         $response->assertStatus(404);
     }
@@ -270,7 +270,7 @@ class GameListControllerTest extends TestCase
             'end_at' => now()->subDays(1), // Expired yesterday, but still visible if is_active = true
         ]);
 
-        $response = $this->get('/list/expired-list');
+        $response = $this->get('/list/regular/expired-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -285,7 +285,7 @@ class GameListControllerTest extends TestCase
             'end_at' => now()->addDays(5),
         ]);
 
-        $response = $this->get('/list/active-list');
+        $response = $this->get('/list/regular/active-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -296,7 +296,7 @@ class GameListControllerTest extends TestCase
         $user = User::factory()->create();
 
         // Public list gets slug
-        $response = $this->actingAs($user)->post('/user/lists', [
+        $response = $this->actingAs($user)->post('/lists', [
             'name' => 'My Public List',
             'is_public' => true,
         ]);
@@ -310,7 +310,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Private list also gets slug
-        $response = $this->actingAs($user)->post('/user/lists', [
+        $response = $this->actingAs($user)->post('/lists', [
             'name' => 'My Private List',
             'is_public' => false,
         ]);
@@ -339,7 +339,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Cannot use same slug for another regular list
-        $response = $this->actingAs($user)->post('/user/lists', [
+        $response = $this->actingAs($user)->post('/lists', [
             'name' => 'New List',
             'is_public' => true,
             'slug' => 'my-games',
@@ -349,7 +349,7 @@ class GameListControllerTest extends TestCase
 
         // But CAN use same slug for a different list_type (admin creating system list)
         $admin = User::factory()->create(['is_admin' => true]);
-        $response = $this->actingAs($admin)->post('/user/lists', [
+        $response = $this->actingAs($admin)->post('/lists', [
             'name' => 'System List',
             'is_public' => true,
             'is_system' => true,
@@ -376,7 +376,7 @@ class GameListControllerTest extends TestCase
             'name' => 'My Test List',
         ]);
 
-        $response = $this->actingAs($user)->patch('/user/lists/' . $list->id, [
+        $response = $this->actingAs($user)->patch('/list/' . $list->list_type->toSlug() . '/' . $list->slug, [
             'name' => 'My Test List',
             'is_public' => false,
         ]);
@@ -400,7 +400,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Owner can access even if inactive and private
-        $response = $this->actingAs($admin)->get('/list/inactive-system-list');
+        $response = $this->actingAs($admin)->get('/list/regular/inactive-system-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -426,7 +426,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Cannot update to use the same slug within the same list_type
-        $response = $this->actingAs($user)->patch('/user/lists/' . $list->id, [
+        $response = $this->actingAs($user)->patch('/list/' . $list->list_type->toSlug() . '/' . $list->slug, [
             'name' => $list->name,
             'is_public' => true,
             'slug' => 'taken-slug',
@@ -441,7 +441,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Update indie list to use a slug that exists in regular lists
-        $response = $this->actingAs($admin)->patch('/user/lists/' . $indieList->id, [
+        $response = $this->actingAs($admin)->patch('/list/' . $indieList->list_type->toSlug() . '/' . $indieList->slug, [
             'name' => $indieList->name,
             'is_public' => true,
             'is_system' => true,
@@ -469,7 +469,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Admin can access even though it's private and inactive
-        $response = $this->actingAs($admin)->get('/list/private-inactive-list');
+        $response = $this->actingAs($admin)->get('/list/regular/private-inactive-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -485,7 +485,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Admin can access even though it's inactive
-        $response = $this->actingAs($admin)->get('/list/inactive-public-list');
+        $response = $this->actingAs($admin)->get('/list/regular/inactive-public-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -503,7 +503,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Admin can access another user's private list
-        $response = $this->actingAs($admin)->get('/list/other-user-private-list');
+        $response = $this->actingAs($admin)->get('/list/regular/other-user-private-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -519,7 +519,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Non-admin cannot access inactive list
-        $response = $this->actingAs($user)->get('/list/inactive-public-list-non-admin');
+        $response = $this->actingAs($user)->get('/list/regular/inactive-public-list-non-admin');
 
         $response->assertStatus(404);
     }
@@ -536,7 +536,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Non-admin cannot access another user's private list
-        $response = $this->actingAs($user)->get('/list/other-user-private-non-admin');
+        $response = $this->actingAs($user)->get('/list/regular/other-user-private-non-admin');
 
         $response->assertStatus(404);
     }
@@ -550,7 +550,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Guest cannot access inactive list
-        $response = $this->get('/list/inactive-public-list-guest');
+        $response = $this->get('/list/regular/inactive-public-list-guest');
 
         $response->assertStatus(404);
     }
@@ -566,7 +566,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Guest cannot access private list
-        $response = $this->get('/list/private-list-guest');
+        $response = $this->get('/list/regular/private-list-guest');
 
         $response->assertStatus(404);
     }
@@ -581,7 +581,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Authenticated user can access public active list
-        $response = $this->actingAs($user)->get('/list/public-active-list');
+        $response = $this->actingAs($user)->get('/list/regular/public-active-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -596,7 +596,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Guest can access public active list
-        $response = $this->get('/list/public-active-list-guest');
+        $response = $this->get('/list/regular/public-active-list-guest');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -614,7 +614,7 @@ class GameListControllerTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($user)->get('/user/lists');
+        $response = $this->actingAs($user)->get('/lists');
 
         $response->assertStatus(200);
         $response->assertViewHas('regularLists', function ($lists) use ($regularList, $indieGamesList) {
@@ -632,7 +632,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Update the list - including list_type field (which should be allowed as long as it doesn't change)
-        $response = $this->actingAs($admin)->patch('/user/lists/' . $list->id, [
+        $response = $this->actingAs($admin)->patch('/list/' . $list->list_type->toSlug() . '/' . $list->slug, [
             'name' => 'Updated Name',
             'description' => 'Updated Description',
             'is_public' => true,
@@ -658,7 +658,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Attempt to change list_type from indie-games to monthly
-        $response = $this->actingAs($admin)->patch('/user/lists/' . $list->id, [
+        $response = $this->actingAs($admin)->patch('/list/' . $list->list_type->toSlug() . '/' . $list->slug, [
             'name' => 'Test List',
             'is_public' => true,
             'is_system' => true,

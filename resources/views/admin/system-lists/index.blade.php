@@ -43,10 +43,10 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @if($list->slug)
-                                        <a href="{{ route('system-list.show', $list->slug) }}" 
-                                           class="text-sm text-teal-600 hover:text-teal-700" 
+                                        <a href="{{ route('lists.show', [$list->list_type->toSlug(), $list->slug]) }}"
+                                           class="text-sm text-teal-600 hover:text-teal-700"
                                            target="_blank">
-                                            /list/{{ $list->slug }}
+                                            /list/{{ $list->list_type->toSlug() }}/{{ $list->slug }}
                                         </a>
                                     @else
                                         <span class="text-sm text-gray-400">No slug</span>
