@@ -70,9 +70,9 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex gap-2">
-                                        <a href="{{ route('lists.show', $list) }}" 
+                                        <a href="{{ route('lists.show', [$list->list_type->toSlug(), $list->slug]) }}"
                                            class="text-teal-600 hover:text-teal-900">View</a>
-                                        <a href="{{ route('lists.edit', $list) }}" 
+                                        <a href="{{ route('lists.edit', [$list->list_type->toSlug(), $list->slug]) }}"
                                            class="text-blue-600 hover:text-blue-900">Edit</a>
                                         <form action="{{ route('admin.system-lists.toggle', $list) }}" 
                                               method="POST" 

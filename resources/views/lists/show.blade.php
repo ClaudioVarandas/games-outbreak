@@ -48,11 +48,11 @@
                         @endphp
                         @if($canEditList)
                             <div class="flex gap-2">
-                                <a href="{{ route('lists.edit', $gameList) }}" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg transition">
+                                <a href="{{ route('lists.edit', [$gameList->list_type->toSlug(), $gameList->slug]) }}" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg transition">
                                     Edit
                                 </a>
                                 @if($gameList->canBeDeleted())
-                                    <form action="{{ route('lists.destroy', $gameList) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this list?');">
+                                    <form action="{{ route('lists.destroy', [$gameList->list_type->toSlug(), $gameList->slug]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this list?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
@@ -126,7 +126,7 @@
                         layout="overlay"
                         aspectRatio="3/4"
                         :showRemoveButton="($canEdit && (!isset($readOnly) || !$readOnly))"
-                        :removeRoute="(!isset($readOnly) || !$readOnly) ? route('lists.games.remove', ['gameList' => $gameList, 'game' => $game]) : null"
+                        :removeRoute="(!isset($readOnly) || !$readOnly) ? route('lists.games.remove', [$gameList->list_type->toSlug(), $gameList->slug, $game]) : null"
                         :platformEnums="$platformEnums" />
                 @endforeach
             </div>

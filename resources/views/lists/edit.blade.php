@@ -8,7 +8,7 @@
             Edit List
         </h1>
 
-        <form action="{{ route('lists.update', $gameList) }}" method="POST" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <form action="{{ route('lists.update', [$gameList->list_type->toSlug(), $gameList->slug]) }}" method="POST" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             @csrf
             @method('PATCH')
 
@@ -65,7 +65,7 @@
                 <p class="mt-1 text-xs text-gray-500">Only lowercase letters, numbers, and hyphens. Used to create a shareable URL for your list. Auto-generated from list name if left blank.</p>
                 @if($gameList->slug)
                     <p class="mt-1 text-xs text-blue-600 dark:text-blue-400">
-                        Current URL: <a href="{{ route('system-list.show', $gameList->slug) }}" target="_blank" class="underline">{{ route('system-list.show', $gameList->slug) }}</a>
+                        Current URL: <a href="{{ route('lists.show', [$gameList->list_type->toSlug(), $gameList->slug]) }}" target="_blank" class="underline">{{ route('lists.show', [$gameList->list_type->toSlug(), $gameList->slug]) }}</a>
                     </p>
                 @endif
                 @error('slug')
@@ -168,7 +168,7 @@
                 <button type="submit" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg transition">
                     Update List
                 </button>
-                <a href="{{ route('lists.show', $gameList) }}" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-6 py-3 rounded-lg text-center transition">
+                <a href="{{ route('lists.show', [$gameList->list_type->toSlug(), $gameList->slug]) }}" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-6 py-3 rounded-lg text-center transition">
                     Cancel
                 </a>
             </div>
@@ -236,7 +236,7 @@
                                 @endif
 
                                 <!-- Remove Button -->
-                                <form action="{{ route('lists.games.remove', ['gameList' => $gameList, 'game' => $game]) }}" 
+                                <form action="{{ route('lists.games.remove', [$gameList->list_type->toSlug(), $gameList->slug, $game]) }}" 
                                       method="POST" 
                                       class="absolute top-2 right-2"
                                       onsubmit="return confirm('Remove this game from the list?');">
@@ -274,7 +274,7 @@
                     <p class="text-lg text-gray-600 dark:text-gray-400">
                         This list is empty. Add games from the list view.
                     </p>
-                    <a href="{{ route('lists.show', $gameList) }}" class="mt-4 inline-block bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition">
+                    <a href="{{ route('lists.show', [$gameList->list_type->toSlug(), $gameList->slug]) }}" class="mt-4 inline-block bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition">
                         Go to List
                     </a>
                 </div>
