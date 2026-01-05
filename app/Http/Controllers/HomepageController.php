@@ -156,6 +156,10 @@ class HomepageController extends Controller
             ? $lists->firstWhere('id', $selectedListId)
             : $lists->first();
 
+        $selectedList
+            ->reorder() // Clear default ordering
+            ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC');
+
         $platformEnums = PlatformEnum::getActivePlatforms();
 
         return view('releases.index', compact(
