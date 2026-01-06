@@ -33,6 +33,7 @@ class StoreGameListRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_public' => ['boolean'],
+            'list_type' => ['nullable', 'string', 'in:regular,monthly,indie-games,seasoned'],
             'slug' => [
                 'nullable',
                 'string',
@@ -45,9 +46,10 @@ class StoreGameListRequest extends FormRequest
         // Only admins can create system lists
         if ($this->user() && $this->user()->isAdmin()) {
             $rules['is_system'] = ['boolean'];
+            $rules['is_active'] = ['boolean'];
             $rules['start_at'] = ['nullable', 'date'];
             $rules['end_at'] = ['nullable', 'date'];
-            
+
             // If both dates are provided, end_at must be after start_at
             if ($this->filled('start_at') && $this->filled('end_at')) {
                 $rules['end_at'][] = 'after:start_at';

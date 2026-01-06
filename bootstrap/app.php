@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'prevent-caching' => \App\Http\Middleware\PreventCaching::class,
+            'user.ownership' => \App\Http\Middleware\EnsureUserOwnership::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

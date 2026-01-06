@@ -126,7 +126,7 @@ class HomepageController extends Controller
         $month = $request->query('month', now()->month);
 
         // Determine list type enum
-        $listTypeEnum = match($type) {
+        $listTypeEnum = match ($type) {
             'monthly' => ListTypeEnum::MONTHLY,
             'indie-games' => ListTypeEnum::INDIE_GAMES,
             'seasoned' => ListTypeEnum::SEASONED,
@@ -138,15 +138,14 @@ class HomepageController extends Controller
             ->where('is_active', true)
             ->where('is_public', true)
             ->with('games.platforms')
-            ->orderBy('created_at', 'desc')
             ->get();
 
         // For monthly and indie-games: filter by year/month based on start_at
         if (in_array($type, ['monthly', 'indie-games'])) {
-            $lists = $lists->filter(function($list) use ($year, $month) {
+            $lists = $lists->filter(function ($list) use ($year, $month) {
                 return $list->start_at &&
-                       $list->start_at->year == $year &&
-                       $list->start_at->month == $month;
+                    $list->start_at->year == $year &&
+                    $list->start_at->month == $month;
             });
         }
 
@@ -156,9 +155,13 @@ class HomepageController extends Controller
             ? $lists->firstWhere('id', $selectedListId)
             : $lists->first();
 
-        $selectedList
-            ->reorder() // Clear default ordering
-            ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC');
+        // Load games with proper ordering if list exists
+        if ($selectedList) {
+            $selectedList->load(['games' => function ($query) {
+                $query->reorder()
+                    ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC');
+            }]);
+        }
 
         $platformEnums = PlatformEnum::getActivePlatforms();
 

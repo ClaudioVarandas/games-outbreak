@@ -29,6 +29,7 @@ class SmokeTest extends TestCase
     {
         $response = $this->post('/register', [
             'name' => 'Test User',
+            'username' => 'testuser',
             'email' => 'test@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -37,6 +38,7 @@ class SmokeTest extends TestCase
         $response->assertRedirect();
         $this->assertDatabaseHas('users', [
             'email' => 'test@example.com',
+            'username' => 'testuser',
         ]);
     }
 
@@ -79,9 +81,9 @@ class SmokeTest extends TestCase
 
     public function test_user_can_create_game_list(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/u/testuser/regular', [
             'name' => 'My List',
             'description' => 'Test',
             'is_public' => false,
@@ -96,43 +98,53 @@ class SmokeTest extends TestCase
 
     public function test_user_can_add_game_to_backlog(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
         $game = Game::factory()->create();
 
         $backlogList = $user->getOrCreateBacklogList();
-        $response = $this->actingAs($user)->post('/list/' . $backlogList->list_type->toSlug() . '/' . $backlogList->slug . '/games', [
-            'game_id' => $game->igdb_id,
-        ]);
+        $response = $this->actingAs($user)
+            ->withHeaders([
+                'X-Requested-With' => 'XMLHttpRequest',
+                'Accept' => 'application/json',
+            ])
+            ->post('/u/testuser/backlog/games', [
+                'game_id' => $game->igdb_id,
+            ]);
 
-        $response->assertRedirect();
+        $response->assertJson(['success' => true]);
         $backlogList->refresh();
         $this->assertTrue($backlogList->games()->where('game_id', $game->id)->exists());
     }
 
     public function test_user_can_add_game_to_wishlist(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
         $game = Game::factory()->create();
 
         $wishlistList = $user->getOrCreateWishlistList();
-        $response = $this->actingAs($user)->post('/list/' . $wishlistList->list_type->toSlug() . '/' . $wishlistList->slug . '/games', [
-            'game_id' => $game->igdb_id,
-        ]);
+        $response = $this->actingAs($user)
+            ->withHeaders([
+                'X-Requested-With' => 'XMLHttpRequest',
+                'Accept' => 'application/json',
+            ])
+            ->post('/u/testuser/wishlist/games', [
+                'game_id' => $game->igdb_id,
+            ]);
 
-        $response->assertRedirect();
+        $response->assertJson(['success' => true]);
         $wishlistList->refresh();
         $this->assertTrue($wishlistList->games()->where('game_id', $game->id)->exists());
     }
 
     public function test_user_can_view_their_lists(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
         GameList::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->get('/lists');
+        $response = $this->actingAs($user)->get('/u/testuser/my-lists');
 
         $response->assertStatus(200);
-        $response->assertViewIs('lists.index');
+        $response->assertViewIs('user-lists.my-lists');
     }
 
     public function test_public_routes_accessible_without_auth(): void
@@ -155,11 +167,11 @@ class SmokeTest extends TestCase
         $adminUser = User::factory()->create(['is_admin' => true]);
 
         $this->actingAs($regularUser)
-            ->get('/admin/lists/system')
+            ->get('/admin/system-lists')
             ->assertStatus(403);
 
         $this->actingAs($adminUser)
-            ->get('/admin/lists/system')
+            ->get('/admin/system-lists')
             ->assertStatus(200);
     }
 }

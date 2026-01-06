@@ -97,8 +97,8 @@
                     <!-- Add Games Section -->
                     <div class="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                         <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">Add Games to List</h2>
-                        <div 
-                            data-vue-component="add-game-to-list" 
+                        <div
+                            data-vue-component="add-game-to-list"
                             data-list-id="{{ $gameList->id }}"
                             data-platforms="{{ json_encode(\App\Enums\PlatformEnum::getActivePlatforms()->map(fn($enum) => ['id' => $enum->value, 'label' => $enum->label(), 'color' => $enum->color()])->values()) }}"
                         ></div>
@@ -119,7 +119,7 @@
                         }
                         $displayDate = $pivotReleaseDate ?? $game->first_release_date;
                     @endphp
-                    <x-game-card 
+                    <x-game-card
                         :game="$game"
                         :displayReleaseDate="$displayDate"
                         variant="glassmorphism"

@@ -30,8 +30,8 @@
             this.backlogLoading = true;
             try {
                 const url = this.isInBacklog
-                    ? '{{ route('lists.games.remove', [$backlogList->list_type->toSlug(), $backlogList->slug, $game]) }}'
-                    : '{{ route('lists.games.add', [$backlogList->list_type->toSlug(), $backlogList->slug]) }}';
+                    ? '{{ route('user.lists.games.remove', [auth()->user()->username, 'backlog', $game]) }}'
+                    : '{{ route('user.lists.games.add', [auth()->user()->username, 'backlog']) }}';
                 const method = this.isInBacklog ? 'DELETE' : 'POST';
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
@@ -66,8 +66,8 @@
             this.wishlistLoading = true;
             try {
                 const url = this.isInWishlist
-                    ? '{{ route('lists.games.remove', [$wishlistList->list_type->toSlug(), $wishlistList->slug, $game]) }}'
-                    : '{{ route('lists.games.add', [$wishlistList->list_type->toSlug(), $wishlistList->slug]) }}';
+                    ? '{{ route('user.lists.games.remove', [auth()->user()->username, 'wishlist', $game]) }}'
+                    : '{{ route('user.lists.games.add', [auth()->user()->username, 'wishlist']) }}';
                 const method = this.isInWishlist ? 'DELETE' : 'POST';
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
@@ -108,7 +108,7 @@
                 formData.append('_token', '{{ csrf_token() }}');
                 formData.append('game_id', '{{ $game->id }}');
 
-                const response = await fetch(`/list/${type}/${slug}/games`, {
+                const response = await fetch(`/u/{{ auth()->user()->username }}/${slug}/games`, {
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -265,7 +265,7 @@
 
             <!-- Create New List Link -->
             <div class="pt-2 border-t border-gray-700">
-                <a href="{{ route('lists.create') }}"
+                <a href="{{ route('user.lists.regular.create', ['user' => auth()->user()->username]) }}"
                    class="block text-center text-sm text-orange-400 hover:text-orange-300 transition">
                     + Create New List
                 </a>

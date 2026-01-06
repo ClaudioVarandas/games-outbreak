@@ -16,9 +16,9 @@
                  if (this.backlogLoading) return;
                  this.backlogLoading = true;
                  try {
-                     const url = this.isInBacklog 
-                         ? '{{ route('lists.games.remove', [$backlogList->list_type->toSlug(), $backlogList->slug, $game]) }}'
-                         : '{{ route('lists.games.add', [$backlogList->list_type->toSlug(), $backlogList->slug]) }}';
+                     const url = this.isInBacklog
+                         ? '{{ route('user.lists.games.remove', [auth()->user()->username, 'backlog', $game]) }}'
+                         : '{{ route('user.lists.games.add', [auth()->user()->username, 'backlog']) }}';
                      const method = this.isInBacklog ? 'DELETE' : 'POST';
                      const formData = new FormData();
                      formData.append('_token', '{{ csrf_token() }}');
@@ -52,9 +52,9 @@
                  if (this.wishlistLoading) return;
                  this.wishlistLoading = true;
                  try {
-                     const url = this.isInWishlist 
-                         ? '{{ route('lists.games.remove', [$wishlistList->list_type->toSlug(), $wishlistList->slug, $game]) }}'
-                         : '{{ route('lists.games.add', [$wishlistList->list_type->toSlug(), $wishlistList->slug]) }}';
+                     const url = this.isInWishlist
+                         ? '{{ route('user.lists.games.remove', [auth()->user()->username, 'wishlist', $game]) }}'
+                         : '{{ route('user.lists.games.add', [auth()->user()->username, 'wishlist']) }}';
                      const method = this.isInWishlist ? 'DELETE' : 'POST';
                      const formData = new FormData();
                      formData.append('_token', '{{ csrf_token() }}');

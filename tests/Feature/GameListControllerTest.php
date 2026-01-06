@@ -28,33 +28,27 @@ class GameListControllerTest extends TestCase
 
     public function test_lists_index_displays_user_lists(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
         $list = GameList::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->get('/lists');
+        // /lists now redirects to /u/{username}/my-lists
+        $response = $this->actingAs($user)->get('/u/testuser/my-lists');
 
         $response->assertStatus(200);
-        $response->assertViewIs('lists.index');
+        $response->assertViewIs('user-lists.my-lists');
         $response->assertViewHas('regularLists', function ($lists) use ($list) {
             return $lists->contains('id', $list->id);
         });
     }
 
-    public function test_lists_index_creates_special_lists_if_missing(): void
+    public function test_lists_redirect_works(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
+        // Test that /lists redirects to the new user route
         $response = $this->actingAs($user)->get('/lists');
 
-        $response->assertStatus(200);
-        $this->assertDatabaseHas('game_lists', [
-            'user_id' => $user->id,
-            'list_type' => ListTypeEnum::BACKLOG->value,
-        ]);
-        $this->assertDatabaseHas('game_lists', [
-            'user_id' => $user->id,
-            'list_type' => ListTypeEnum::WISHLIST->value,
-        ]);
+        $response->assertRedirect(route('user.lists.my-lists', ['user' => 'testuser']));
     }
 
     public function test_create_list_form_requires_authentication(): void
@@ -66,19 +60,19 @@ class GameListControllerTest extends TestCase
 
     public function test_create_list_form_loads(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
-        $response = $this->actingAs($user)->get('/lists/create');
+        $response = $this->actingAs($user)->get('/u/testuser/regular/create');
 
         $response->assertStatus(200);
-        $response->assertViewIs('lists.create');
+        $response->assertViewIs('user-lists.regular.create');
     }
 
     public function test_store_creates_new_list(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/u/testuser/regular', [
             'name' => 'My New List',
             'description' => 'Test description',
             'is_public' => false,
@@ -94,18 +88,18 @@ class GameListControllerTest extends TestCase
 
     public function test_store_validates_required_fields(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
-        $response = $this->actingAs($user)->post('/lists', []);
+        $response = $this->actingAs($user)->post('/u/testuser/regular', []);
 
         $response->assertSessionHasErrors('name');
     }
 
     public function test_store_prevents_creating_backlog_wishlist_manually(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/u/testuser/regular', [
             'name' => 'Backlog',
             'list_type' => 'backlog',
         ]);
@@ -136,50 +130,58 @@ class GameListControllerTest extends TestCase
 
     public function test_add_game_to_list(): void
     {
-        $user = User::factory()->create();
-        $list = GameList::factory()->create(['user_id' => $user->id]);
+        $user = User::factory()->create(['username' => 'testuser']);
+        $list = GameList::factory()->create(['user_id' => $user->id, 'slug' => 'test-list']);
         $game = Game::factory()->create();
 
-        $response = $this->actingAs($user)->post('/list/' . $list->list_type->toSlug() . '/' . $list->slug . '/games', [
-            'game_id' => $game->igdb_id,
-        ]);
+        $response = $this->actingAs($user)
+            ->withHeaders([
+                'X-Requested-With' => 'XMLHttpRequest',
+                'Accept' => 'application/json',
+            ])
+            ->post('/u/testuser/test-list/games', [
+                'game_id' => $game->igdb_id,
+            ]);
 
-        $response->assertRedirect();
+        $response->assertJson(['success' => true]);
         $list->refresh();
         $this->assertTrue($list->games()->where('game_id', $game->id)->exists());
     }
 
     public function test_remove_game_from_list(): void
     {
-        $user = User::factory()->create();
-        $list = GameList::factory()->create(['user_id' => $user->id]);
+        $user = User::factory()->create(['username' => 'testuser']);
+        $list = GameList::factory()->create(['user_id' => $user->id, 'slug' => 'test-list']);
         $game = Game::factory()->create();
         $list->games()->attach($game->id);
 
-        $response = $this->actingAs($user)->delete('/list/' . $list->list_type->toSlug() . '/' . $list->slug . '/games/' . $game->id);
+        $response = $this->actingAs($user)
+            ->withHeaders([
+                'X-Requested-With' => 'XMLHttpRequest',
+                'Accept' => 'application/json',
+            ])
+            ->delete('/u/testuser/test-list/games/' . $game->id);
 
-        $response->assertRedirect();
+        $response->assertJson(['success' => true]);
         $this->assertFalse($list->fresh()->games->contains($game));
     }
 
-    public function test_backlog_page_loads(): void
+    public function test_backlog_page_redirects_to_user_profile(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
         $response = $this->actingAs($user)->get('/backlog');
 
-        $response->assertStatus(200);
-        $response->assertViewIs('backlog.index');
+        $response->assertRedirect(route('user.lists.backlog', ['user' => 'testuser']));
     }
 
-    public function test_wishlist_page_loads(): void
+    public function test_wishlist_page_redirects_to_user_profile(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
         $response = $this->actingAs($user)->get('/wishlist');
 
-        $response->assertStatus(200);
-        $response->assertViewIs('wishlist.index');
+        $response->assertRedirect(route('user.lists.wishlist', ['user' => 'testuser']));
     }
 
     public function test_public_system_list_is_accessible_without_auth(): void
@@ -293,10 +295,10 @@ class GameListControllerTest extends TestCase
 
     public function test_store_generates_slug_for_all_lists(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
         // Public list gets slug
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/u/testuser/regular', [
             'name' => 'My Public List',
             'is_public' => true,
         ]);
@@ -310,7 +312,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Private list also gets slug
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/u/testuser/regular', [
             'name' => 'My Private List',
             'is_public' => false,
         ]);
@@ -329,7 +331,7 @@ class GameListControllerTest extends TestCase
 
     public function test_store_enforces_slug_uniqueness_per_list_type(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
         // Create a regular list with slug 'my-games'
         GameList::factory()->create([
@@ -339,7 +341,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Cannot use same slug for another regular list
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/u/testuser/regular', [
             'name' => 'New List',
             'is_public' => true,
             'slug' => 'my-games',
@@ -349,7 +351,7 @@ class GameListControllerTest extends TestCase
 
         // But CAN use same slug for a different list_type (admin creating system list)
         $admin = User::factory()->create(['is_admin' => true]);
-        $response = $this->actingAs($admin)->post('/lists', [
+        $response = $this->actingAs($admin)->post('/admin/system-lists', [
             'name' => 'System List',
             'is_public' => true,
             'is_system' => true,
@@ -368,7 +370,7 @@ class GameListControllerTest extends TestCase
 
     public function test_update_maintains_slug_when_list_becomes_private(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
         $list = GameList::factory()->create([
             'user_id' => $user->id,
             'is_public' => true,
@@ -376,7 +378,7 @@ class GameListControllerTest extends TestCase
             'name' => 'My Test List',
         ]);
 
-        $response = $this->actingAs($user)->patch('/list/' . $list->list_type->toSlug() . '/' . $list->slug, [
+        $response = $this->actingAs($user)->patch('/u/testuser/regular/my-test-list', [
             'name' => 'My Test List',
             'is_public' => false,
         ]);
@@ -408,7 +410,7 @@ class GameListControllerTest extends TestCase
 
     public function test_update_enforces_slug_uniqueness_per_list_type(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
 
         // Create a regular list with slug 'taken-slug'
         $existingList = GameList::factory()->create([
@@ -426,7 +428,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Cannot update to use the same slug within the same list_type
-        $response = $this->actingAs($user)->patch('/list/' . $list->list_type->toSlug() . '/' . $list->slug, [
+        $response = $this->actingAs($user)->patch('/u/testuser/regular/my-slug', [
             'name' => $list->name,
             'is_public' => true,
             'slug' => 'taken-slug',
@@ -441,7 +443,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Update indie list to use a slug that exists in regular lists
-        $response = $this->actingAs($admin)->patch('/list/' . $indieList->list_type->toSlug() . '/' . $indieList->slug, [
+        $response = $this->actingAs($admin)->patch('/admin/system-lists/indie/unique-indie-slug', [
             'name' => $indieList->name,
             'is_public' => true,
             'is_system' => true,
@@ -604,7 +606,7 @@ class GameListControllerTest extends TestCase
 
     public function test_indie_games_lists_dont_appear_in_regular_lists_index(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
         $regularList = GameList::factory()->create([
             'user_id' => $user->id,
             'list_type' => ListTypeEnum::REGULAR,
@@ -614,7 +616,7 @@ class GameListControllerTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($user)->get('/lists');
+        $response = $this->actingAs($user)->get('/u/testuser/my-lists');
 
         $response->assertStatus(200);
         $response->assertViewHas('regularLists', function ($lists) use ($regularList, $indieGamesList) {
@@ -632,7 +634,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Update the list - including list_type field (which should be allowed as long as it doesn't change)
-        $response = $this->actingAs($admin)->patch('/list/' . $list->list_type->toSlug() . '/' . $list->slug, [
+        $response = $this->actingAs($admin)->patch('/admin/system-lists/indie/' . $list->slug, [
             'name' => 'Updated Name',
             'description' => 'Updated Description',
             'is_public' => true,
@@ -658,7 +660,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Attempt to change list_type from indie-games to monthly
-        $response = $this->actingAs($admin)->patch('/list/' . $list->list_type->toSlug() . '/' . $list->slug, [
+        $response = $this->actingAs($admin)->patch('/admin/system-lists/indie/' . $list->slug, [
             'name' => 'Test List',
             'is_public' => true,
             'is_system' => true,

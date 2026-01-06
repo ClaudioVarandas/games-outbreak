@@ -200,7 +200,7 @@ class IndieGamesTest extends TestCase
     {
         $admin = User::factory()->create(['is_admin' => true]);
 
-        $response = $this->actingAs($admin)->post('/lists', [
+        $response = $this->actingAs($admin)->post('/admin/system-lists', [
             'name' => 'Best Indie Platformers',
             'description' => 'A curated list of the best indie platformers',
             'is_public' => true,
@@ -221,22 +221,18 @@ class IndieGamesTest extends TestCase
     {
         $user = User::factory()->create(['is_admin' => false]);
 
-        $response = $this->actingAs($user)->post('/lists', [
+        $response = $this->actingAs($user)->post('/admin/system-lists', [
             'name' => 'My Indie Games',
             'is_system' => true,
             'list_type' => 'indie-games',
         ]);
 
-        // Should either be forbidden or create as non-system list
-        // Based on authorization logic
-        if ($response->status() === 403) {
-            $response->assertForbidden();
-        } else {
-            $this->assertDatabaseMissing('game_lists', [
-                'name' => 'My Indie Games',
-                'is_system' => true,
-            ]);
-        }
+        // Non-admin users should not be able to access admin routes
+        $response->assertForbidden();
+        $this->assertDatabaseMissing('game_lists', [
+            'name' => 'My Indie Games',
+            'is_system' => true,
+        ]);
     }
 
     public function test_indie_games_list_slug_is_publicly_accessible(): void

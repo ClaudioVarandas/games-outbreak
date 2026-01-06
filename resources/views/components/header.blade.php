@@ -49,30 +49,42 @@
                              x-transition:leave-end="opacity-0 scale-95"
                              class="absolute right-0 mt-2 w-48 bg-gray-800 text-white rounded-md shadow-lg z-50 border border-gray-700 overflow-hidden"
                              style="display: none;">
-                            <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
-                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                </svg>
-                                <span>Profile</span>
-                            </a>
-                            <a href="{{ route('backlog') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
+                            <a href="{{ route('user.lists.backlog', ['user' => auth()->user()->username]) }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
                                 </svg>
                                 <span>Backlog</span>
                             </a>
-                            <a href="{{ route('wishlist') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
+                            <a href="{{ route('user.lists.wishlist', ['user' => auth()->user()->username]) }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
                                 </svg>
                                 <span>Wishlist</span>
                             </a>
-                            <a href="{{ route('lists.index') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
+                            <a href="{{ route('user.lists.my-lists', ['user' => auth()->user()->username]) }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                 </svg>
-                                <span>Lists</span>
+                                <span>My Lists</span>
                             </a>
+                            @if(auth()->user()->isAdmin())
+                                <hr class="border-gray-700 my-1">
+                                <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                    Admin
+                                </div>
+                                <a href="{{ route('admin.system-lists') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
+                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                    </svg>
+                                    <span>System Lists</span>
+                                </a>
+                                <a href="{{ route('admin.user-lists') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
+                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                    </svg>
+                                    <span>User Lists</span>
+                                </a>
+                            @endif
                             <hr class="border-gray-700 my-1">
                             <form action="{{ route('logout') }}" method="POST">
                                 @csrf
@@ -139,30 +151,42 @@
                              x-transition:leave-end="opacity-0 scale-95"
                              class="absolute right-0 mt-2 w-48 bg-gray-800 text-white rounded-md shadow-lg z-50 border border-gray-700 overflow-hidden"
                              style="display: none;">
-                            <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
-                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                </svg>
-                                <span>Profile</span>
-                            </a>
-                            <a href="{{ route('backlog') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
+                            <a href="{{ route('user.lists.backlog', ['user' => auth()->user()->username]) }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
                                 </svg>
                                 <span>Backlog</span>
                             </a>
-                            <a href="{{ route('wishlist') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
+                            <a href="{{ route('user.lists.wishlist', ['user' => auth()->user()->username]) }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
                                 </svg>
                                 <span>Wishlist</span>
                             </a>
-                            <a href="{{ route('lists.index') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
+                            <a href="{{ route('user.lists.my-lists', ['user' => auth()->user()->username]) }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                 </svg>
-                                <span>Lists</span>
+                                <span>My Lists</span>
                             </a>
+                            @if(auth()->user()->isAdmin())
+                                <hr class="border-gray-700 my-1">
+                                <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                    Admin
+                                </div>
+                                <a href="{{ route('admin.system-lists') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
+                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                    </svg>
+                                    <span>System Lists</span>
+                                </a>
+                                <a href="{{ route('admin.user-lists') }}" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-700 transition cursor-pointer">
+                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                    </svg>
+                                    <span>User Lists</span>
+                                </a>
+                            @endif
                             <hr class="border-gray-700 my-1">
                             <form action="{{ route('logout') }}" method="POST">
                                 @csrf

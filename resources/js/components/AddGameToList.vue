@@ -215,6 +215,10 @@ const props = defineProps({
     type: [Number, String],
     required: true
   },
+  routePrefix: {
+    type: String,
+    required: true
+  },
   availablePlatforms: {
     type: Array,
     default: () => []
@@ -355,7 +359,7 @@ const submitAddGame = async () => {
       formData.append('platforms', JSON.stringify(formPlatforms.value));
     }
 
-    const response = await fetch(`/user/lists/${props.listId}/games`, {
+    const response = await fetch(props.routePrefix, {
       method: 'POST',
       body: formData,
       headers: {

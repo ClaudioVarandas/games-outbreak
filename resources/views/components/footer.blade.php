@@ -28,7 +28,7 @@
         </div>--}}
         <div class="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-400">
             <p>&copy; {{ date('Y') }} Games Outbreak. All rights reserved. Made with <span class="text-red-500">❤️</span> by
-                <a href="https://www.linkedin.com/in/cvarandas/" class="text-orange-400 hover:underline transition">Cláudio Varandas</a>
+                <span class="text-orange-400 hover:underline transition">Cláudio Varandas</span>
             </p>
         </div>
     </div>
