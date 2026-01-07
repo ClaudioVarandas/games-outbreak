@@ -55,16 +55,28 @@
                 @enderror
             </div>
 
-            <div class="mb-6">
+            <div class="mb-4">
                 <label class="flex items-center">
                     <input type="checkbox"
                            name="is_public"
                            value="1"
                            {{ old('is_public') ? 'checked' : '' }}
                            class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">
-                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Make this list public</span>
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Public (visible to everyone)</span>
                 </label>
-                <p class="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-1">Public lists can be viewed by anyone.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-1">When unchecked, only you can see this list.</p>
+            </div>
+
+            <div class="mb-6">
+                <label class="flex items-center">
+                    <input type="checkbox"
+                           name="is_active"
+                           value="1"
+                           {{ old('is_active', true) ? 'checked' : '' }}
+                           class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
+                </label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-1">Inactive lists are hidden from everyone except you.</p>
             </div>
 
             <div class="flex items-center justify-end gap-4 mt-8">

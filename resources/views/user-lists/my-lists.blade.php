@@ -48,8 +48,20 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($regularLists as $list)
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative border border-gray-200 dark:border-gray-700">
-                        <!-- Status Icon - Top Right -->
+                        <!-- Status Icons - Top Right -->
                         <div class="absolute top-4 right-4 flex gap-2">
+                            <!-- Active Status -->
+                            @if($list->is_active)
+                                <svg class="w-5 h-5 text-green-600 dark:text-green-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Active">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            @else
+                                <svg class="w-5 h-5 text-gray-600 dark:text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Inactive">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            @endif
+
+                            <!-- Public/Private Status -->
                             @if($list->is_public)
                                 <svg class="w-5 h-5 text-green-600 dark:text-green-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Public">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>

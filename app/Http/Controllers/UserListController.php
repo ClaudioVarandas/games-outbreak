@@ -136,7 +136,7 @@ class UserListController extends Controller
         $data['user_id'] = $user->id;
         $data['list_type'] = ListTypeEnum::REGULAR->value;
         $data['is_system'] = false;
-        $data['is_active'] = false;
+        $data['is_active'] = $request->has('is_active') ? (bool)$request->input('is_active') : true;
         $data['is_public'] = $request->has('is_public') ? (bool)$request->input('is_public') : false;
 
         // Generate unique slug
@@ -165,6 +165,7 @@ class UserListController extends Controller
 
         $data = $request->validated();
         $data['is_public'] = $request->has('is_public') ? (bool)$request->input('is_public') : false;
+        $data['is_active'] = $request->has('is_active') ? (bool)$request->input('is_active') : false;
 
         // Handle slug changes
         if (isset($data['slug']) && $data['slug'] !== $list->slug) {
