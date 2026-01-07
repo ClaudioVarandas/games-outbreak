@@ -280,7 +280,7 @@ class GameListRouteParametersTest extends TestCase
      */
     public function test_lists_show_page_renders_without_errors(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['username' => 'testuser']);
         $list = GameList::factory()->create([
             'user_id' => $user->id,
             'list_type' => ListTypeEnum::REGULAR,
@@ -291,8 +291,8 @@ class GameListRouteParametersTest extends TestCase
         $game = Game::factory()->create();
         $list->games()->attach($game->id);
 
-        // Public viewing route still uses /list/{type}/{slug}
-        $response = $this->actingAs($user)->get("/list/regular/test-list");
+        // User lists now use /u/{username}/lists/{slug}
+        $response = $this->actingAs($user)->get("/u/testuser/lists/test-list");
 
         $response->assertStatus(200);
     }
@@ -311,8 +311,8 @@ class GameListRouteParametersTest extends TestCase
         $game = Game::factory()->create();
         $list->games()->attach($game->id);
 
-        // New edit route: /u/{username}/regular/{slug}/edit
-        $response = $this->actingAs($user)->get("/u/testuser/regular/test-list/edit");
+        // Dual-mode route (no separate edit): /u/{username}/lists/{slug}
+        $response = $this->actingAs($user)->get("/u/testuser/lists/test-list");
 
         $response->assertStatus(200);
     }

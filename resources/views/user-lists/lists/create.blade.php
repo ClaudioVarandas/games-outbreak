@@ -8,7 +8,7 @@
             Create New List
         </h1>
 
-        <form action="{{ route('user.lists.regular.store', $user->username) }}" method="POST" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <form action="{{ route('user.lists.lists.store', $user->username) }}" method="POST" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             @csrf
 
             <div class="mb-6">
@@ -68,7 +68,7 @@
             </div>
 
             <div class="flex items-center justify-end gap-4 mt-8">
-                <a href="{{ route('user.lists.regular', $user->username) }}"
+                <a href="{{ route('user.lists.lists', $user->username) }}"
                    class="px-6 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition">
                     Cancel
                 </a>

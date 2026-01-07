@@ -70,24 +70,6 @@ class UserListController extends Controller
     }
 
     /**
-     * Display user's regular lists (dual-mode: view for public, management for owner).
-     */
-    public function regularLists(User $user): View
-    {
-        $lists = $user->gameLists()
-            ->regular()
-            ->with(['games' => function ($query) {
-                $query->orderByPivot('order');
-            }])
-            ->get();
-
-        $canManage = $this->canManage($user);
-        $viewMode = session('game_view_mode', 'grid');
-
-        return view('user-lists.regular.index', compact('user', 'lists', 'canManage', 'viewMode'));
-    }
-
-    /**
      * Display user's regular lists overview.
      * Dual-mode: view for public, management for owner.
      */
@@ -110,17 +92,45 @@ class UserListController extends Controller
     }
 
     /**
-     * Show the form for creating a new regular list (owner-only).
+     * Display a specific custom list (dual-mode: public viewing + owner editing).
      */
-    public function createRegular(User $user): View
+    public function showList(User $user, string $slug): View
     {
-        return view('user-lists.regular.create', compact('user'));
+        $list = GameList::where('user_id', $user->id)
+            ->where('list_type', ListTypeEnum::REGULAR)
+            ->where('slug', $slug)
+            ->with(['games' => function ($query) {
+                $query->orderByPivot('order');
+            }])
+            ->firstOrFail();
+
+        // Check visibility for non-owners
+        if (auth()->id() !== $user->id && !auth()->user()?->is_admin) {
+            if (!$list->is_public || !$list->is_active) {
+                abort(404);
+            }
+        }
+
+        // Determine if user can manage (owner or admin)
+        $canManage = auth()->check() && (auth()->id() === $user->id || auth()->user()->is_admin);
+
+        $viewMode = session('game_view_mode', 'grid');
+
+        return view('user-lists.lists.show', compact('user', 'list', 'canManage', 'viewMode'));
     }
 
     /**
-     * Store a newly created regular list (owner-only).
+     * Show the form for creating a new custom list (owner-only).
      */
-    public function storeRegular(StoreGameListRequest $request, User $user): RedirectResponse
+    public function createList(User $user): View
+    {
+        return view('user-lists.lists.create', compact('user'));
+    }
+
+    /**
+     * Store a newly created custom list (owner-only).
+     */
+    public function storeList(StoreGameListRequest $request, User $user): RedirectResponse
     {
         $data = $request->validated();
         $data['user_id'] = $user->id;
@@ -139,32 +149,14 @@ class UserListController extends Controller
 
         $list = GameList::create($data);
 
-        return redirect()->route('user.lists.regular.edit', [$user->username, $list->slug])
+        return redirect()->route('user.lists.lists.show', [$user->username, $list->slug])
             ->with('success', 'List created successfully.');
     }
 
     /**
-     * Show the form for editing a regular list (owner-only).
+     * Update a custom list (owner-only).
      */
-    public function editRegular(User $user, string $slug): View
-    {
-        $list = $user->gameLists()
-            ->where('slug', $slug)
-            ->where('list_type', ListTypeEnum::REGULAR->value)
-            ->with(['games' => function ($query) {
-                $query->orderByPivot('order');
-            }])
-            ->firstOrFail();
-
-        $viewMode = session('game_view_mode', 'grid');
-
-        return view('user-lists.regular.edit', compact('user', 'list', 'viewMode'));
-    }
-
-    /**
-     * Update a regular list (owner-only).
-     */
-    public function updateRegular(UpdateRegularListRequest $request, User $user, string $slug): RedirectResponse
+    public function updateList(UpdateRegularListRequest $request, User $user, string $slug): RedirectResponse
     {
         $list = $user->gameLists()
             ->where('slug', $slug)
@@ -185,14 +177,14 @@ class UserListController extends Controller
         // Redirect to new slug if changed
         $newSlug = $data['slug'] ?? $list->slug;
 
-        return redirect()->route('user.lists.regular.edit', [$user->username, $newSlug])
+        return redirect()->route('user.lists.lists.show', [$user->username, $newSlug])
             ->with('success', 'List updated successfully.');
     }
 
     /**
-     * Delete a regular list (owner-only).
+     * Delete a custom list (owner-only).
      */
-    public function destroyRegular(User $user, string $slug): RedirectResponse
+    public function destroyList(User $user, string $slug): RedirectResponse
     {
         $list = $user->gameLists()
             ->where('slug', $slug)
@@ -201,7 +193,7 @@ class UserListController extends Controller
 
         $list->delete();
 
-        return redirect()->route('user.lists.my-lists', [$user->username])
+        return redirect()->route('user.lists.lists', [$user->username])
             ->with('success', 'List deleted successfully.');
     }
 

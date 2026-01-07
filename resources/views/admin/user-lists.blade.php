@@ -48,7 +48,7 @@
                                             <a href="{{ route('user.lists.wishlist', $user->username) }}"
                                                class="text-sm text-orange-600 hover:text-orange-700">View</a>
                                         @else
-                                            <a href="{{ route('user.lists.regular.edit', [$user->username, $list->slug]) }}"
+                                            <a href="{{ route('user.lists.lists.show', [$user->username, $list->slug]) }}"
                                                class="text-sm text-orange-600 hover:text-orange-700">Manage</a>
                                         @endif
                                     </div>

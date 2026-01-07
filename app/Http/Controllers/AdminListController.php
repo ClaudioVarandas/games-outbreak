@@ -21,7 +21,7 @@ class AdminListController extends Controller
      */
     public function myLists(): RedirectResponse
     {
-        return redirect()->route('user.lists.my-lists', ['user' => auth()->user()->username], 301);
+        return redirect()->route('user.lists.lists', ['user' => auth()->user()->username], 301);
     }
 
     /**

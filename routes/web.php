@@ -7,6 +7,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\GamesController;
 use App\Http\Controllers\UserListController;
 use App\Http\Middleware\EnsureAdminUser;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomepageController::class, 'index'])->name('homepage');
@@ -33,32 +34,32 @@ Route::get('/list/{type}/{slug}', [GameListController::class, 'showBySlug'])->na
 // ============================================================================
 
 // Dual-mode routes (public viewing, management for owner/admin)
+// Owner-only routes (create, edit, delete, game management) - Must come first for specificity
+Route::middleware(['auth', 'user.ownership', 'prevent-caching'])
+    ->prefix('u/{user:username}')
+    ->name('user.lists.')
+    ->group(function () {
+        // Custom lists CRUD (specific routes before wildcard {slug})
+        Route::get('/lists/create', [UserListController::class, 'createList'])->name('lists.create');
+        Route::post('/lists', [UserListController::class, 'storeList'])->name('lists.store');
+        Route::patch('/lists/{slug}', [UserListController::class, 'updateList'])->name('lists.update');
+        Route::delete('/lists/{slug}', [UserListController::class, 'destroyList'])->name('lists.destroy');
+
+        // Game management (works for backlog, wishlist, and custom lists)
+        Route::post('/{type}/games', [UserListController::class, 'addGame'])->name('games.add');
+        Route::delete('/{type}/games/{game}', [UserListController::class, 'removeGame'])->name('games.remove');
+        Route::patch('/{type}/games/reorder', [UserListController::class, 'reorderGames'])->name('games.reorder');
+    });
+
+// Public viewing routes (no auth required) - After owner routes for proper precedence
 Route::middleware(['prevent-caching'])
     ->prefix('u/{user:username}')
     ->name('user.lists.')
     ->group(function () {
         Route::get('/backlog', [UserListController::class, 'backlog'])->name('backlog');
         Route::get('/wishlist', [UserListController::class, 'wishlist'])->name('wishlist');
-        Route::get('/my-lists', [UserListController::class, 'myLists'])->name('my-lists');
-        Route::get('/regular', [UserListController::class, 'regularLists'])->name('regular');
-    });
-
-// Owner-only routes (create, edit, delete, game management)
-Route::middleware(['auth', 'user.ownership', 'prevent-caching'])
-    ->prefix('u/{user:username}')
-    ->name('user.lists.')
-    ->group(function () {
-        // Regular lists CRUD
-        Route::get('/regular/create', [UserListController::class, 'createRegular'])->name('regular.create');
-        Route::post('/regular', [UserListController::class, 'storeRegular'])->name('regular.store');
-        Route::get('/regular/{slug}/edit', [UserListController::class, 'editRegular'])->name('regular.edit');
-        Route::patch('/regular/{slug}', [UserListController::class, 'updateRegular'])->name('regular.update');
-        Route::delete('/regular/{slug}', [UserListController::class, 'destroyRegular'])->name('regular.destroy');
-
-        // Game management (works for backlog, wishlist, and regular lists)
-        Route::post('/{type}/games', [UserListController::class, 'addGame'])->name('games.add');
-        Route::delete('/{type}/games/{game}', [UserListController::class, 'removeGame'])->name('games.remove');
-        Route::patch('/{type}/games/reorder', [UserListController::class, 'reorderGames'])->name('games.reorder');
+        Route::get('/lists', [UserListController::class, 'myLists'])->name('lists');
+        Route::get('/lists/{slug}', [UserListController::class, 'showList'])->name('lists.show');
     });
 
 // View mode toggle (global, not user-specific)
@@ -103,20 +104,30 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
 
 Route::middleware('auth')->group(function () {
     Route::get('/backlog', function () {
-        return redirect()->route('user.lists.backlog', ['user' => auth()->user()->username]);
-    });
+        return redirect()->route('user.lists.backlog', ['user' => auth()->user()->username], 301);
+    })->name('legacy.backlog');
 
     Route::get('/wishlist', function () {
-        return redirect()->route('user.lists.wishlist', ['user' => auth()->user()->username]);
-    });
+        return redirect()->route('user.lists.wishlist', ['user' => auth()->user()->username], 301);
+    })->name('legacy.wishlist');
 
     Route::get('/lists', function () {
-        return redirect()->route('user.lists.my-lists', ['user' => auth()->user()->username]);
-    });
+        return redirect()->route('user.lists.lists', ['user' => auth()->user()->username], 301);
+    })->name('legacy.lists');
 
     Route::get('/lists/create', function () {
-        return redirect()->route('user.lists.regular.create', ['user' => auth()->user()->username]);
-    });
+        return redirect()->route('user.lists.lists.create', ['user' => auth()->user()->username]);
+    })->name('legacy.lists.create');
+});
+
+// Redirect old /u/{user}/regular to new /lists
+Route::get('/u/{user:username}/regular', function (User $user) {
+    return redirect("/u/{$user->username}/lists", 301);
+});
+
+// Redirect old /u/{user}/my-lists to new /lists
+Route::get('/u/{user:username}/my-lists', function (User $user) {
+    return redirect("/u/{$user->username}/lists", 301);
 });
 
 Route::get('/dashboard', function () {

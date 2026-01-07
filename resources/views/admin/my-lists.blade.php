@@ -52,7 +52,7 @@
         <div class="mb-8">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Regular Lists</h2>
-                <a href="{{ route('user.lists.regular.create', auth()->user()->username) }}"
+                <a href="{{ route('user.lists.lists.create', auth()->user()->username) }}"
                    class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition">
                     Create New List
                 </a>
@@ -66,7 +66,7 @@
                             <p class="text-gray-600 dark:text-gray-400 mb-4">
                                 {{ $list->games->count() }} {{ Str::plural('game', $list->games->count()) }}
                             </p>
-                            <a href="{{ route('user.lists.regular.edit', [auth()->user()->username, $list->slug]) }}"
+                            <a href="{{ route('user.lists.lists.show', [auth()->user()->username, $list->slug]) }}"
                                class="inline-block px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition">
                                 Manage
                             </a>

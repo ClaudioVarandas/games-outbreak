@@ -83,7 +83,7 @@ class SmokeTest extends TestCase
     {
         $user = User::factory()->create(['username' => 'testuser']);
 
-        $response = $this->actingAs($user)->post('/u/testuser/regular', [
+        $response = $this->actingAs($user)->post('/u/testuser/lists', [
             'name' => 'My List',
             'description' => 'Test',
             'is_public' => false,
@@ -141,7 +141,7 @@ class SmokeTest extends TestCase
         $user = User::factory()->create(['username' => 'testuser']);
         GameList::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->get('/u/testuser/my-lists');
+        $response = $this->actingAs($user)->get('/u/testuser/lists');
 
         $response->assertStatus(200);
         $response->assertViewIs('user-lists.my-lists');

@@ -265,7 +265,7 @@
 
             <!-- Create New List Link -->
             <div class="pt-2 border-t border-gray-700">
-                <a href="{{ route('user.lists.regular.create', ['user' => auth()->user()->username]) }}"
+                <a href="{{ route('user.lists.lists.create', ['user' => auth()->user()->username]) }}"
                    class="block text-center text-sm text-orange-400 hover:text-orange-300 transition">
                     + Create New List
                 </a>
