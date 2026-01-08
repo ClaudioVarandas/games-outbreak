@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\AdminListController;
 use App\Http\Controllers\GameListController;
+use App\Http\Controllers\GamesController;
 use App\Http\Controllers\HomepageController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\GamesController;
 use App\Http\Controllers\UserListController;
 use App\Http\Middleware\EnsureAdminUser;
 use App\Models\User;
@@ -17,14 +17,15 @@ Route::redirect('/monthly-releases', '/releases/monthly', 301);
 Route::redirect('/indie-games', '/releases/indie-games', 301);
 Route::get('/upcoming', [GamesController::class, 'upcoming'])->name('upcoming');
 Route::get('/most-wanted', [GamesController::class, 'mostWanted'])->name('most-wanted');
-Route::get('/game/{game:igdb_id}', [GamesController::class, 'show'])->name('game.show');
+Route::get('/game/{game:slug}', [GamesController::class, 'show'])->name('game.show');
+Route::get('/game/igdb/{igdbId}', [GamesController::class, 'showByIgdbId'])->where('igdbId', '[0-9]+')->name('game.show.igdb');
 
 Route::get('/api/search', [GamesController::class, 'search'])->middleware('prevent-caching')->name('api.search');
-Route::get('/api/game/{game:igdb_id}/similar', [GamesController::class, 'similarGames'])->middleware('prevent-caching')->name('api.game.similar');
+Route::get('/api/game/{game:slug}/similar', [GamesController::class, 'similarGames'])->middleware('prevent-caching')->name('api.game.similar');
 
 Route::get('/search', [GamesController::class, 'searchResults'])->middleware('prevent-caching')->name('search');
 
-Route::get('/game/{game:igdb_id}/similar-games-html', [GamesController::class, 'similarGamesHtml'])->middleware('prevent-caching')->name('game.similar.html');
+Route::get('/game/{game:slug}/similar-games-html', [GamesController::class, 'similarGamesHtml'])->middleware('prevent-caching')->name('game.similar.html');
 
 // Public list view (read-only)
 Route::get('/list/{type}/{slug}', [GameListController::class, 'showBySlug'])->name('lists.show');
@@ -47,7 +48,7 @@ Route::middleware(['auth', 'user.ownership', 'prevent-caching'])
 
         // Game management (works for backlog, wishlist, and custom lists)
         Route::post('/{type}/games', [UserListController::class, 'addGame'])->name('games.add');
-        Route::delete('/{type}/games/{game}', [UserListController::class, 'removeGame'])->name('games.remove');
+        Route::delete('/{type}/games/{game:id}', [UserListController::class, 'removeGame'])->name('games.remove');
         Route::patch('/{type}/games/reorder', [UserListController::class, 'reorderGames'])->name('games.reorder');
     });
 
@@ -91,7 +92,7 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
 
         // System list game management
         Route::post('/system-lists/{type}/{slug}/games', [AdminListController::class, 'addGame'])->name('system-lists.games.add');
-        Route::delete('/system-lists/{type}/{slug}/games/{game}', [AdminListController::class, 'removeGame'])->name('system-lists.games.remove');
+        Route::delete('/system-lists/{type}/{slug}/games/{game:id}', [AdminListController::class, 'removeGame'])->name('system-lists.games.remove');
         Route::patch('/system-lists/{type}/{slug}/games/reorder', [AdminListController::class, 'reorderGames'])->name('system-lists.games.reorder');
 
         // All users' lists overview
@@ -141,4 +142,4 @@ Route::middleware(['auth', 'prevent-caching'])
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

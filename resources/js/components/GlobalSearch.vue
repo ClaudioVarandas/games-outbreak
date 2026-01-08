@@ -38,7 +38,7 @@
         <a
           v-for="game in results"
           :key="game.igdb_id"
-          :href="`/game/${game.igdb_id}`"
+          :href="game.slug ? `/game/${game.slug}` : `/game/igdb/${game.igdb_id}`"
           @click="closeDropdown"
           class="flex items-center gap-4 px-4 py-3 hover:bg-gray-700 transition border-b border-gray-700"
         >

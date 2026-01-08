@@ -15,7 +15,9 @@
                 $coverUrl = $game->cover_image_id
                     ? $game->getCoverUrl('cover_big')
                     : ($game->steam_data['header_image'] ?? null);
-                $linkUrl = route('game.show', $game);
+                $linkUrl = $game->slug
+                    ? route('game.show', $game)
+                    : route('game.show.igdb', $game->igdb_id);
                 
                 $validPlatformIds = $platformEnums->keys()->toArray();
                 $filteredPlatforms = $game->platforms 

@@ -8,7 +8,6 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
 
 class Game extends Model
 {
@@ -16,13 +15,55 @@ class Game extends Model
 
     protected $guarded = ['id'];
 
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
     protected static function booted(): void
     {
         static::creating(function (Game $game) {
             if (empty($game->uuid)) {
-                $game->uuid = Str::uuid()->toString();
+                $game->uuid = str()->uuid()->toString();
+            }
+            if (empty($game->slug)) {
+                $game->slug = self::generateUniqueSlug($game->name, $game->first_release_date);
             }
         });
+
+        static::updating(function (Game $game) {
+            if ($game->isDirty(['name', 'first_release_date'])) {
+                $game->slug = self::generateUniqueSlug($game->name, $game->first_release_date, $game->id);
+            }
+        });
+    }
+
+    public static function generateUniqueSlug(string $name, ?\DateTimeInterface $releaseDate, ?int $excludeId = null): string
+    {
+        $baseSlug = str()->slug($name);
+
+        if ($releaseDate) {
+            $baseSlug .= '-'.$releaseDate->format('Y');
+        }
+
+        $slug = $baseSlug;
+        $counter = 1;
+
+        $query = self::where('slug', $slug);
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        while ($query->exists()) {
+            $counter++;
+            $slug = $baseSlug.'-'.$counter;
+            $query = self::where('slug', $slug);
+            if ($excludeId) {
+                $query->where('id', '!=', $excludeId);
+            }
+        }
+
+        return $slug;
     }
 
     protected $casts = [

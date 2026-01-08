@@ -469,17 +469,18 @@
             <script>
                 // Lazy load similar games after page load
                 document.addEventListener('DOMContentLoaded', function () {
-                    const gameIgdbId = {{ $game->igdb_id }};
+                    const gameSlug = '{{ $game->slug }}';
                     const loadingEl = document.getElementById('similar-games-loading');
                     const contentEl = document.getElementById('similar-games-content');
 
-                    if (!loadingEl || !contentEl) {
+                    if (!loadingEl || !contentEl || !gameSlug) {
+                        if (loadingEl) loadingEl.style.display = 'none';
                         return;
                     }
 
                     // Load similar games HTML via AJAX after a short delay to prioritize main content
                     setTimeout(() => {
-                        fetch(`/game/${gameIgdbId}/similar-games-html`)
+                        fetch(`/game/${gameSlug}/similar-games-html`)
                             .then(r => {
                                 if (!r.ok) throw new Error('Failed to fetch');
                                 return r.text();

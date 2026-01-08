@@ -25,7 +25,7 @@
                     </button>
 
                     <!-- Game Card -->
-                    <a href="{{ route('game.show', $game->igdb_id) }}" class="block">
+                    <a href="{{ $game->slug ? route('game.show', $game) : route('game.show.igdb', $game->igdb_id) }}" class="block">
                         <div class="aspect-[3/4] bg-gray-200 dark:bg-gray-700">
                             @if($game->getCoverUrl('cover_big'))
                                 <img src="{{ $game->getCoverUrl('cover_big') }}"
@@ -61,7 +61,7 @@
                     </div>
 
                     <!-- Game Info -->
-                    <a href="{{ route('game.show', $game->igdb_id) }}" class="flex items-center gap-4 flex-1">
+                    <a href="{{ $game->slug ? route('game.show', $game) : route('game.show.igdb', $game->igdb_id) }}" class="flex items-center gap-4 flex-1">
                         <div class="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden flex-shrink-0">
                             @if($game->getCoverUrl('cover_small'))
                                 <img src="{{ $game->getCoverUrl('cover_small') }}"
