@@ -3,18 +3,27 @@
 namespace App\Models;
 
 use App\Enums\GameTypeEnum;
-use App\Enums\PlatformEnum;
 use App\Services\IgdbService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class Game extends Model
 {
     use \Illuminate\Database\Eloquent\Factories\HasFactory;
 
     protected $guarded = ['id'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Game $game) {
+            if (empty($game->uuid)) {
+                $game->uuid = Str::uuid()->toString();
+            }
+        });
+    }
 
     protected $casts = [
         'first_release_date' => 'datetime',
@@ -83,12 +92,13 @@ class Game extends Model
      */
     private function isIgdbCoverId(?string $imageId): bool
     {
-        if (!$imageId) {
+        if (! $imageId) {
             return false;
         }
+
         // Local filenames from SteamGridDB have file extensions (e.g., ".jpg", ".png")
         // IGDB IDs are alphanumeric strings without extensions
-        return !preg_match('/\.(jpg|jpeg|png|webp)$/i', $imageId);
+        return ! preg_match('/\.(jpg|jpeg|png|webp)$/i', $imageId);
     }
 
     /**
@@ -96,7 +106,7 @@ class Game extends Model
      */
     private function getImageUrl(?string $imageId, string $size = 'cover_big'): string
     {
-        if (!$imageId) {
+        if (! $imageId) {
             return $this->getPlaceholderUrl();
         }
 
@@ -106,9 +116,9 @@ class Game extends Model
         }
 
         // Otherwise, local file from SteamGridDB
-        $filePath = storage_path('app/public/covers/' . $imageId);
+        $filePath = storage_path('app/public/covers/'.$imageId);
         if (File::exists($filePath)) {
-            return asset('storage/covers/' . $imageId);
+            return asset('storage/covers/'.$imageId);
         }
 
         return $this->getPlaceholderUrl();
@@ -164,34 +174,42 @@ class Game extends Model
 
     public function getScreenshotUrl(?string $imageId, string $size = 'screenshot_big'): string
     {
-        if (!$imageId) {
+        if (! $imageId) {
             return 'https://via.placeholder.com/1280x720?text=No+Screenshot';
         }
+
         return "https://images.igdb.com/igdb/image/upload/t_{$size}/{$imageId}.jpg";
     }
 
     public function getPrimaryScreenshot(string $size = 'screenshot_big'): string
     {
         $first = collect($this->screenshots)->first();
+
         return $this->getScreenshotUrl($first['image_id'] ?? null, $size);
     }
 
     public function getYouTubeEmbedUrl(?string $videoId): string
     {
-        if (!$videoId) return '';
+        if (! $videoId) {
+            return '';
+        }
+
         return "https://www.youtube.com/embed/{$videoId}?rel=0&modestbranding=1&autoplay=1";
     }
 
     public function getYouTubeThumbnailUrl(?string $videoId): string
     {
-        if (!$videoId) return 'https://via.placeholder.com/1280x720?text=No+Trailer';
+        if (! $videoId) {
+            return 'https://via.placeholder.com/1280x720?text=No+Trailer';
+        }
+
         return "https://img.youtube.com/vi/{$videoId}/maxresdefault.jpg";
     }
 
     public function getPrimaryTrailerEmbed(): string
     {
         $first = collect($this->trailers)->first();
-        if (!$first || empty($first['video_id'])) {
+        if (! $first || empty($first['video_id'])) {
             return '';
         }
 
@@ -217,6 +235,7 @@ class Game extends Model
     public function getPrimaryTrailerThumbnail(): string
     {
         $first = collect($this->trailers)->first();
+
         return $this->getYouTubeThumbnailUrl($first['video_id'] ?? null);
     }
 
@@ -259,6 +278,7 @@ class Game extends Model
         if (empty($igdbReleaseDates)) {
             // Remove all existing release dates if IGDB has none
             $game->releaseDates()->where('is_manual', false)->delete();
+
             return;
         }
 
@@ -280,12 +300,13 @@ class Game extends Model
                 $platformId = $platform?->id;
 
                 // Skip if platform doesn't exist - critical data missing
-                if (!$platformId) {
-                    \Log::warning("Skipping release date - platform not found", [
+                if (! $platformId) {
+                    \Log::warning('Skipping release date - platform not found', [
                         'game_id' => $game->id,
                         'igdb_platform_id' => $igdbReleaseDate['platform'],
                         'igdb_release_date_id' => $igdbReleaseDate['id'] ?? null,
                     ]);
+
                     continue;
                 }
             }
@@ -428,7 +449,8 @@ class Game extends Model
                 ->post('https://api.igdb.com/v4/games');
 
             if ($response->failed() || empty($response->json())) {
-                \Log::warning("Failed to fetch game from IGDB", ['igdb_id' => $igdbId]);
+                \Log::warning('Failed to fetch game from IGDB', ['igdb_id' => $igdbId]);
+
                 return null;
             }
 
@@ -452,10 +474,10 @@ class Game extends Model
 
             // Determine which images need to be fetched from SteamGridDB
             $imagesToFetch = [];
-            if (!$coverImageId) {
+            if (! $coverImageId) {
                 $imagesToFetch[] = 'cover';
             }
-            if (!$heroImageId) {
+            if (! $heroImageId) {
                 $imagesToFetch[] = 'hero';
             }
             // Logo is always fetched (not provided by IGDB)
@@ -484,7 +506,7 @@ class Game extends Model
             self::syncReleaseDates($game, $igdbGame['release_dates'] ?? null);
 
             // Dispatch job to fetch missing images asynchronously
-            if (!empty($imagesToFetch)) {
+            if (! empty($imagesToFetch)) {
                 \App\Jobs\FetchGameImages::dispatch(
                     $game->id,
                     $gameName,
@@ -499,10 +521,11 @@ class Game extends Model
 
             return $game;
         } catch (\Exception $e) {
-            \Log::error("Error fetching game from IGDB", [
+            \Log::error('Error fetching game from IGDB', [
                 'igdb_id' => $igdbId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -512,28 +535,25 @@ class Game extends Model
      */
     private static function syncRelations(self $game, array $igdbGame): void
     {
-        if (!empty($igdbGame['platforms'])) {
-            $ids = collect($igdbGame['platforms'])->map(fn($p) =>
-                \App\Models\Platform::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
+        if (! empty($igdbGame['platforms'])) {
+            $ids = collect($igdbGame['platforms'])->map(fn ($p) => \App\Models\Platform::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
             );
             $game->platforms()->sync($ids);
         }
 
-        if (!empty($igdbGame['genres'])) {
-            $ids = collect($igdbGame['genres'])->map(fn($g) =>
-                \App\Models\Genre::firstOrCreate(['igdb_id' => $g['id']], ['name' => $g['name'] ?? 'Unknown'])->id
+        if (! empty($igdbGame['genres'])) {
+            $ids = collect($igdbGame['genres'])->map(fn ($g) => \App\Models\Genre::firstOrCreate(['igdb_id' => $g['id']], ['name' => $g['name'] ?? 'Unknown'])->id
             );
             $game->genres()->sync($ids);
         }
 
-        if (!empty($igdbGame['game_modes'])) {
-            $ids = collect($igdbGame['game_modes'])->map(fn($m) =>
-                \App\Models\GameMode::firstOrCreate(['igdb_id' => $m['id']], ['name' => $m['name'] ?? 'Unknown'])->id
+        if (! empty($igdbGame['game_modes'])) {
+            $ids = collect($igdbGame['game_modes'])->map(fn ($m) => \App\Models\GameMode::firstOrCreate(['igdb_id' => $m['id']], ['name' => $m['name'] ?? 'Unknown'])->id
             );
             $game->gameModes()->sync($ids);
         }
 
-        if (!empty($igdbGame['involved_companies'])) {
+        if (! empty($igdbGame['involved_companies'])) {
             $syncData = [];
             foreach ($igdbGame['involved_companies'] as $involvedCompany) {
                 if (empty($involvedCompany['company'])) {
@@ -553,16 +573,14 @@ class Game extends Model
             $game->companies()->sync($syncData);
         }
 
-        if (!empty($igdbGame['game_engines'])) {
-            $ids = collect($igdbGame['game_engines'])->map(fn($e) =>
-                \App\Models\GameEngine::firstOrCreate(['igdb_id' => $e['id']], ['name' => $e['name'] ?? 'Unknown'])->id
+        if (! empty($igdbGame['game_engines'])) {
+            $ids = collect($igdbGame['game_engines'])->map(fn ($e) => \App\Models\GameEngine::firstOrCreate(['igdb_id' => $e['id']], ['name' => $e['name'] ?? 'Unknown'])->id
             );
             $game->gameEngines()->sync($ids);
         }
 
-        if (!empty($igdbGame['player_perspectives'])) {
-            $ids = collect($igdbGame['player_perspectives'])->map(fn($p) =>
-                \App\Models\PlayerPerspective::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
+        if (! empty($igdbGame['player_perspectives'])) {
+            $ids = collect($igdbGame['player_perspectives'])->map(fn ($p) => \App\Models\PlayerPerspective::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
             );
             $game->playerPerspectives()->sync($ids);
         }
@@ -625,7 +643,7 @@ class Game extends Model
         }
 
         // 4. Missing data (0-10 points)
-        if (!$this->cover_image_id || !$this->summary || !$this->steam_data) {
+        if (! $this->cover_image_id || ! $this->summary || ! $this->steam_data) {
             $score += 10;
         }
 
@@ -646,7 +664,7 @@ class Game extends Model
     public function shouldUpdate(int $minDaysSinceSync = 30): bool
     {
         // Never synced
-        if (!$this->last_igdb_sync_at) {
+        if (! $this->last_igdb_sync_at) {
             return true;
         }
 
@@ -661,7 +679,7 @@ class Game extends Model
         }
 
         // Missing critical data
-        if (!$this->cover_image_id || !$this->summary) {
+        if (! $this->cover_image_id || ! $this->summary) {
             return true;
         }
 
@@ -694,7 +712,8 @@ class Game extends Model
                 ->post('https://api.igdb.com/v4/games');
 
             if ($response->failed() || empty($response->json())) {
-                \Log::warning("Failed to refresh game data from IGDB", ['igdb_id' => $this->igdb_id]);
+                \Log::warning('Failed to refresh game data from IGDB', ['igdb_id' => $this->igdb_id]);
+
                 return false;
             }
 
@@ -735,10 +754,10 @@ class Game extends Model
                 self::syncRelations($this, $igdbGame);
                 self::syncReleaseDates($this, $igdbGame['release_dates'] ?? null);
 
-                \Log::info("Updated game data from IGDB", [
+                \Log::info('Updated game data from IGDB', [
                     'igdb_id' => $this->igdb_id,
                     'name' => $this->name,
-                    'changes_detected' => true
+                    'changes_detected' => true,
                 ]);
 
                 return true;
@@ -747,18 +766,19 @@ class Game extends Model
             // Even if no changes, update sync timestamp
             $this->update(['last_igdb_sync_at' => now()]);
 
-            \Log::info("No changes detected for game", [
+            \Log::info('No changes detected for game', [
                 'igdb_id' => $this->igdb_id,
-                'name' => $this->name
+                'name' => $this->name,
             ]);
 
             return true;
 
         } catch (\Exception $e) {
-            \Log::error("Error refreshing game from IGDB", [
+            \Log::error('Error refreshing game from IGDB', [
                 'igdb_id' => $this->igdb_id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }

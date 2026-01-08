@@ -37,7 +37,7 @@
                 formData.append('_token', '{{ csrf_token() }}');
 
                 if (method === 'POST') {
-                    formData.append('game_id', '{{ $game->id }}');
+                    formData.append('game_uuid', '{{ $game->uuid }}');
                 } else {
                     formData.append('_method', 'DELETE');
                 }
@@ -73,7 +73,7 @@
                 formData.append('_token', '{{ csrf_token() }}');
 
                 if (method === 'POST') {
-                    formData.append('game_id', '{{ $game->id }}');
+                    formData.append('game_uuid', '{{ $game->uuid }}');
                 } else {
                     formData.append('_method', 'DELETE');
                 }
@@ -106,7 +106,7 @@
 
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
-                formData.append('game_id', '{{ $game->id }}');
+                formData.append('game_uuid', '{{ $game->uuid }}');
 
                 const response = await fetch(`/u/{{ auth()->user()->username }}/${slug}/games`, {
                     method: 'POST',

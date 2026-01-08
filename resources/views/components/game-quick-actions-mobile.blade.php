@@ -5,14 +5,14 @@
         $isInBacklog = $backlogList && $backlogList->games->contains('id', $game->id);
         $isInWishlist = $wishlistList && $wishlistList->games->contains('id', $game->id);
         $componentId = 'game-actions-' . $game->id . '-' . uniqid('', true);
-        $gameId = $game->id; // Store game ID in a separate variable to avoid closure issues
+        $gameUuid = $game->uuid;
     @endphp
 
     @if($backlogList || $wishlistList)
         <div class="md:hidden flex justify-center items-center gap-2 mt-3"
              id="{{ $componentId }}"
              x-data="{
-             gameId: {{ $gameId }},
+             gameUuid: '{{ $gameUuid }}',
              backlogLoading: false,
              wishlistLoading: false,
              isInBacklog: {{ $isInBacklog ? 'true' : 'false' }},
@@ -29,7 +29,7 @@
                      formData.append('_token', '{{ csrf_token() }}');
 
                      if (method === 'POST') {
-                         formData.append('game_id', this.gameId);
+                         formData.append('game_uuid', this.gameUuid);
                      } else {
                          formData.append('_method', 'DELETE');
                      }
@@ -65,7 +65,7 @@
                      formData.append('_token', '{{ csrf_token() }}');
 
                      if (method === 'POST') {
-                         formData.append('game_id', this.gameId);
+                         formData.append('game_uuid', this.gameUuid);
                      } else {
                          formData.append('_method', 'DELETE');
                      }
