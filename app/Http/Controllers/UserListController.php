@@ -216,11 +216,13 @@ class UserListController extends Controller
 
         if (!$game) {
             // Try by database ID
-            if (is_numeric($igdbId) && strlen($igdbId) < 10) {
+            if (is_numeric($igdbId) && strlen((string) $igdbId) < 10) {
                 $game = Game::find($igdbId);
             }
 
-            try {
+            // Only fetch from IGDB if still not found
+            if (!$game) {
+                try {
                 $igdbService = app(\App\Services\IgdbService::class);
                 $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
                              genres.name, genres.id,
@@ -297,12 +299,13 @@ class UserListController extends Controller
                 // Sync relations (platforms, genres, game modes) and release dates
                 Game::syncReleaseDates($game, $igdbGame['release_dates'] ?? null);
                 $this->syncRelations($game, $igdbGame);
-            } catch (\Exception $e) {
-                \Log::error("Failed to fetch game from IGDB", ['igdb_id' => $igdbId, 'error' => $e->getMessage()]);
-                if ($request->wantsJson() || $request->ajax()) {
-                    return response()->json(['error' => 'Failed to fetch game from IGDB. Please try again.'], 500);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to fetch game from IGDB", ['igdb_id' => $igdbId, 'error' => $e->getMessage()]);
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json(['error' => 'Failed to fetch game from IGDB. Please try again.'], 500);
+                    }
+                    return redirect()->back()->with('error', 'Failed to fetch game from IGDB. Please try again.');
                 }
-                return redirect()->back()->with('error', 'Failed to fetch game from IGDB. Please try again.');
             }
         }
 

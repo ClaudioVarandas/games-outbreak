@@ -1,7 +1,6 @@
 {
     "agents": [
-        "copilot",
-        "phpstorm"
+        "claude_code"
     ],
     "editors": [
         "phpstorm"

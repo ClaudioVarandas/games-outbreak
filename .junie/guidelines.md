@@ -16,6 +16,7 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - laravel/mcp (MCP) - v0
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
+- pestphp/pest (PEST) - v3
 - phpunit/phpunit (PHPUNIT) - v11
 - vue (VUE) - v3
 - alpinejs (ALPINEJS) - v3
@@ -196,22 +197,57 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - Do not run `vendor/bin/pint --test`, simply run `vendor/bin/pint` to fix any formatting issues.
 
 
-=== phpunit/core rules ===
+=== pest/core rules ===
 
-## PHPUnit Core
+## Pest
+### Testing
+- If you need to verify a feature is working, write or update a Unit / Feature test.
 
-- This application uses PHPUnit for testing. All tests must be written as PHPUnit classes. Use `php artisan make:test --phpunit {name}` to create a new test.
-- If you see a test using "Pest", convert it to PHPUnit.
-- Every time a test has been updated, run that singular test.
-- When the tests relating to your feature are passing, ask the user if they would like to also run the entire test suite to make sure everything is still passing.
+### Pest Tests
+- All tests must be written using Pest. Use `php artisan make:test --pest {name}`.
+- You must not remove any tests or test files from the tests directory without approval. These are not temporary or helper files - these are core to the application.
 - Tests should test all of the happy paths, failure paths, and weird paths.
-- You must not remove any tests or test files from the tests directory without approval. These are not temporary or helper files, these are core to the application.
+- Tests live in the `tests/Feature` and `tests/Unit` directories.
+- Pest tests look and behave like this:
+<code-snippet name="Basic Pest Test Example" lang="php">
+it('is true', function () {
+    expect(true)->toBeTrue();
+});
+</code-snippet>
 
 ### Running Tests
-- Run the minimal number of tests, using an appropriate filter, before finalizing.
+- Run the minimal number of tests using an appropriate filter before finalizing code edits.
 - To run all tests: `php artisan test`.
 - To run all tests in a file: `php artisan test tests/Feature/ExampleTest.php`.
 - To filter on a particular test name: `php artisan test --filter=testName` (recommended after making a change to a related file).
+- When the tests relating to your changes are passing, ask the user if they would like to run the entire test suite to ensure everything is still passing.
+
+### Pest Assertions
+- When asserting status codes on a response, use the specific method like `assertForbidden` and `assertNotFound` instead of using `assertStatus(403)` or similar, e.g.:
+<code-snippet name="Pest Example Asserting postJson Response" lang="php">
+it('returns all', function () {
+    $response = $this->postJson('/api/docs', []);
+
+    $response->assertSuccessful();
+});
+</code-snippet>
+
+### Mocking
+- Mocking can be very helpful when appropriate.
+- When mocking, you can use the `Pest\Laravel\mock` Pest function, but always import it via `use function Pest\Laravel\mock;` before using it. Alternatively, you can use `$this->mock()` if existing tests do.
+- You can also create partial mocks using the same import or self method.
+
+### Datasets
+- Use datasets in Pest to simplify tests which have a lot of duplicated data. This is often the case when testing validation rules, so consider going with this solution when writing tests for validation rules.
+
+<code-snippet name="Pest Dataset Example" lang="php">
+it('has emails', function (string $email) {
+    expect($email)->not->toBeEmpty();
+})->with([
+    'james' => 'james@laravel.com',
+    'taylor' => 'taylor@laravel.com',
+]);
+</code-snippet>
 
 
 === tailwindcss/core rules ===

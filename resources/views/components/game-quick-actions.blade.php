@@ -4,10 +4,14 @@
     @php
         $isInBacklog = $backlogList && $backlogList->games->contains('id', $game->id);
         $isInWishlist = $wishlistList && $wishlistList->games->contains('id', $game->id);
+        $componentId = 'game-quick-actions-' . $game->id . '-' . uniqid();
+        $gameId = $game->id;
     @endphp
 
     <div class="absolute inset-0 flex flex-col items-center justify-center z-20 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300"
+         id="{{ $componentId }}"
          x-data="{
+             gameId: {{ $gameId }},
              backlogLoading: false,
              wishlistLoading: false,
              isInBacklog: {{ $isInBacklog ? 'true' : 'false' }},
@@ -24,7 +28,7 @@
                      formData.append('_token', '{{ csrf_token() }}');
                      
                      if (method === 'POST') {
-                         formData.append('game_id', '{{ $game->id }}');
+                         formData.append('game_id', this.gameId);
                      } else {
                          formData.append('_method', 'DELETE');
                      }
@@ -60,7 +64,7 @@
                      formData.append('_token', '{{ csrf_token() }}');
                      
                      if (method === 'POST') {
-                         formData.append('game_id', '{{ $game->id }}');
+                         formData.append('game_id', this.gameId);
                      } else {
                          formData.append('_method', 'DELETE');
                      }
