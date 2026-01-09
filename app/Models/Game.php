@@ -235,7 +235,7 @@ class Game extends Model
             return '';
         }
 
-        return "https://www.youtube.com/embed/{$videoId}?rel=0&modestbranding=1&autoplay=1";
+        return "https://www.youtube.com/embed/{$videoId}?rel=0&modestbranding=1";
     }
 
     public function getYouTubeThumbnailUrl(?string $videoId): string

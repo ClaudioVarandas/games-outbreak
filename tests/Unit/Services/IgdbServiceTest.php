@@ -18,7 +18,7 @@ class IgdbServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new IgdbService();
+        $this->service = new IgdbService;
         Cache::flush();
     }
 
@@ -136,7 +136,7 @@ class IgdbServiceTest extends TestCase
     {
         $url = $this->service->getYouTubeEmbedUrl('dQw4w9WgXcQ');
 
-        $this->assertEquals('https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&autoplay=1', $url);
+        $this->assertEquals('https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0', $url);
     }
 
     public function test_get_youtube_embed_url_returns_empty_for_null(): void

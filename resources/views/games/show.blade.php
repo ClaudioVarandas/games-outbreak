@@ -172,14 +172,37 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 @foreach(collect($game->trailers)->take(4) as $trailer)
                                     @if(!empty($trailer['video_id']))
-                                        <div class="rounded-xl overflow-hidden shadow-2xl aspect-video">
-                                            <iframe
-                                                src="{{ $game->getYouTubeEmbedUrl($trailer['video_id']) }}"
-                                                class="w-full h-full"
-                                                frameborder="0"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowfullscreen>
-                                            </iframe>
+                                        <div
+                                            class="rounded-xl overflow-hidden shadow-2xl aspect-video relative group cursor-pointer"
+                                            x-data="{ playing: false }"
+                                            @click="playing = true"
+                                        >
+                                            <template x-if="!playing">
+                                                <div class="w-full h-full relative">
+                                                    <img
+                                                        src="{{ $game->getYouTubeThumbnailUrl($trailer['video_id']) }}"
+                                                        alt="{{ $trailer['name'] ?? 'Trailer' }}"
+                                                        class="w-full h-full object-cover"
+                                                        loading="lazy"
+                                                    >
+                                                    <div class="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                                        <div class="w-16 h-16 md:w-20 md:h-20 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                                                            <svg class="w-8 h-8 md:w-10 md:h-10 text-white ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <template x-if="playing">
+                                                <iframe
+                                                    src="{{ $game->getYouTubeEmbedUrl($trailer['video_id']) }}&autoplay=1"
+                                                    class="w-full h-full"
+                                                    frameborder="0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowfullscreen>
+                                                </iframe>
+                                            </template>
                                         </div>
                                     @endif
                                 @endforeach

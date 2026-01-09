@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
@@ -25,7 +26,7 @@ class IgdbService
             ]);
 
             if ($response->failed()) {
-                throw new RuntimeException('Failed to obtain IGDB access token: ' . $response->body());
+                throw new RuntimeException('Failed to obtain IGDB access token: '.$response->body());
             }
 
             return $response->json('access_token');
@@ -35,21 +36,20 @@ class IgdbService
     /**
      * Fetch upcoming games from IGDB
      *
-     * @param array $platformIds Platform IDs to filter by
-     * @param Carbon|null $startDate Start date for filtering
-     * @param Carbon|null $endDate End date for filtering
-     * @param int $limit Maximum number of games to fetch (IGDB max is 500 per query)
-     * @param int $offset Offset for pagination (default: 0)
+     * @param  array  $platformIds  Platform IDs to filter by
+     * @param  Carbon|null  $startDate  Start date for filtering
+     * @param  Carbon|null  $endDate  End date for filtering
+     * @param  int  $limit  Maximum number of games to fetch (IGDB max is 500 per query)
+     * @param  int  $offset  Offset for pagination (default: 0)
      * @return array Array of game data
      */
     public function fetchUpcomingGames(
-        array   $platformIds = [],
+        array $platformIds = [],
         ?Carbon $startDate = null,
         ?Carbon $endDate = null,
-        int     $limit = 500,
-        int     $offset = 0
-    ): array
-    {
+        int $limit = 500,
+        int $offset = 0
+    ): array {
         $platformIds = empty($platformIds) ? $this->defaultPlatforms : $platformIds;
         $startDate ??= Carbon::today();
         $endDate ??= $startDate->copy()->addWeek();
@@ -58,7 +58,7 @@ class IgdbService
         $queryLimit = min($limit, 500);
 
         $query = sprintf(
-            "fields name, first_release_date, summary, platforms.name, cover.image_id,
+            'fields name, first_release_date, summary, platforms.name, cover.image_id,
                             genres.name, genres.id,
                             game_modes.name, game_modes.id,
                             similar_games.name, similar_games.cover.image_id, similar_games.id,
@@ -73,7 +73,7 @@ class IgdbService
                      where platforms = (%s) & first_release_date >= %d & first_release_date < %d;
                      sort first_release_date asc;
                      limit %d;
-                     offset %d;",
+                     offset %d;',
             implode(',', $platformIds),
             $startDate->timestamp,
             $endDate->timestamp,
@@ -86,7 +86,7 @@ class IgdbService
             ->post('https://api.igdb.com/v4/games');
 
         if ($response->failed()) {
-            throw new RuntimeException('IGDB API request failed: ' . $response->status() . ' - ' . $response->body());
+            throw new RuntimeException('IGDB API request failed: '.$response->status().' - '.$response->body());
         }
 
         return $response->json();
@@ -111,12 +111,13 @@ class IgdbService
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
+
             return collect();
         }
 
         $data = $response->json();
 
-        if (!is_array($data) || empty($data['items'])) {
+        if (! is_array($data) || empty($data['items'])) {
             return collect();
         }
 
@@ -136,7 +137,7 @@ class IgdbService
                 'original_price' => $item['price'] ?? null,
                 'reviews' => $item['reviews'] ?? null,               // e.g., "Overwhelmingly Positive"
             ];
-        })->filter(fn($game) => !empty($game['appid'])); // Remove any malformed entries
+        })->filter(fn ($game) => ! empty($game['appid'])); // Remove any malformed entries
     }
 
     /**
@@ -193,12 +194,12 @@ class IgdbService
             $appId = null;
 
             // Priority 1: external_games (category 1 = Steam) – UID is the AppID
-            if (!empty($game['external_games']) && is_array($game['external_games'])) {
+            if (! empty($game['external_games']) && is_array($game['external_games'])) {
                 foreach ($game['external_games'] as $ext) {
                     if (
                         is_array($ext) &&
                         ($ext['category'] ?? null) === 1 && // Steam
-                        !empty($ext['uid']) &&
+                        ! empty($ext['uid']) &&
                         ctype_digit((string) $ext['uid'])
                     ) {
                         $appId = (int) $ext['uid'];
@@ -208,9 +209,9 @@ class IgdbService
             }
 
             // Priority 2: websites – look for ANY Steam store URL containing /app/{number}
-            if (!$appId && !empty($game['websites']) && is_array($game['websites'])) {
+            if (! $appId && ! empty($game['websites']) && is_array($game['websites'])) {
                 foreach ($game['websites'] as $site) {
-                    if (is_array($site) && !empty($site['url'])) {
+                    if (is_array($site) && ! empty($site['url'])) {
                         $url = $site['url'];
 
                         // Improved regex: captures digits after /app/, handles paths and query strings
@@ -243,6 +244,7 @@ class IgdbService
 
             if ($cachedData !== null) {
                 $steamDetails[$appId] = $cachedData;
+
                 continue;
             }
 
@@ -250,9 +252,9 @@ class IgdbService
                 $response = Http::timeout(15)
                     ->retry(3, 1000)
                     ->get('https://store.steampowered.com/api/appdetails', [
-                        'appids'  => $appId, // Single AppID
+                        'appids' => $appId, // Single AppID
                         'filters' => 'name,release_date,header_image,capsule_image,price_overview,platforms,metacritic,recommendations,is_free',
-                        'cc'      => 'us',
+                        'cc' => 'us',
                     ]);
 
                 if ($response->successful()) {
@@ -271,20 +273,20 @@ class IgdbService
 
                     // New: Fetch wishlist/followers from SteamDB
                     $wishlistCount = null;
-/*                    try {
-                        $steamdbResponse = Http::timeout(10)
-                            ->get("https://steamdb.info/app/{$appId}/");
+                    /*                    try {
+                                            $steamdbResponse = Http::timeout(10)
+                                                ->get("https://steamdb.info/app/{$appId}/");
 
-                        if ($steamdbResponse->successful()) {
-                            // SteamDB shows followers in a table row like: <td>Followers</td><td>1,234,567</td>
-                            preg_match('/Followers<\/td>\s*<td[^>]*>([\d,]+)</i', $steamdbResponse->body(), $matches);
-                            if (isset($matches[1])) {
-                                $wishlistCount = (int) str_replace(',', '', $matches[1]);
-                            }
-                        }
-                    } catch (\Exception $e) {
-                        \Log::warning("SteamDB wishlist fetch failed for AppID {$appId}", ['error' => $e->getMessage()]);
-                    }*/
+                                            if ($steamdbResponse->successful()) {
+                                                // SteamDB shows followers in a table row like: <td>Followers</td><td>1,234,567</td>
+                                                preg_match('/Followers<\/td>\s*<td[^>]*>([\d,]+)</i', $steamdbResponse->body(), $matches);
+                                                if (isset($matches[1])) {
+                                                    $wishlistCount = (int) str_replace(',', '', $matches[1]);
+                                                }
+                                            }
+                                        } catch (\Exception $e) {
+                                            \Log::warning("SteamDB wishlist fetch failed for AppID {$appId}", ['error' => $e->getMessage()]);
+                                        }*/
 
                     // Store wishlist count in steam data for later use
                     if (isset($steamDetails[$appId])) {
@@ -293,15 +295,15 @@ class IgdbService
 
                 } else {
                     \Log::warning('Steam appdetails failed for single AppID', [
-                        'appid'  => $appId,
+                        'appid' => $appId,
                         'status' => $response->status(),
-                        'body'   => $response->body(),
+                        'body' => $response->body(),
                     ]);
                 }
             } catch (\Exception $e) {
                 \Log::error('Steam API exception for AppID', [
-                    'appid'    => $appId,
-                    'message'  => $e->getMessage(),
+                    'appid' => $appId,
+                    'message' => $e->getMessage(),
                 ]);
             }
 
@@ -316,19 +318,19 @@ class IgdbService
                 $wishlistCount = $steam['_wishlist_count'] ?? null;
 
                 $igdbGames[$index]['steam'] = [
-                    'appid'             => $appId,
-                    'header_image'      => $steam['header_image'] ?? null,
-                    'capsule_image'     => $steam['capsule_image'] ?? $steam['header_image'] ?? null,
-                    'release_date'      => $steam['release_date']['date'] ?? null,
-                    'is_coming_soon'    => $steam['release_date']['coming_soon'] ?? true,
-                    'price_overview'    => $steam['price_overview'] ?? null,
-                    'is_free'           => $steam['is_free'] ?? false,
-                    'platforms'         => $steam['platforms'] ?? null,
-                    'metacritic_score'  => $steam['metacritic']['score'] ?? null,
-                    'recommendations'   => $steam['recommendations']['total'] ?? null,
-                    'wishlist_count'    => $wishlistCount,
+                    'appid' => $appId,
+                    'header_image' => $steam['header_image'] ?? null,
+                    'capsule_image' => $steam['capsule_image'] ?? $steam['header_image'] ?? null,
+                    'release_date' => $steam['release_date']['date'] ?? null,
+                    'is_coming_soon' => $steam['release_date']['coming_soon'] ?? true,
+                    'price_overview' => $steam['price_overview'] ?? null,
+                    'is_free' => $steam['is_free'] ?? false,
+                    'platforms' => $steam['platforms'] ?? null,
+                    'metacritic_score' => $steam['metacritic']['score'] ?? null,
+                    'recommendations' => $steam['recommendations']['total'] ?? null,
+                    'wishlist_count' => $wishlistCount,
                     'wishlist_formatted' => $wishlistCount ? number_format($wishlistCount) : null,
-                    'reviews_summary'   => [
+                    'reviews_summary' => [
                         'rating' => $steam['review_score_desc'] ?? null,
                         'percentage' => $steam['review_percentage'] ?? null,
                         'total' => $steam['total_reviews'] ?? null,
@@ -345,7 +347,7 @@ class IgdbService
      */
     public function getCoverUrl(?string $imageId, string $size = 'cover_big'): string
     {
-        if (!$imageId) {
+        if (! $imageId) {
             return 'https://via.placeholder.com/300x400?text=No+Cover';
         }
 
@@ -355,46 +357,56 @@ class IgdbService
 
     public function getScreenshotUrl(?string $imageId, string $size = 'screenshot_big'): string
     {
-        if (!$imageId) return 'https://via.placeholder.com/1280x720?text=No+Screenshot';
+        if (! $imageId) {
+            return 'https://via.placeholder.com/1280x720?text=No+Screenshot';
+        }
+
         return "https://images.igdb.com/igdb/image/upload/t_{$size}/{$imageId}.jpg";
     }
 
     public function getYouTubeEmbedUrl(?string $videoId): string
     {
-        if (!$videoId) return '';
-        return "https://www.youtube.com/embed/{$videoId}?rel=0&autoplay=1";
+        if (! $videoId) {
+            return '';
+        }
+
+        return "https://www.youtube.com/embed/{$videoId}?rel=0";
     }
 
     public function getYouTubeThumbnailUrl(?string $videoId): string
     {
-        if (!$videoId) return 'https://via.placeholder.com/1280x720?text=No+Trailer';
+        if (! $videoId) {
+            return 'https://via.placeholder.com/1280x720?text=No+Trailer';
+        }
+
         return "https://img.youtube.com/vi/{$videoId}/maxresdefault.jpg";
     }
 
     /**
      * Fetch game image from SteamGridDB when IGDB doesn't provide one
      *
-     * @param string $gameName The game name to search for
-     * @param string $type Image type: 'cover', 'hero', or 'logo'
-     * @param int|null $steamAppId Optional Steam AppID for better matching
-     * @param int|null $igdbId Optional IGDB ID for filename
+     * @param  string  $gameName  The game name to search for
+     * @param  string  $type  Image type: 'cover', 'hero', or 'logo'
+     * @param  int|null  $steamAppId  Optional Steam AppID for better matching
+     * @param  int|null  $igdbId  Optional IGDB ID for filename
      * @return string|null Filename of downloaded image, or null if failed
      */
     public function fetchImageFromSteamGridDb(string $gameName, string $type = 'cover', ?int $steamAppId = null, ?int $igdbId = null): ?string
     {
         $apiKey = config('services.steamgriddb.api_key');
-        if (!$apiKey) {
+        if (! $apiKey) {
             \Log::warning('SteamGridDB API key not configured');
+
             return null;
         }
 
         try {
             // Search for game
             $searchResponse = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
             ])
                 ->timeout(10)
-                ->get('https://www.steamgriddb.com/api/v2/search/autocomplete/' . urlencode($gameName));
+                ->get('https://www.steamgriddb.com/api/v2/search/autocomplete/'.urlencode($gameName));
 
             if ($searchResponse->failed() || empty($searchResponse->json()['data'])) {
                 return null;
@@ -420,17 +432,17 @@ class IgdbService
             }
 
             // Fallback to first result if no AppID match
-            if (!$gameId && !empty($searchResults[0]['id'])) {
+            if (! $gameId && ! empty($searchResults[0]['id'])) {
                 $gameId = $searchResults[0]['id'];
             }
 
-            if (!$gameId) {
+            if (! $gameId) {
                 return null;
             }
 
             // Fetch grids (covers)
             $gridsResponse = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
             ])
                 ->timeout(10)
                 ->get("https://www.steamgriddb.com/api/v2/grids/game/{$gameId}");
@@ -452,12 +464,12 @@ class IgdbService
                 default => $grids[0] ?? null,
             };
 
-            if (!$selectedGrid && !empty($grids)) {
+            if (! $selectedGrid && ! empty($grids)) {
                 $selectedGrid = $grids[0];
             }
 
             $imageUrl = $selectedGrid['url'] ?? null;
-            if (!$imageUrl) {
+            if (! $imageUrl) {
                 return null;
             }
 
@@ -465,29 +477,32 @@ class IgdbService
             $imageResponse = Http::timeout(15)->get($imageUrl);
             if ($imageResponse->failed()) {
                 \Log::warning("Failed to download SteamGridDB cover image: {$imageUrl}");
+
                 return null;
             }
 
             // Ensure storage directory exists
             $storagePath = storage_path('app/public/covers');
-            if (!File::exists($storagePath)) {
+            if (! File::exists($storagePath)) {
                 File::makeDirectory($storagePath, 0755, true);
             }
 
             // Generate filename
             $extension = pathinfo(parse_url($imageUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
-            $filename = ($igdbId ?: ($steamAppId ?: 'game')) . '_' . time() . '.' . $extension;
-            $filePath = $storagePath . '/' . $filename;
+            $filename = ($igdbId ?: ($steamAppId ?: 'game')).'_'.time().'.'.$extension;
+            $filePath = $storagePath.'/'.$filename;
 
             // Save the image
             File::put($filePath, $imageResponse->body());
 
             \Log::info("Downloaded SteamGridDB {$type} image for {$gameName}: {$filename}");
+
             return $filename;
         } catch (\Exception $e) {
             \Log::warning("SteamGridDB {$type} image fetch exception for {$gameName}", [
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -495,9 +510,9 @@ class IgdbService
     /**
      * Fetch game cover from SteamGridDB (backward compatibility)
      *
-     * @param string $gameName The game name to search for
-     * @param int|null $steamAppId Optional Steam AppID for better matching
-     * @param int|null $igdbId Optional IGDB ID for filename
+     * @param  string  $gameName  The game name to search for
+     * @param  int|null  $steamAppId  Optional Steam AppID for better matching
+     * @param  int|null  $igdbId  Optional IGDB ID for filename
      * @return string|null Filename of downloaded cover, or null if failed
      */
     public function fetchCoverFromSteamGridDb(string $gameName, ?int $steamAppId = null, ?int $igdbId = null): ?string
