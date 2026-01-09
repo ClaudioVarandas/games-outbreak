@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Enums;
@@ -11,6 +12,7 @@ enum ListTypeEnum: string
     case MONTHLY = 'monthly';
     case SEASONED = 'seasoned';
     case INDIE_GAMES = 'indie-games';
+    case EVENTS = 'events';
 
     public function label(): string
     {
@@ -21,6 +23,7 @@ enum ListTypeEnum: string
             self::MONTHLY => 'Monthly',
             self::SEASONED => 'Seasoned',
             self::INDIE_GAMES => 'Indie Games',
+            self::EVENTS => 'Events',
         };
     }
 
@@ -33,6 +36,7 @@ enum ListTypeEnum: string
             self::MONTHLY => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
             self::SEASONED => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
             self::INDIE_GAMES => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+            self::EVENTS => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
         };
     }
 
@@ -45,6 +49,7 @@ enum ListTypeEnum: string
             self::MONTHLY => false,
             self::SEASONED => false,
             self::INDIE_GAMES => false,
+            self::EVENTS => false,
         };
     }
 
@@ -54,6 +59,7 @@ enum ListTypeEnum: string
             self::MONTHLY => true,
             self::SEASONED => true,
             self::INDIE_GAMES => true,
+            self::EVENTS => true,
             default => false,
         };
     }
@@ -67,6 +73,7 @@ enum ListTypeEnum: string
             'monthly' => self::MONTHLY,
             'seasoned' => self::SEASONED,
             'indie-games' => self::INDIE_GAMES,
+            'events' => self::EVENTS,
             default => null,
         };
     }
@@ -80,6 +87,7 @@ enum ListTypeEnum: string
             self::MONTHLY => 'monthly',
             self::SEASONED => 'seasoned',
             self::INDIE_GAMES => 'indie',
+            self::EVENTS => 'events',
         };
     }
 
@@ -92,14 +100,8 @@ enum ListTypeEnum: string
             'monthly' => self::MONTHLY,
             'seasoned' => self::SEASONED,
             'indie' => self::INDIE_GAMES,
+            'events' => self::EVENTS,
             default => null,
         };
     }
 }
-
-
-
-
-
-
-

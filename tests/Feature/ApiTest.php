@@ -64,7 +64,7 @@ class ApiTest extends TestCase
             ],
         ]);
 
-        $response = $this->getJson('/api/game/12345/similar');
+        $response = $this->getJson("/api/game/{$game->slug}/similar");
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
@@ -86,7 +86,7 @@ class ApiTest extends TestCase
             'similar_games' => null,
         ]);
 
-        $response = $this->getJson('/api/game/12345/similar');
+        $response = $this->getJson("/api/game/{$game->slug}/similar");
 
         $response->assertStatus(200);
         $response->assertJson(['games' => []]);

@@ -28,7 +28,7 @@ class GameListFactory extends Factory
             'user_id' => User::factory(),
             'name' => $name,
             'description' => fake()->sentence(),
-            'slug' => Str::slug($name) . '-' . fake()->unique()->numberBetween(1000, 9999),
+            'slug' => Str::slug($name).'-'.fake()->unique()->numberBetween(1000, 9999),
             'is_public' => false,
             'is_system' => false,
             'is_active' => true,
@@ -111,6 +111,16 @@ class GameListFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'list_type' => ListTypeEnum::INDIE_GAMES,
+        ]);
+    }
+
+    /**
+     * Indicate that the list is an events system list.
+     */
+    public function events(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'list_type' => ListTypeEnum::EVENTS,
         ]);
     }
 

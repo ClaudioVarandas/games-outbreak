@@ -3,15 +3,16 @@
 namespace App\Models;
 
 use App\Enums\ListTypeEnum;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Builder;
 
 class GameList extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'user_id',
         'name',
@@ -98,16 +99,21 @@ class GameList extends Model
         return $query->where('list_type', ListTypeEnum::INDIE_GAMES->value);
     }
 
+    public function scopeEvents(Builder $query): Builder
+    {
+        return $query->where('list_type', ListTypeEnum::EVENTS->value);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)
             ->where(function ($q) {
                 $q->whereNull('end_at')
-                  ->orWhere('end_at', '>', now());
+                    ->orWhere('end_at', '>', now());
             })
             ->where(function ($q) {
                 $q->whereNull('start_at')
-                  ->orWhere('start_at', '<=', now());
+                    ->orWhere('start_at', '<=', now());
             });
     }
 
@@ -147,6 +153,11 @@ class GameList extends Model
         return $this->list_type === ListTypeEnum::INDIE_GAMES;
     }
 
+    public function isEvents(): bool
+    {
+        return $this->list_type === ListTypeEnum::EVENTS;
+    }
+
     public function isSpecialList(): bool
     {
         return $this->isBacklog() || $this->isWishlist();
@@ -154,12 +165,12 @@ class GameList extends Model
 
     public function canBeDeleted(): bool
     {
-        return !$this->isSpecialList();
+        return ! $this->isSpecialList();
     }
 
     public function canBeEditedBy(?User $user): bool
     {
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -179,6 +190,6 @@ class GameList extends Model
 
     public function canBeRenamed(): bool
     {
-        return !$this->isSpecialList();
+        return ! $this->isSpecialList();
     }
 }

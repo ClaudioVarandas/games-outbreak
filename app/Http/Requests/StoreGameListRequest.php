@@ -15,7 +15,7 @@ class StoreGameListRequest extends FormRequest
         if ($this->has('list_type') && in_array($this->input('list_type'), ['backlog', 'wishlist'])) {
             return false;
         }
-        
+
         return true;
     }
 
@@ -33,13 +33,13 @@ class StoreGameListRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_public' => ['boolean'],
-            'list_type' => ['nullable', 'string', 'in:regular,monthly,indie-games,seasoned'],
+            'list_type' => ['nullable', 'string', 'in:regular,monthly,indie-games,seasoned,events'],
             'slug' => [
                 'nullable',
                 'string',
                 'alpha_dash',
                 // Slug must be unique per list_type
-                \Illuminate\Validation\Rule::unique('game_lists', 'slug')->where('list_type', $listType)
+                \Illuminate\Validation\Rule::unique('game_lists', 'slug')->where('list_type', $listType),
             ],
         ];
 

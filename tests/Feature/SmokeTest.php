@@ -61,7 +61,7 @@ class SmokeTest extends TestCase
             'igdb_id' => 12345,
         ]);
 
-        $response = $this->get('/game/12345');
+        $response = $this->get("/game/{$game->slug}");
 
         $response->assertStatus(200);
         $response->assertViewIs('games.show');

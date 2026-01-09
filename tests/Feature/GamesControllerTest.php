@@ -4,9 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Game;
 use App\Models\Genre;
-use App\Models\GameMode;
 use App\Models\Platform;
-use App\Services\IgdbService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -44,23 +42,23 @@ class GamesControllerTest extends TestCase
             'first_release_date' => $today->copy()->subDays(10),
         ]);
 
-        $response = $this->get('/upcoming?start_date=' . $today->format('Y-m-d') . '&end_date=' . $today->copy()->addDays(30)->format('Y-m-d'));
+        $response = $this->get('/upcoming?start_date='.$today->format('Y-m-d').'&end_date='.$today->copy()->addDays(30)->format('Y-m-d'));
 
         $response->assertStatus(200);
         $response->assertViewHas('games', function ($games) use ($upcomingGame, $pastGame) {
             return $games->contains('id', $upcomingGame->id) &&
-                   !$games->contains('id', $pastGame->id);
+                   ! $games->contains('id', $pastGame->id);
         });
     }
 
     public function test_upcoming_page_filters_by_platform(): void
     {
         $platform = Platform::factory()->create(['igdb_id' => 6]);
-        
+
         // Ensure games are within the 90-day date range
         $today = \Carbon\Carbon::today();
         $maxDate = $today->copy()->addDays(90);
-        
+
         $gameWithPlatform = Game::factory()->create([
             'first_release_date' => $today->copy()->addDays(30), // Within range
         ]);
@@ -70,23 +68,23 @@ class GamesControllerTest extends TestCase
             'first_release_date' => $today->copy()->addDays(45), // Within range but no platform
         ]);
 
-        $response = $this->get('/upcoming?platforms[]=' . $platform->igdb_id);
+        $response = $this->get('/upcoming?platforms[]='.$platform->igdb_id);
 
         $response->assertStatus(200);
         $response->assertViewHas('games', function ($games) use ($gameWithPlatform, $gameWithoutPlatform) {
             return $games->contains('id', $gameWithPlatform->id) &&
-                   !$games->contains('id', $gameWithoutPlatform->id);
+                   ! $games->contains('id', $gameWithoutPlatform->id);
         });
     }
 
     public function test_upcoming_page_filters_by_genre(): void
     {
         $genre = Genre::factory()->create();
-        
+
         // Ensure games are within the 90-day date range
         $today = \Carbon\Carbon::today();
         $maxDate = $today->copy()->addDays(90);
-        
+
         $gameWithGenre = Game::factory()->create([
             'first_release_date' => $today->copy()->addDays(30), // Within range
         ]);
@@ -96,12 +94,12 @@ class GamesControllerTest extends TestCase
             'first_release_date' => $today->copy()->addDays(45), // Within range but no genre
         ]);
 
-        $response = $this->get('/upcoming?genres[]=' . $genre->id);
+        $response = $this->get('/upcoming?genres[]='.$genre->id);
 
         $response->assertStatus(200);
         $response->assertViewHas('games', function ($games) use ($gameWithGenre, $gameWithoutGenre) {
             return $games->contains('id', $gameWithGenre->id) &&
-                   !$games->contains('id', $gameWithoutGenre->id);
+                   ! $games->contains('id', $gameWithoutGenre->id);
         });
     }
 
@@ -121,7 +119,7 @@ class GamesControllerTest extends TestCase
             'igdb_id' => 12345,
         ]);
 
-        $response = $this->get('/game/12345');
+        $response = $this->get("/game/{$game->slug}");
 
         $response->assertStatus(200);
         $response->assertViewIs('games.show');
@@ -149,14 +147,19 @@ class GamesControllerTest extends TestCase
             ], 200),
         ]);
 
-        $response = $this->get('/game/99999');
+        $response = $this->get('/game/igdb/99999');
 
-        $response->assertStatus(200);
-        $response->assertViewIs('games.show');
+        $response->assertRedirect();
         $this->assertDatabaseHas('games', [
             'igdb_id' => 99999,
             'name' => 'New Game from IGDB',
         ]);
+
+        // Follow the redirect and verify the game page loads
+        $game = Game::where('igdb_id', 99999)->first();
+        $followedResponse = $this->get("/game/{$game->slug}");
+        $followedResponse->assertStatus(200);
+        $followedResponse->assertViewIs('games.show');
     }
 
     public function test_game_detail_page_returns_404_for_invalid_game(): void
@@ -243,7 +246,7 @@ class GamesControllerTest extends TestCase
             ], 200),
         ]);
 
-        $response = $this->get('/api/game/12345/similar');
+        $response = $this->get("/api/game/{$game->slug}/similar");
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
@@ -265,7 +268,7 @@ class GamesControllerTest extends TestCase
             'similar_games' => null,
         ]);
 
-        $response = $this->get('/api/game/12345/similar');
+        $response = $this->get("/api/game/{$game->slug}/similar");
 
         $response->assertStatus(200);
         $response->assertJson(['games' => []]);
@@ -277,7 +280,7 @@ class GamesControllerTest extends TestCase
             'igdb_id' => 12345,
         ]);
 
-        $response = $this->get('/game/12345/similar-games-html');
+        $response = $this->get("/game/{$game->slug}/similar-games-html");
 
         $response->assertStatus(200);
         $response->assertViewIs('games.partials.similar-games');

@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateGameListRequest;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Models\User;
+use App\Services\IgdbService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -57,10 +58,18 @@ class AdminListController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Get all events lists (flat list, ordered by created_at desc)
+        $eventsLists = GameList::where('is_system', true)
+            ->where('list_type', ListTypeEnum::EVENTS)
+            ->with('games')
+            ->orderByDesc('created_at')
+            ->get();
+
         return view('admin.system-lists.index', compact(
             'monthlyLists',
             'indieGamesList',
-            'seasonedLists'
+            'seasonedLists',
+            'eventsLists'
         ));
     }
 
@@ -76,7 +85,7 @@ class AdminListController extends Controller
         // Apply filters
         if ($request->filled('username')) {
             $query->whereHas('user', function ($q) use ($request) {
-                $q->where('username', 'like', '%' . $request->username . '%');
+                $q->where('username', 'like', '%'.$request->username.'%');
             });
         }
 
@@ -127,14 +136,15 @@ class AdminListController extends Controller
         $data = $request->validated();
         $data['user_id'] = auth()->id();
         $data['is_system'] = true;
-        $data['is_active'] = $request->has('is_active') ? (bool)$request->input('is_active') : false;
-        $data['is_public'] = $request->has('is_public') ? (bool)$request->input('is_public') : false;
+        $data['is_active'] = $request->has('is_active') ? (bool) $request->input('is_active') : false;
+        $data['is_public'] = $request->has('is_public') ? (bool) $request->input('is_public') : false;
 
         // Validate list_type for system lists
-        if (!in_array($data['list_type'], [
+        if (! in_array($data['list_type'], [
             ListTypeEnum::MONTHLY->value,
             ListTypeEnum::INDIE_GAMES->value,
-            ListTypeEnum::SEASONED->value
+            ListTypeEnum::SEASONED->value,
+            ListTypeEnum::EVENTS->value,
         ])) {
             return redirect()->back()
                 ->withErrors(['list_type' => 'Invalid list type for system lists.'])
@@ -196,8 +206,8 @@ class AdminListController extends Controller
             ->firstOrFail();
 
         $data = $request->validated();
-        $data['is_active'] = $request->has('is_active') ? (bool)$request->input('is_active') : false;
-        $data['is_public'] = $request->has('is_public') ? (bool)$request->input('is_public') : false;
+        $data['is_active'] = $request->has('is_active') ? (bool) $request->input('is_active') : false;
+        $data['is_public'] = $request->has('is_public') ? (bool) $request->input('is_public') : false;
 
         // Handle slug changes
         if (isset($data['slug']) && $data['slug'] !== $list->slug) {
@@ -207,10 +217,11 @@ class AdminListController extends Controller
 
         // Allow changing list_type for system lists
         if (isset($data['list_type']) && $data['list_type'] !== $list->list_type->value) {
-            if (!in_array($data['list_type'], [
+            if (! in_array($data['list_type'], [
                 ListTypeEnum::MONTHLY->value,
                 ListTypeEnum::INDIE_GAMES->value,
-                ListTypeEnum::SEASONED->value
+                ListTypeEnum::SEASONED->value,
+                ListTypeEnum::EVENTS->value,
             ])) {
                 return redirect()->back()
                     ->withErrors(['list_type' => 'Invalid list type for system lists.'])
@@ -243,7 +254,7 @@ class AdminListController extends Controller
             ->where('is_system', true)
             ->firstOrFail();
 
-        $list->is_active = !$list->is_active;
+        $list->is_active = ! $list->is_active;
         $list->save();
 
         if (request()->wantsJson() || request()->ajax()) {
@@ -285,6 +296,7 @@ class AdminListController extends Controller
     protected function generateUniqueSlug(string $name, string $listType, ?int $excludeId = null): string
     {
         $slug = Str::slug($name);
+
         return $this->ensureUniqueSlug($slug, $listType, $excludeId);
     }
 
@@ -302,7 +314,7 @@ class AdminListController extends Controller
         }
 
         while ($query->exists()) {
-            $slug = $originalSlug . '-' . $counter;
+            $slug = $originalSlug.'-'.$counter;
             $counter++;
             $query = GameList::where('slug', $slug)->where('list_type', $listType);
             if ($excludeId) {
@@ -328,23 +340,23 @@ class AdminListController extends Controller
 
         $game = Game::where('igdb_id', $igdbId)->first();
 
-        if (!$game) {
-            if (is_numeric($igdbId) && strlen($igdbId) < 10) {
-                $game = Game::find($igdbId);
+        if (! $game && is_numeric($igdbId)) {
+            $game = Game::fetchFromIgdbIfMissing((int) $igdbId, app(IgdbService::class));
+        }
+
+        if (! $game) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Game not found.'], 404);
             }
 
-            if (!$game) {
-                if ($request->wantsJson() || $request->ajax()) {
-                    return response()->json(['error' => 'Game not found.'], 404);
-                }
-                return redirect()->back()->with('error', 'Game not found.');
-            }
+            return redirect()->back()->with('error', 'Game not found.');
         }
 
         if ($list->games->contains($game->id)) {
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['info' => 'Game is already in this list.']);
             }
+
             return redirect()->back()->with('info', 'Game is already in this list.');
         }
 
@@ -368,8 +380,8 @@ class AdminListController extends Controller
         if (empty($platformIds)) {
             $game->load('platforms');
             $platformIds = $game->platforms
-                ->filter(fn($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
-                ->map(fn($p) => $p->igdb_id)
+                ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+                ->map(fn ($p) => $p->igdb_id)
                 ->values()
                 ->toArray();
         }
