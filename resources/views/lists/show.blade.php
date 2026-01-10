@@ -6,7 +6,7 @@
     {{-- Open Graph Meta Tags --}}
     <meta property="og:title" content="{{ $gameList->name }} | GamesOutbreak">
     <meta property="og:description" content="Browse {{ $gameList->games->count() }}+ games from {{ $gameList->name }}. Filter by platform, genre, and more.">
-    <meta property="og:image" content="bananas">
+    <meta property="og:image" content="{{ $gameList->og_image_url ?? asset('images/og-default.png') }}">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:type" content="website">
 
