@@ -1,6 +1,6 @@
 @props([
     'game',
-    'variant' => 'simple', // 'glassmorphism', 'simple', 'carousel', 'overlay'
+    'variant' => 'simple', // 'glassmorphism', 'simple', 'carousel', 'overlay', 'table-row'
     'layout' => 'below', // 'overlay' (info on image) or 'below' (info below image)
     'aspectRatio' => '3/4', // '3/4' or 'video'
     'showRank' => false,
@@ -15,6 +15,7 @@
     'carousel' => false, // Whether this card is used in a carousel context
     'displayReleaseDate' => null, // Optional: overrides game->first_release_date
     'displayPlatforms' => null, // Optional: JSON array of platform IDs to display (from pivot)
+    'displayReleaseDateFormatted' => null, // Optional: pre-formatted release date string
 ])
 
 @php
@@ -96,6 +97,73 @@
     };
 @endphp
 
+{{-- TABLE ROW VARIANT --}}
+@if($variant === 'table-row')
+<div class="flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-gray-200 dark:border-gray-700">
+    {{-- Small Cover Thumbnail --}}
+    <a href="{{ $linkUrl }}" class="flex-shrink-0">
+        <div class="w-12 h-16 rounded overflow-hidden bg-gray-200 dark:bg-gray-700">
+            @if($coverUrl)
+                <img src="{{ $coverUrl }}"
+                     alt="{{ $game->name }}"
+                     class="w-full h-full object-cover"
+                     loading="lazy">
+            @else
+                <div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+            @endif
+        </div>
+    </a>
+
+    {{-- Game Name --}}
+    <div class="flex-1 min-w-0">
+        <a href="{{ $linkUrl }}" class="block">
+            <h3 class="font-semibold text-gray-900 dark:text-white truncate hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
+                {{ $game->name }}
+            </h3>
+            <span class="{{ $game->getGameTypeEnum()->colorClass() }} px-1.5 py-0.5 text-xs font-medium rounded inline-block mt-1">
+                {{ $game->getGameTypeEnum()->label() }}
+            </span>
+        </a>
+    </div>
+
+    {{-- Platforms (hidden on mobile) --}}
+    <div class="hidden sm:flex flex-shrink-0 gap-1 items-center">
+        @foreach($sortedPlatforms->take(4) as $platform)
+            @php
+                $enum = $platformEnums[$platform->igdb_id] ?? null;
+            @endphp
+            <span class="px-1.5 py-0.5 text-xs font-bold text-white rounded bg-{{ $enum?->color() ?? 'gray' }}-600">
+                {{ $enum?->label() ?? \Illuminate\Support\Str::limit($platform->name, 4) }}
+            </span>
+        @endforeach
+        @if($sortedPlatforms->count() > 4)
+            <span class="px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                +{{ $sortedPlatforms->count() - 4 }}
+            </span>
+        @endif
+    </div>
+
+    {{-- Release Date --}}
+    <div class="flex-shrink-0 text-right hidden xs:block">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
+            {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+        </span>
+    </div>
+
+    {{-- Quick Actions --}}
+    <div class="flex-shrink-0">
+        <x-game-quick-actions
+            :game="$game"
+            :backlogList="$backlogList"
+            :wishlistList="$wishlistList"
+            compact="true" />
+    </div>
+</div>
+@else
 {{-- Wrapper for card + mobile buttons --}}
 <div class="{{ ($variant === 'carousel' || $carousel) ? 'flex-shrink-0 w-56 md:w-64' : '' }}">
     <a href="{{ $linkUrl }}" class="group block transition-all duration-300 hover:z-30">
@@ -260,4 +328,4 @@
     </div>
     </a>
 </div>
-
+@endif

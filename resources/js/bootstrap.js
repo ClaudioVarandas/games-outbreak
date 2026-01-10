@@ -9,6 +9,10 @@ window.Alpine = Alpine;
 
 Alpine.plugin(persist);
 Alpine.plugin(collapse);
+
+// Import Alpine components BEFORE Alpine.start()
+import './components/list-filter.js';
+
 Alpine.start();
 
 // Global Alpine data
