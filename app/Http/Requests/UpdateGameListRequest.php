@@ -16,7 +16,7 @@ class UpdateGameListRequest extends FormRequest
         $slug = $this->route('slug');
         $user = $this->user();
 
-        if (!$type || !$slug || !$user) {
+        if (! $type || ! $slug || ! $user) {
             return false;
         }
 
@@ -30,7 +30,7 @@ class UpdateGameListRequest extends FormRequest
             ->where('list_type', $listType->value)
             ->first();
 
-        if (!$gameList) {
+        if (! $gameList) {
             return false;
         }
 
@@ -72,14 +72,14 @@ class UpdateGameListRequest extends FormRequest
                 // Slug must be unique per list_type
                 \Illuminate\Validation\Rule::unique('game_lists', 'slug')
                     ->where('list_type', $listType)
-                    ->ignore($gameListId)
+                    ->ignore($gameListId),
             ],
         ];
 
         // Allow list_type field but prevent it from being changed
         // This allows the field to be present in the form but ensures it matches the current value
         if ($gameList) {
-            $rules['list_type'] = ['nullable', 'string', 'in:' . $gameList->list_type->value];
+            $rules['list_type'] = ['nullable', 'string', 'in:'.$gameList->list_type->value];
         }
 
         // Prevent renaming backlog/wishlist lists
@@ -93,7 +93,8 @@ class UpdateGameListRequest extends FormRequest
             $rules['start_at'] = ['nullable', 'date'];
             $rules['end_at'] = ['nullable', 'date'];
             $rules['is_active'] = ['boolean'];
-            
+            $rules['og_image_path'] = ['nullable', 'string', 'max:500'];
+
             // If both dates are provided, end_at must be after start_at
             if ($this->filled('start_at') && $this->filled('end_at')) {
                 $rules['end_at'][] = 'after:start_at';

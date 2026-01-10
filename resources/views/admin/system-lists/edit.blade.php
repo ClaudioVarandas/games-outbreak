@@ -100,6 +100,50 @@
                             </label>
                         </div>
 
+                        <div class="mb-4">
+                            <label for="og_image_path" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                OG Image Path
+                            </label>
+                            <input type="text"
+                                   name="og_image_path"
+                                   id="og_image_path"
+                                   value="{{ old('og_image_path', $list->og_image_path) }}"
+                                   placeholder="/images/banner.webp"
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Path to the image for social sharing (e.g., /images/event-banner.webp)</p>
+                            @error('og_image_path')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="start_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Start Date
+                            </label>
+                            <input type="datetime-local"
+                                   name="start_at"
+                                   id="start_at"
+                                   value="{{ old('start_at', $list->start_at?->format('Y-m-d\TH:i')) }}"
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            @error('start_at')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="end_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                End Date
+                            </label>
+                            <input type="datetime-local"
+                                   name="end_at"
+                                   id="end_at"
+                                   value="{{ old('end_at', $list->end_at?->format('Y-m-d\TH:i')) }}"
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            @error('end_at')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         <button type="submit"
                                 class="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition">
                             Save Changes
