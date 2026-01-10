@@ -172,12 +172,12 @@ class GameList extends Model
 
     public function canBeDeleted(): bool
     {
-        return ! $this->isSpecialList();
+        return !$this->isSpecialList();
     }
 
     public function canBeEditedBy(?User $user): bool
     {
-        if (! $user) {
+        if (!$user) {
             return false;
         }
 
@@ -197,7 +197,7 @@ class GameList extends Model
 
     public function canBeRenamed(): bool
     {
-        return ! $this->isSpecialList();
+        return !$this->isSpecialList();
     }
 
     /**
@@ -220,7 +220,7 @@ class GameList extends Model
     public function getComputedSections(): array
     {
         // If admin-defined sections exist, use them
-        if (! empty($this->sections)) {
+        if (!empty($this->sections)) {
             return $this->buildSectionsFromDefinition($this->sections);
         }
 
@@ -243,7 +243,7 @@ class GameList extends Model
 
         foreach ($sectionDef as $section) {
             $sectionGames = collect($section['game_ids'] ?? [])
-                ->map(fn ($id) => $gameMap->get($id))
+                ->map(fn($id) => $gameMap->get($id))
                 ->filter()
                 ->values();
 
@@ -271,9 +271,9 @@ class GameList extends Model
             $genreName = $primaryGenre?->name ?? 'Other';
             $genreId = $primaryGenre?->id ?? 0;
 
-            if (! isset($gamesByGenre[$genreId])) {
+            if (!isset($gamesByGenre[$genreId])) {
                 $gamesByGenre[$genreId] = [
-                    'id' => 'genre-'.$genreId,
+                    'id' => 'genre-' . $genreId,
                     'name' => $genreName,
                     'games' => collect(),
                 ];
@@ -285,7 +285,7 @@ class GameList extends Model
         // Sort sections by name and convert games to array
         return collect($gamesByGenre)
             ->sortBy('name')
-            ->map(fn ($section) => [
+            ->map(fn($section) => [
                 'id' => $section['id'],
                 'name' => $section['name'],
                 'games' => $section['games']->values(),
@@ -362,7 +362,7 @@ class GameList extends Model
      */
     public function getGamesForFiltering(): array
     {
-        return $this->games->map(fn ($game) => [
+        return $this->games->map(fn($game) => [
             'id' => $game->id,
             'name' => $game->name,
             'slug' => $game->slug,
@@ -371,12 +371,12 @@ class GameList extends Model
             'release_date_formatted' => $game->pivot->release_date
                 ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M j, Y')
                 : $game->first_release_date?->format('M j, Y') ?? 'TBA',
-            'platforms' => $game->platforms->map(fn ($p) => [
+            'platforms' => $game->platforms->map(fn($p) => [
                 'id' => $p->id,
                 'igdb_id' => $p->igdb_id,
                 'name' => $p->name,
             ])->toArray(),
-            'genres' => $game->genres->map(fn ($g) => [
+            'genres' => $game->genres->map(fn($g) => [
                 'id' => $g->id,
                 'name' => $g->name,
             ])->toArray(),
@@ -384,11 +384,11 @@ class GameList extends Model
                 'id' => $game->getGameTypeEnum()->value,
                 'name' => $game->getGameTypeEnum()->label(),
             ],
-            'modes' => $game->gameModes->map(fn ($m) => [
+            'modes' => $game->gameModes->map(fn($m) => [
                 'id' => $m->id,
                 'name' => $m->name,
             ])->toArray(),
-            'perspectives' => $game->playerPerspectives->map(fn ($p) => [
+            'perspectives' => $game->playerPerspectives->map(fn($p) => [
                 'id' => $p->id,
                 'name' => $p->name,
             ])->toArray(),
