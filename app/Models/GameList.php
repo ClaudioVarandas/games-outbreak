@@ -206,11 +206,7 @@ class GameList extends Model
     public function getOgImageUrlAttribute(): ?string
     {
         if ($this->og_image_path) {
-            if (str_starts_with($this->og_image_path, '/')) {
-                return asset($this->og_image_path);
-            }
-
-            return asset('storage/list-og-images/'.$this->og_image_path);
+            return asset($this->og_image_path);
         }
 
         // Fallback to first game's cover
