@@ -4,13 +4,13 @@
 
 @section('content')
     <div class="container mx-auto px-4 py-8">
-{{--        <h1 class="text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-4">
+        <h1 class="text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-4">
             <div class="flex gap-2">
                 <div class="w-2 h-2 rounded-full bg-orange-400"></div>
                 <div class="w-2 h-2 rounded-full bg-orange-500"></div>
                 <div class="w-2 h-2 rounded-full bg-orange-400"></div>
             </div>
-            Official Events
+            Events
             <div class="flex gap-2">
                 <div class="w-2 h-2 rounded-full bg-orange-400"></div>
                 <div class="w-2 h-2 rounded-full bg-orange-500"></div>
@@ -22,12 +22,19 @@
         <section class="mb-12">
             <x-seasonal-banners :banners="[
                 [
-                    'image' => '/images/best_of_2025.png',
-                    'link' => 'https://www.example.com/best-games-of-2025',
-                    'alt' => 'best games of 2025 banner'
+                    'image' => '/images/new-game-plus-showcase-january-8-2026-1200x628-1.webp',
+                    'link' => route('lists.show',['type' => \App\Enums\ListTypeEnum::EVENTS->value ,'slug' => 'new-game-plus-showcase']),
+                    'alt' => 'New Game Plus Showcase',
+                    'status' => 'past'
+                ],
+                [
+                    'image' => '/images/xbox_developer_direct-Announce.jpg',
+                    'link' => route('lists.show',['type' => \App\Enums\ListTypeEnum::EVENTS->value ,'slug' => 'xbox-developer-direct-26']),
+                    'alt' => 'Xbox Developer Direct 26',
+                    'status' => 'upcoming'
                 ]
             ]"/>
-        </section>--}}
+        </section>
 
         <h1 class="text-2xl md:text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-2 md:gap-4">
             <div class="hidden sm:flex gap-2">

@@ -4,16 +4,25 @@
     'title' => null,
     'description' => null,
     'alt' => null,
+    'status' => null,
 ])
 
 @php
     $altText = $alt ?? $title ?? 'Banner';
 @endphp
 
-<a 
-    href="{{ $link }}" 
+<a
+    href="{{ $link }}"
     class="group relative block w-full aspect-video overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
 >
+    @if($status)
+        <div class="absolute top-3 left-3 z-10">
+            <span class="{{ $status === 'upcoming' ? 'bg-orange-500' : 'bg-purple-600' }} text-white px-3 py-1 text-xs font-bold uppercase rounded-full shadow-lg">
+                {{ $status === 'upcoming' ? 'Upcoming' : 'Past Event' }}
+            </span>
+        </div>
+    @endif
+
     <img 
         src="{{ $image }}" 
         alt="{{ $altText }}"
