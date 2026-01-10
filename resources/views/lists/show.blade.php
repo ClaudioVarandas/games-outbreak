@@ -6,7 +6,7 @@
     {{-- Open Graph Meta Tags --}}
     <meta property="og:title" content="{{ $gameList->name }} | GamesOutbreak">
     <meta property="og:description" content="Browse {{ $gameList->games->count() }}+ games from {{ $gameList->name }}. Filter by platform, genre, and more.">
-    <meta property="og:image" content="{{ $gameList->og_image_url ?? ($gameList->games->first()?->getCoverUrl() ?? asset('images/og-default.png')) }}">
+    <meta property="og:image" content="{{ $gameList->og_image_url ?? asset('images/og-default.png') }}">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:type" content="website">
 
@@ -14,7 +14,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $gameList->name }}">
     <meta name="twitter:description" content="Browse {{ $gameList->games->count() }}+ games">
-    <meta name="twitter:image" content="{{ $gameList->og_image_url ?? ($gameList->games->first()?->getCoverUrl() ?? asset('images/og-default.png')) }}">
+    <meta name="twitter:image" content="{{ $gameList->og_image_url ?? asset('images/og-default.png') }}">
 
     {{-- Meta Description --}}
     <meta name="description" content="Discover all {{ $gameList->games->count() }} games from {{ $gameList->name }}. Filter by platform, genre, and more.">

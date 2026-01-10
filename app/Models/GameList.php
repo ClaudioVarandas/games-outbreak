@@ -210,9 +210,7 @@ class GameList extends Model
         }
 
         // Fallback to first game's cover
-        $firstGame = $this->games->first();
-
-        return $firstGame?->getCoverUrl();
+        return $this->games->first()?->getCoverUrl();
     }
 
     /**
