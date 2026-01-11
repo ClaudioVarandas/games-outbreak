@@ -49,6 +49,19 @@ class GameListController extends Controller
         $filterOptions = $gameList->getFilterOptions();
         $computedSections = $gameList->getComputedSections();
 
+        // Get user's backlog and wishlist for quick actions
+        $backlogList = null;
+        $wishlistList = null;
+        $backlogGameIds = [];
+        $wishlistGameIds = [];
+
+        if (auth()->check()) {
+            $backlogList = auth()->user()->gameLists()->backlog()->with('games:id')->first();
+            $wishlistList = auth()->user()->gameLists()->wishlist()->with('games:id')->first();
+            $backlogGameIds = $backlogList?->games->pluck('id')->toArray() ?? [];
+            $wishlistGameIds = $wishlistList?->games->pluck('id')->toArray() ?? [];
+        }
+
         return view('lists.show', compact(
             'gameList',
             'platformEnums',
@@ -56,7 +69,11 @@ class GameListController extends Controller
             'gamesData',
             'filterOptions',
             'initialFilters',
-            'computedSections'
+            'computedSections',
+            'backlogList',
+            'wishlistList',
+            'backlogGameIds',
+            'wishlistGameIds'
         ));
     }
 

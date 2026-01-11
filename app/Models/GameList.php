@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ListTypeEnum;
+use App\Enums\PlatformEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -311,10 +312,12 @@ class GameList extends Model
 
         foreach ($this->games as $game) {
             foreach ($game->platforms as $platform) {
+                $enum = PlatformEnum::fromIgdbId($platform->igdb_id);
                 $platforms[$platform->id] = [
                     'id' => $platform->id,
                     'igdb_id' => $platform->igdb_id,
-                    'name' => $platform->name,
+                    'name' => $enum?->label() ?? $platform->name,
+                    'color' => $enum?->color() ?? 'gray',
                     'count' => ($platforms[$platform->id]['count'] ?? 0) + 1,
                 ];
             }
@@ -368,6 +371,7 @@ class GameList extends Model
     {
         return $this->games->map(fn ($game) => [
             'id' => $game->id,
+            'uuid' => $game->uuid,
             'name' => $game->name,
             'slug' => $game->slug,
             'cover_url' => $game->getCoverUrl(),
@@ -375,11 +379,17 @@ class GameList extends Model
             'release_date_formatted' => $game->pivot->release_date
                 ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M j, Y')
                 : $game->first_release_date?->format('M j, Y') ?? 'TBA',
-            'platforms' => $game->platforms->map(fn ($p) => [
-                'id' => $p->id,
-                'igdb_id' => $p->igdb_id,
-                'name' => $p->name,
-            ])->toArray(),
+            'platforms' => $game->platforms->map(function ($p) {
+                $enum = PlatformEnum::fromIgdbId($p->igdb_id);
+
+                return [
+                    'id' => $p->id,
+                    'igdb_id' => $p->igdb_id,
+                    'name' => $enum?->label() ?? $p->name,
+                    'color' => $enum?->color() ?? 'gray',
+                    'priority' => PlatformEnum::getPriority($p->igdb_id),
+                ];
+            })->sortBy('priority')->values()->toArray(),
             'genres' => $game->genres->map(fn ($g) => [
                 'id' => $g->id,
                 'name' => $g->name,
@@ -387,6 +397,7 @@ class GameList extends Model
             'game_type' => [
                 'id' => $game->getGameTypeEnum()->value,
                 'name' => $game->getGameTypeEnum()->label(),
+                'color' => $game->getGameTypeEnum()->colorClass(),
             ],
             'modes' => $game->gameModes->map(fn ($m) => [
                 'id' => $m->id,

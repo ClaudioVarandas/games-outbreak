@@ -4,7 +4,7 @@ import Alpine from 'alpinejs';
  * Alpine.js component for system list filtering
  * Handles client-side filtering with URL sync
  */
-Alpine.data('listFilter', (initialGames, initialFilters, filterOptions) => ({
+Alpine.data('listFilter', (initialGames, initialFilters, filterOptions, quickActionsConfig = {}) => ({
         // All games in the list
         games: initialGames,
 
@@ -28,6 +28,14 @@ Alpine.data('listFilter', (initialGames, initialFilters, filterOptions) => ({
 
         // Loading state for transitions
         isFiltering: false,
+
+        // Quick actions: backlog/wishlist state
+        backlogGameIds: new Set(quickActionsConfig.backlogGameIds || []),
+        wishlistGameIds: new Set(quickActionsConfig.wishlistGameIds || []),
+        quickActionsEnabled: quickActionsConfig.enabled || false,
+        csrfToken: quickActionsConfig.csrfToken || '',
+        username: quickActionsConfig.username || '',
+        loadingStates: {},
 
         init() {
             // Read view mode from hash
@@ -308,5 +316,126 @@ Alpine.data('listFilter', (initialGames, initialFilters, filterOptions) => ({
          */
         openMobileFilters() {
             this.mobileFiltersOpen = true;
+        },
+
+        /**
+         * Check if game is in backlog
+         */
+        isInBacklog(gameId) {
+            return this.backlogGameIds.has(gameId);
+        },
+
+        /**
+         * Check if game is in wishlist
+         */
+        isInWishlist(gameId) {
+            return this.wishlistGameIds.has(gameId);
+        },
+
+        /**
+         * Check if a specific action is loading
+         */
+        isLoading(gameId, type) {
+            return this.loadingStates[`${gameId}-${type}`] || false;
+        },
+
+        /**
+         * Toggle backlog status for a game
+         */
+        async toggleBacklog(game) {
+            if (!this.quickActionsEnabled) return;
+
+            const loadingKey = `${game.id}-backlog`;
+            if (this.loadingStates[loadingKey]) return;
+
+            this.loadingStates[loadingKey] = true;
+
+            const isInBacklog = this.backlogGameIds.has(game.id);
+            const url = isInBacklog
+                ? `/u/${this.username}/backlog/games/${game.id}`
+                : `/u/${this.username}/backlog/games`;
+
+            try {
+                const formData = new FormData();
+                formData.append('_token', this.csrfToken);
+
+                if (!isInBacklog) {
+                    formData.append('game_uuid', game.uuid);
+                } else {
+                    formData.append('_method', 'DELETE');
+                }
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: formData,
+                });
+
+                const data = await response.json();
+                if (data.success || data.info) {
+                    if (isInBacklog) {
+                        this.backlogGameIds.delete(game.id);
+                    } else {
+                        this.backlogGameIds.add(game.id);
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling backlog:', error);
+            } finally {
+                this.loadingStates[loadingKey] = false;
+            }
+        },
+
+        /**
+         * Toggle wishlist status for a game
+         */
+        async toggleWishlist(game) {
+            if (!this.quickActionsEnabled) return;
+
+            const loadingKey = `${game.id}-wishlist`;
+            if (this.loadingStates[loadingKey]) return;
+
+            this.loadingStates[loadingKey] = true;
+
+            const isInWishlist = this.wishlistGameIds.has(game.id);
+            const url = isInWishlist
+                ? `/u/${this.username}/wishlist/games/${game.id}`
+                : `/u/${this.username}/wishlist/games`;
+
+            try {
+                const formData = new FormData();
+                formData.append('_token', this.csrfToken);
+
+                if (!isInWishlist) {
+                    formData.append('game_uuid', game.uuid);
+                } else {
+                    formData.append('_method', 'DELETE');
+                }
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: formData,
+                });
+
+                const data = await response.json();
+                if (data.success || data.info) {
+                    if (isInWishlist) {
+                        this.wishlistGameIds.delete(game.id);
+                    } else {
+                        this.wishlistGameIds.add(game.id);
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling wishlist:', error);
+            } finally {
+                this.loadingStates[loadingKey] = false;
+            }
         }
     }));
