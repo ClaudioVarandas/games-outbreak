@@ -229,6 +229,23 @@ class AdminListController extends Controller
             }
         }
 
+        // Handle event_data for event-type lists
+        if ($list->isEvents()) {
+            $eventData = [
+                'event_time' => $request->input('event_time'),
+                'event_timezone' => $request->input('event_timezone'),
+                'about' => $request->input('event_about'),
+                'video_url' => $request->input('video_url'),
+                'social_links' => array_filter([
+                    'twitter' => $request->input('social_twitter'),
+                    'youtube' => $request->input('social_youtube'),
+                    'twitch' => $request->input('social_twitch'),
+                    'discord' => $request->input('social_discord'),
+                ]),
+            ];
+            $data['event_data'] = array_filter($eventData, fn ($value) => $value !== null && $value !== '');
+        }
+
         $list->update($data);
 
         // Redirect to new type/slug if changed

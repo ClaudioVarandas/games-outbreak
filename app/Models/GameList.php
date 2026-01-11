@@ -22,6 +22,7 @@ class GameList extends Model
         'sections',
         'auto_section_by_genre',
         'tags',
+        'event_data',
         'slug',
         'is_public',
         'is_system',
@@ -38,6 +39,7 @@ class GameList extends Model
         'auto_section_by_genre' => 'boolean',
         'sections' => 'array',
         'tags' => 'array',
+        'event_data' => 'array',
         'start_at' => 'datetime',
         'end_at' => 'datetime',
         'list_type' => ListTypeEnum::class,
@@ -216,6 +218,99 @@ class GameList extends Model
 
         // Fallback to first game's cover
         return $this->games->first()?->getCoverUrl();
+    }
+
+    /**
+     * Get event time as Carbon instance with timezone
+     */
+    public function getEventTime(): ?\Carbon\Carbon
+    {
+        $eventTime = $this->event_data['event_time'] ?? null;
+        $eventTimezone = $this->event_data['event_timezone'] ?? 'UTC';
+
+        if (! $eventTime) {
+            return null;
+        }
+
+        return \Carbon\Carbon::parse($eventTime, $eventTimezone);
+    }
+
+    /**
+     * Get event timezone string
+     */
+    public function getEventTimezone(): ?string
+    {
+        return $this->event_data['event_timezone'] ?? null;
+    }
+
+    /**
+     * Get event about text
+     */
+    public function getEventAbout(): ?string
+    {
+        return $this->event_data['about'] ?? null;
+    }
+
+    /**
+     * Get social links array
+     */
+    public function getSocialLinks(): array
+    {
+        return $this->event_data['social_links'] ?? [];
+    }
+
+    /**
+     * Get video URL
+     */
+    public function getVideoUrl(): ?string
+    {
+        return $this->event_data['video_url'] ?? null;
+    }
+
+    /**
+     * Get video embed URL (converts YouTube/Twitch URLs to embed format)
+     */
+    public function getVideoEmbedUrl(): ?string
+    {
+        $url = $this->getVideoUrl();
+
+        if (! $url) {
+            return null;
+        }
+
+        // YouTube: https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID
+        if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/', $url, $matches)) {
+            return 'https://www.youtube.com/embed/'.$matches[1];
+        }
+
+        // Twitch: https://www.twitch.tv/CHANNEL or https://www.twitch.tv/videos/VIDEO_ID
+        if (preg_match('/twitch\.tv\/videos\/(\d+)/', $url, $matches)) {
+            return 'https://player.twitch.tv/?video='.$matches[1].'&parent='.parse_url(config('app.url'), PHP_URL_HOST);
+        }
+
+        if (preg_match('/twitch\.tv\/([a-zA-Z0-9_]+)/', $url, $matches)) {
+            return 'https://player.twitch.tv/?channel='.$matches[1].'&parent='.parse_url(config('app.url'), PHP_URL_HOST);
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if event has video
+     */
+    public function hasVideo(): bool
+    {
+        return ! empty($this->getVideoUrl());
+    }
+
+    /**
+     * Check if event has social links
+     */
+    public function hasSocialLinks(): bool
+    {
+        $links = $this->getSocialLinks();
+
+        return ! empty(array_filter($links));
     }
 
     /**

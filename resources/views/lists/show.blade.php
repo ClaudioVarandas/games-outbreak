@@ -56,6 +56,12 @@
             $canEdit = $gameList->canBeEditedBy($currentUser);
         }
         $isSystemList = $gameList->is_system && ($readOnly ?? false);
+
+        // Check if event has started (for event-type lists)
+        $eventHasStarted = true;
+        if ($gameList->isEvents() && $gameList->getEventTime()) {
+            $eventHasStarted = $gameList->getEventTime()->isPast();
+        }
     @endphp
 
     {{-- System List with Filtering --}}
@@ -72,20 +78,141 @@
                 'username' => auth()->user()?->username ?? '',
             ]) }}
         )" class="min-h-screen">
-            {{-- Header Section --}}
-            <div class="bg-gradient-to-b from-gray-900 to-gray-800 border-b border-gray-700">
-                <div class="container mx-auto px-4 py-8">
-                    <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
-                        {{ $gameList->name }}
-                    </h1>
-                    @if($gameList->description)
-                        <p class="text-lg text-gray-400 max-w-3xl">
-                            {{ $gameList->description }}
-                        </p>
+            {{-- Event Hero Section --}}
+            @if($gameList->isEvents() && ($gameList->hasVideo() || $gameList->getEventTime()))
+                <div class="relative bg-gray-900 border-b border-gray-700 overflow-hidden">
+                    {{-- Background Image with Overlay --}}
+                    @if($gameList->og_image_path)
+                        <div class="absolute inset-0">
+                            <img src="{{ $gameList->og_image_url }}" alt="" class="w-full h-full object-cover opacity-20">
+                            <div class="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-900/95"></div>
+                        </div>
                     @endif
-                </div>
-            </div>
 
+                    <div class="container mx-auto px-4 py-8 md:py-12 relative z-10">
+                        <div class="flex flex-col lg:flex-row gap-8 items-start">
+                            {{-- Video Embed (Left) --}}
+                            @if($gameList->hasVideo())
+                                <div class="w-full lg:w-3/5">
+                                    <x-video-embed :url="$gameList->getVideoUrl()" />
+                                </div>
+                            @endif
+
+                            {{-- Event Info (Right) --}}
+                            <div class="w-full {{ $gameList->hasVideo() ? 'lg:w-2/5' : '' }}">
+                                <h1 class="text-3xl md:text-4xl font-bold text-white mb-4">
+                                    {{ $gameList->name }}
+                                </h1>
+
+                                {{-- Event Time --}}
+                                @if($gameList->getEventTime())
+                                    <div class="mb-4" x-data="{
+                                        localTime: '',
+                                        init() {
+                                            const eventTime = new Date('{{ $gameList->getEventTime()->toIso8601String() }}');
+                                            this.localTime = eventTime.toLocaleString(undefined, {
+                                                weekday: 'short',
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric',
+                                                hour: 'numeric',
+                                                minute: '2-digit',
+                                                timeZoneName: 'short'
+                                            });
+                                        }
+                                    }">
+                                        <div class="flex items-center gap-2 text-orange-400 mb-1">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                            <span class="font-semibold">{{ $gameList->getEventTime()->format('M j, Y \a\t g:i A') }} {{ strtoupper($gameList->getEventTimezone() ? \Carbon\Carbon::now($gameList->getEventTimezone())->format('T') : '') }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-gray-400 text-sm">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span>Your time: <span x-text="localTime" class="text-white"></span></span>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                {{-- Social Links --}}
+                                @if($gameList->hasSocialLinks())
+                                    @php $socialLinks = $gameList->getSocialLinks(); @endphp
+                                    <div class="flex items-center gap-3 mb-4">
+                                        @if(!empty($socialLinks['twitter']))
+                                            <a href="{{ $socialLinks['twitter'] }}" target="_blank" rel="noopener"
+                                               class="w-10 h-10 rounded-full bg-white/10 hover:bg-black flex items-center justify-center text-white transition-all duration-200"
+                                               title="Twitter / X">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                                            </a>
+                                        @endif
+                                        @if(!empty($socialLinks['youtube']))
+                                            <a href="{{ $socialLinks['youtube'] }}" target="_blank" rel="noopener"
+                                               class="w-10 h-10 rounded-full bg-white/10 hover:bg-red-600 flex items-center justify-center text-white transition-all duration-200"
+                                               title="YouTube">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                            </a>
+                                        @endif
+                                        @if(!empty($socialLinks['twitch']))
+                                            <a href="{{ $socialLinks['twitch'] }}" target="_blank" rel="noopener"
+                                               class="w-10 h-10 rounded-full bg-white/10 hover:bg-purple-600 flex items-center justify-center text-white transition-all duration-200"
+                                               title="Twitch">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
+                                            </a>
+                                        @endif
+                                        @if(!empty($socialLinks['discord']))
+                                            <a href="{{ $socialLinks['discord'] }}" target="_blank" rel="noopener"
+                                               class="w-10 h-10 rounded-full bg-white/10 hover:bg-indigo-600 flex items-center justify-center text-white transition-all duration-200"
+                                               title="Discord">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418Z"/></svg>
+                                            </a>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                {{-- Description --}}
+                                @if($gameList->description)
+                                    <p class="text-gray-300 mb-4">
+                                        {{ $gameList->description }}
+                                    </p>
+                                @endif
+
+                                {{-- About (expandable on mobile) --}}
+                                @if($gameList->getEventAbout())
+                                    <div x-data="{ expanded: false }" class="mt-4 pt-4 border-t border-gray-700">
+                                        <button @click="expanded = !expanded" class="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition mb-2 md:hidden">
+                                            <span x-text="expanded ? 'Hide details' : 'Show details'"></span>
+                                            <svg class="w-4 h-4 transition-transform" :class="expanded && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                        </button>
+                                        <div class="text-gray-400 text-sm leading-relaxed" :class="{ 'hidden md:block': !expanded }">
+                                            {!! nl2br(e($gameList->getEventAbout())) !!}
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @else
+                {{-- Standard Header Section --}}
+                <div class="bg-gradient-to-b from-gray-900 to-gray-800 border-b border-gray-700">
+                    <div class="container mx-auto px-4 py-8">
+                        <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
+                            {{ $gameList->name }}
+                        </h1>
+                        @if($gameList->description)
+                            <p class="text-lg text-gray-400 max-w-3xl">
+                                {{ $gameList->description }}
+                            </p>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            @if($eventHasStarted)
             {{-- Stats Bar --}}
             <div class="bg-gray-800 border-b border-gray-700 sticky top-0 z-40">
                 <div class="container mx-auto px-4 py-3">
@@ -547,6 +674,89 @@
                     </div>
                 </div>
             </div>
+            @else
+            {{-- Event Not Started Yet --}}
+            <div class="container mx-auto px-4 py-16 md:py-24">
+                <div class="max-w-2xl mx-auto text-center">
+                    {{-- Animated Clock Icon --}}
+                    <div class="mb-8">
+                        <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30">
+                            <svg class="w-12 h-12 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+                        The Event Hasn't Started Yet
+                    </h2>
+                    <p class="text-lg text-gray-400 mb-8">
+                        The games will be revealed when the event begins. Stay tuned!
+                    </p>
+
+                    @if($gameList->getEventTime())
+                        <div class="inline-flex items-center gap-3 px-6 py-4 bg-gray-800/50 rounded-xl border border-gray-700">
+                            <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <div class="text-left">
+                                <p class="text-sm text-gray-500">Event starts</p>
+                                <p class="text-white font-semibold">
+                                    {{ $gameList->getEventTime()->format('F j, Y \a\t g:i A') }}
+                                    <span class="text-gray-500 text-sm">({{ $gameList->getEventTimezone() }})</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- Countdown with local time --}}
+                        <div class="mt-6"
+                             x-data="{
+                                 localTime: '',
+                                 timeLeft: '',
+                                 init() {
+                                     const eventTime = new Date('{{ $gameList->getEventTime()->toIso8601String() }}');
+                                     this.localTime = eventTime.toLocaleString(undefined, {
+                                         month: 'short',
+                                         day: 'numeric',
+                                         hour: 'numeric',
+                                         minute: '2-digit',
+                                         timeZoneName: 'short'
+                                     });
+                                     this.updateCountdown();
+                                     setInterval(() => this.updateCountdown(), 1000);
+                                 },
+                                 updateCountdown() {
+                                     const eventTime = new Date('{{ $gameList->getEventTime()->toIso8601String() }}');
+                                     const now = new Date();
+                                     const diff = eventTime - now;
+                                     if (diff <= 0) {
+                                         window.location.reload();
+                                         return;
+                                     }
+                                     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                                     if (days > 0) {
+                                         this.timeLeft = days + 'd ' + hours + 'h ' + minutes + 'm';
+                                     } else if (hours > 0) {
+                                         this.timeLeft = hours + 'h ' + minutes + 'm ' + seconds + 's';
+                                     } else {
+                                         this.timeLeft = minutes + 'm ' + seconds + 's';
+                                     }
+                                 }
+                             }">
+                            <p class="text-gray-500 text-sm">
+                                <span class="text-orange-400 font-medium" x-text="timeLeft"></span> until the event begins
+                            </p>
+                            <p class="text-gray-400 text-sm mt-1">
+                                <span class="text-gray-500">Your time:</span> <span x-text="localTime"></span>
+                            </p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            @endif
         </div>
     @else
         {{-- Regular List View (non-system or editable) --}}
