@@ -203,3 +203,345 @@ it('prevents non-admin from creating events list', function () {
 
     $response->assertStatus(403);
 });
+
+// Event Data Tests
+
+it('can save event data when updating events list', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $list = GameList::factory()->events()->system()->create([
+        'name' => 'Test Event',
+        'slug' => 'test-event',
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->patch('/admin/system-lists/events/test-event', [
+            'name' => 'Test Event',
+            'event_time' => '2026-01-15T19:00',
+            'event_timezone' => 'America/New_York',
+            'event_about' => 'This is a test event description.',
+            'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            'social_twitter' => 'https://x.com/testevent',
+            'social_youtube' => 'https://youtube.com/@testevent',
+            'social_twitch' => 'https://twitch.tv/testevent',
+            'social_discord' => 'https://discord.gg/testevent',
+        ]);
+
+    $response->assertRedirect();
+
+    $list->refresh();
+    expect($list->event_data)->toBeArray();
+    expect($list->event_data['event_time'])->toBe('2026-01-15T19:00');
+    expect($list->event_data['event_timezone'])->toBe('America/New_York');
+    expect($list->event_data['about'])->toBe('This is a test event description.');
+    expect($list->event_data['video_url'])->toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    expect($list->event_data['social_links']['twitter'])->toBe('https://x.com/testevent');
+    expect($list->event_data['social_links']['youtube'])->toBe('https://youtube.com/@testevent');
+    expect($list->event_data['social_links']['twitch'])->toBe('https://twitch.tv/testevent');
+    expect($list->event_data['social_links']['discord'])->toBe('https://discord.gg/testevent');
+});
+
+it('getEventTime returns Carbon instance with correct timezone', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'event_time' => '2026-01-15T19:00',
+            'event_timezone' => 'America/New_York',
+        ],
+    ]);
+
+    $eventTime = $list->getEventTime();
+
+    expect($eventTime)->toBeInstanceOf(\Carbon\Carbon::class);
+    expect($eventTime->format('Y-m-d H:i'))->toBe('2026-01-15 19:00');
+    expect($eventTime->timezone->getName())->toBe('America/New_York');
+});
+
+it('getEventTime returns null when no event time set', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => null,
+    ]);
+
+    expect($list->getEventTime())->toBeNull();
+});
+
+it('getEventTimezone returns timezone string', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'event_timezone' => 'Europe/London',
+        ],
+    ]);
+
+    expect($list->getEventTimezone())->toBe('Europe/London');
+});
+
+it('getEventAbout returns about text', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'about' => 'This is the event description.',
+        ],
+    ]);
+
+    expect($list->getEventAbout())->toBe('This is the event description.');
+});
+
+it('getSocialLinks returns social links array', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'social_links' => [
+                'twitter' => 'https://x.com/test',
+                'discord' => 'https://discord.gg/test',
+            ],
+        ],
+    ]);
+
+    $links = $list->getSocialLinks();
+
+    expect($links)->toBeArray();
+    expect($links['twitter'])->toBe('https://x.com/test');
+    expect($links['discord'])->toBe('https://discord.gg/test');
+});
+
+it('getVideoUrl returns video URL', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'video_url' => 'https://www.youtube.com/watch?v=abc123',
+        ],
+    ]);
+
+    expect($list->getVideoUrl())->toBe('https://www.youtube.com/watch?v=abc123');
+});
+
+it('hasVideo returns true when video URL is set', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'video_url' => 'https://www.youtube.com/watch?v=abc123',
+        ],
+    ]);
+
+    expect($list->hasVideo())->toBeTrue();
+});
+
+it('hasVideo returns false when no video URL', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => null,
+    ]);
+
+    expect($list->hasVideo())->toBeFalse();
+});
+
+it('hasSocialLinks returns true when social links exist', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'social_links' => [
+                'twitter' => 'https://x.com/test',
+            ],
+        ],
+    ]);
+
+    expect($list->hasSocialLinks())->toBeTrue();
+});
+
+it('hasSocialLinks returns false when no social links', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'social_links' => [],
+        ],
+    ]);
+
+    expect($list->hasSocialLinks())->toBeFalse();
+});
+
+it('getVideoEmbedUrl converts YouTube URL to embed format', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        ],
+    ]);
+
+    expect($list->getVideoEmbedUrl())->toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+});
+
+it('getVideoEmbedUrl converts YouTube short URL to embed format', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'video_url' => 'https://youtu.be/dQw4w9WgXcQ',
+        ],
+    ]);
+
+    expect($list->getVideoEmbedUrl())->toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+});
+
+it('getVideoEmbedUrl converts Twitch VOD URL to embed format', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'video_url' => 'https://www.twitch.tv/videos/123456789',
+        ],
+    ]);
+
+    $embedUrl = $list->getVideoEmbedUrl();
+
+    expect($embedUrl)->toContain('player.twitch.tv');
+    expect($embedUrl)->toContain('video=123456789');
+});
+
+it('getVideoEmbedUrl converts Twitch channel URL to embed format', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'event_data' => [
+            'video_url' => 'https://www.twitch.tv/twitchchannel',
+        ],
+    ]);
+
+    $embedUrl = $list->getVideoEmbedUrl();
+
+    expect($embedUrl)->toContain('player.twitch.tv');
+    expect($embedUrl)->toContain('channel=twitchchannel');
+});
+
+// Public Event Page Tests
+
+it('shows event hero section with video when event has video', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'name' => 'Test Event',
+        'slug' => 'test-event',
+        'is_public' => true,
+        'is_active' => true,
+        'event_data' => [
+            'event_time' => now()->subHour()->format('Y-m-d\TH:i'),
+            'event_timezone' => 'UTC',
+            'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        ],
+    ]);
+
+    $response = $this->get('/list/events/test-event');
+
+    $response->assertStatus(200);
+    $response->assertSee('youtube.com/embed/dQw4w9WgXcQ');
+});
+
+it('shows event start time and social links in hero section', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'name' => 'Test Event',
+        'slug' => 'test-event',
+        'is_public' => true,
+        'is_active' => true,
+        'event_data' => [
+            'event_time' => now()->subHour()->format('Y-m-d\TH:i'),
+            'event_timezone' => 'America/New_York',
+            'social_links' => [
+                'twitter' => 'https://x.com/testevent',
+            ],
+        ],
+    ]);
+
+    $response = $this->get('/list/events/test-event');
+
+    $response->assertStatus(200);
+    $response->assertSee('x.com/testevent');
+});
+
+it('shows games list when event has started', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'name' => 'Started Event',
+        'slug' => 'started-event',
+        'is_public' => true,
+        'is_active' => true,
+        'event_data' => [
+            'event_time' => now()->subHour()->format('Y-m-d\TH:i'),
+            'event_timezone' => 'UTC',
+        ],
+    ]);
+
+    $game = Game::factory()->create(['name' => 'Test Game']);
+    $list->games()->attach($game->id, ['order' => 1]);
+
+    $response = $this->get('/list/events/started-event');
+
+    $response->assertStatus(200);
+    $response->assertSee('Showing');
+    $response->assertSee('1');
+    $response->assertSee('games');
+});
+
+it('shows placeholder when event has not started yet', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'name' => 'Future Event',
+        'slug' => 'future-event',
+        'is_public' => true,
+        'is_active' => true,
+        'event_data' => [
+            'event_time' => now()->addDay()->format('Y-m-d\TH:i'),
+            'event_timezone' => 'UTC',
+        ],
+    ]);
+
+    $game = Game::factory()->create(['name' => 'Hidden Game']);
+    $list->games()->attach($game->id, ['order' => 1]);
+
+    $response = $this->get('/list/events/future-event');
+
+    $response->assertStatus(200);
+    $response->assertSee('The Event Hasn', false);
+    $response->assertSee('t Started Yet', false);
+    $response->assertSee('The games will be revealed when the event begins');
+    $response->assertSee('Your time:');
+    $response->assertDontSee('Showing');
+});
+
+it('shows games when event has no event time set', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'name' => 'No Time Event',
+        'slug' => 'no-time-event',
+        'is_public' => true,
+        'is_active' => true,
+        'event_data' => null,
+    ]);
+
+    $game = Game::factory()->create(['name' => 'Visible Game']);
+    $list->games()->attach($game->id, ['order' => 1]);
+
+    $response = $this->get('/list/events/no-time-event');
+
+    $response->assertStatus(200);
+    $response->assertSee('Showing');
+    $response->assertDontSee("The Event Hasn't Started Yet");
+});
+
+it('admin edit page shows event detail fields for events list', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $list = GameList::factory()->events()->system()->create([
+        'name' => 'Edit Test Event',
+        'slug' => 'edit-test-event',
+    ]);
+
+    $response = $this->actingAs($admin)->get('/admin/system-lists/events/edit-test-event/edit');
+
+    $response->assertStatus(200);
+    $response->assertSee('Event Details');
+    $response->assertSee('Event Time');
+    $response->assertSee('Timezone');
+    $response->assertSee('Video URL');
+    $response->assertSee('About');
+    $response->assertSee('Social Links');
+    $response->assertSee('Twitter / X');
+    $response->assertSee('YouTube');
+    $response->assertSee('Twitch');
+    $response->assertSee('Discord');
+});
+
+it('admin edit page does not show event fields for non-events list', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $list = GameList::factory()->monthly()->system()->create([
+        'name' => 'Monthly List',
+        'slug' => 'monthly-list',
+        'start_at' => now(),
+    ]);
+
+    $response = $this->actingAs($admin)->get('/admin/system-lists/monthly/monthly-list/edit');
+
+    $response->assertStatus(200);
+    $response->assertDontSee('Event Details');
+    $response->assertDontSee('Event Time');
+    $response->assertDontSee('social_twitter');
+});

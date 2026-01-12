@@ -450,3 +450,119 @@ test('games data includes slug for url generation', function () {
 
     expect($gamesData[0]['slug'])->toBe('url-test-game');
 });
+
+// Pivot data override tests
+
+test('pivot platforms override game platforms in getGamesForFiltering', function () {
+    $xboxPlatform = Platform::factory()->create(['name' => 'Xbox Series X', 'igdb_id' => 169]);
+
+    $game = Game::factory()->create(['name' => 'Multi Platform Game']);
+    $game->platforms()->attach([$this->pcPlatform->id, $this->ps5Platform->id, $xboxPlatform->id]);
+
+    // Attach with pivot platforms overriding to only PC and PS5
+    $this->systemList->games()->attach($game->id, [
+        'order' => 1,
+        'platforms' => json_encode([6, 167]), // PC and PS5 igdb_ids
+    ]);
+
+    $this->systemList->load(['games.platforms', 'games.genres', 'games.gameModes', 'games.playerPerspectives']);
+    $gamesData = $this->systemList->getGamesForFiltering();
+
+    $platformIds = collect($gamesData[0]['platforms'])->pluck('igdb_id')->toArray();
+
+    expect($platformIds)->toContain(6);    // PC
+    expect($platformIds)->toContain(167);  // PS5
+    expect($platformIds)->not->toContain(169); // Xbox should NOT be included
+    expect(count($platformIds))->toBe(2);
+});
+
+test('pivot platforms override game platforms in getFilterOptions', function () {
+    $xboxPlatform = Platform::factory()->create(['name' => 'Xbox Series X', 'igdb_id' => 169]);
+
+    $game = Game::factory()->create(['name' => 'Multi Platform Game']);
+    $game->platforms()->attach([$this->pcPlatform->id, $this->ps5Platform->id, $xboxPlatform->id]);
+
+    // Attach with pivot platforms overriding to only PC
+    $this->systemList->games()->attach($game->id, [
+        'order' => 1,
+        'platforms' => json_encode([6]), // Only PC
+    ]);
+
+    $this->systemList->load(['games.platforms', 'games.genres', 'games.gameModes', 'games.playerPerspectives']);
+    $filterOptions = $this->systemList->getFilterOptions();
+
+    $platformIds = collect($filterOptions['platforms'])->pluck('igdb_id')->toArray();
+
+    expect($platformIds)->toContain(6);        // PC should be included
+    expect($platformIds)->not->toContain(167); // PS5 should NOT be included
+    expect($platformIds)->not->toContain(169); // Xbox should NOT be included
+});
+
+test('game platforms used as fallback when pivot platforms not set', function () {
+    $game = Game::factory()->create(['name' => 'Fallback Platform Game']);
+    $game->platforms()->attach([$this->pcPlatform->id, $this->ps5Platform->id]);
+
+    // Attach without pivot platforms
+    $this->systemList->games()->attach($game->id, ['order' => 1]);
+
+    $this->systemList->load(['games.platforms', 'games.genres', 'games.gameModes', 'games.playerPerspectives']);
+    $gamesData = $this->systemList->getGamesForFiltering();
+
+    $platformIds = collect($gamesData[0]['platforms'])->pluck('igdb_id')->toArray();
+
+    expect($platformIds)->toContain(6);   // PC from game
+    expect($platformIds)->toContain(167); // PS5 from game
+});
+
+test('pivot release date overrides game release date in getGamesForFiltering', function () {
+    $game = Game::factory()->create([
+        'name' => 'Override Release Date Game',
+        'first_release_date' => '2025-01-15',
+    ]);
+
+    // Attach with pivot release_date overriding
+    $this->systemList->games()->attach($game->id, [
+        'order' => 1,
+        'release_date' => '2026-06-20',
+    ]);
+
+    $this->systemList->load(['games.platforms', 'games.genres', 'games.gameModes', 'games.playerPerspectives']);
+    $gamesData = $this->systemList->getGamesForFiltering();
+
+    expect($gamesData[0]['release_date'])->toBe('2026-06-20');
+    expect($gamesData[0]['release_date_formatted'])->toBe('Jun 20, 2026');
+});
+
+test('game release date used as fallback when pivot release date not set', function () {
+    $game = Game::factory()->create([
+        'name' => 'Fallback Release Date Game',
+        'first_release_date' => '2025-03-10',
+    ]);
+
+    // Attach without pivot release_date
+    $this->systemList->games()->attach($game->id, ['order' => 1]);
+
+    $this->systemList->load(['games.platforms', 'games.genres', 'games.gameModes', 'games.playerPerspectives']);
+    $gamesData = $this->systemList->getGamesForFiltering();
+
+    expect($gamesData[0]['release_date'])->toBe('2025-03-10');
+    expect($gamesData[0]['release_date_formatted'])->toBe('Mar 10, 2025');
+});
+
+test('pivot platforms with empty array falls back to game platforms', function () {
+    $game = Game::factory()->create(['name' => 'Empty Pivot Platforms Game']);
+    $game->platforms()->attach([$this->pcPlatform->id]);
+
+    // Attach with empty pivot platforms array
+    $this->systemList->games()->attach($game->id, [
+        'order' => 1,
+        'platforms' => json_encode([]),
+    ]);
+
+    $this->systemList->load(['games.platforms', 'games.genres', 'games.gameModes', 'games.playerPerspectives']);
+    $gamesData = $this->systemList->getGamesForFiltering();
+
+    $platformIds = collect($gamesData[0]['platforms'])->pluck('igdb_id')->toArray();
+
+    expect($platformIds)->toContain(6); // PC from game fallback
+});

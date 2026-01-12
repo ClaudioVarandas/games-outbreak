@@ -406,15 +406,38 @@ class GameList extends Model
         $perspectives = [];
 
         foreach ($this->games as $game) {
-            foreach ($game->platforms as $platform) {
-                $enum = PlatformEnum::fromIgdbId($platform->igdb_id);
-                $platforms[$platform->id] = [
-                    'id' => $platform->id,
-                    'igdb_id' => $platform->igdb_id,
-                    'name' => $enum?->label() ?? $platform->name,
-                    'color' => $enum?->color() ?? 'gray',
-                    'count' => ($platforms[$platform->id]['count'] ?? 0) + 1,
-                ];
+            // Get platforms from pivot if set, otherwise from game
+            $pivotPlatforms = $game->pivot->platforms ?? null;
+            if ($pivotPlatforms && is_string($pivotPlatforms)) {
+                $pivotPlatforms = json_decode($pivotPlatforms, true);
+            }
+
+            if (! empty($pivotPlatforms)) {
+                // Use pivot platforms (array of igdb_ids)
+                foreach ($pivotPlatforms as $igdbId) {
+                    $enum = PlatformEnum::fromIgdbId($igdbId);
+                    if ($enum) {
+                        $platforms[$igdbId] = [
+                            'id' => $igdbId,
+                            'igdb_id' => $igdbId,
+                            'name' => $enum->label(),
+                            'color' => $enum->color(),
+                            'count' => ($platforms[$igdbId]['count'] ?? 0) + 1,
+                        ];
+                    }
+                }
+            } else {
+                // Fallback to game platforms
+                foreach ($game->platforms as $platform) {
+                    $enum = PlatformEnum::fromIgdbId($platform->igdb_id);
+                    $platforms[$platform->id] = [
+                        'id' => $platform->id,
+                        'igdb_id' => $platform->igdb_id,
+                        'name' => $enum?->label() ?? $platform->name,
+                        'color' => $enum?->color() ?? 'gray',
+                        'count' => ($platforms[$platform->id]['count'] ?? 0) + 1,
+                    ];
+                }
             }
 
             foreach ($game->genres as $genre) {
@@ -464,44 +487,72 @@ class GameList extends Model
      */
     public function getGamesForFiltering(): array
     {
-        return $this->games->map(fn ($game) => [
-            'id' => $game->id,
-            'uuid' => $game->uuid,
-            'name' => $game->name,
-            'slug' => $game->slug,
-            'cover_url' => $game->getCoverUrl(),
-            'release_date' => $game->pivot->release_date ?? $game->first_release_date?->format('Y-m-d'),
-            'release_date_formatted' => $game->pivot->release_date
-                ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M j, Y')
-                : $game->first_release_date?->format('M j, Y') ?? 'TBA',
-            'platforms' => $game->platforms->map(function ($p) {
-                $enum = PlatformEnum::fromIgdbId($p->igdb_id);
+        return $this->games->map(function ($game) {
+            // Get platforms from pivot if set, otherwise from game
+            $pivotPlatforms = $game->pivot->platforms ?? null;
+            if ($pivotPlatforms && is_string($pivotPlatforms)) {
+                $pivotPlatforms = json_decode($pivotPlatforms, true);
+            }
 
-                return [
+            $platforms = collect();
+            if (! empty($pivotPlatforms)) {
+                // Use pivot platforms (array of igdb_ids)
+                foreach ($pivotPlatforms as $igdbId) {
+                    $enum = PlatformEnum::fromIgdbId($igdbId);
+                    if ($enum) {
+                        $platforms->push([
+                            'id' => $igdbId,
+                            'igdb_id' => $igdbId,
+                            'name' => $enum->label(),
+                            'color' => $enum->color(),
+                            'priority' => PlatformEnum::getPriority($igdbId),
+                        ]);
+                    }
+                }
+            } else {
+                // Fallback to game platforms
+                $platforms = $game->platforms->map(function ($p) {
+                    $enum = PlatformEnum::fromIgdbId($p->igdb_id);
+
+                    return [
+                        'id' => $p->id,
+                        'igdb_id' => $p->igdb_id,
+                        'name' => $enum?->label() ?? $p->name,
+                        'color' => $enum?->color() ?? 'gray',
+                        'priority' => PlatformEnum::getPriority($p->igdb_id),
+                    ];
+                });
+            }
+
+            return [
+                'id' => $game->id,
+                'uuid' => $game->uuid,
+                'name' => $game->name,
+                'slug' => $game->slug,
+                'cover_url' => $game->getCoverUrl(),
+                'release_date' => $game->pivot->release_date ?? $game->first_release_date?->format('Y-m-d'),
+                'release_date_formatted' => $game->pivot->release_date
+                    ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M j, Y')
+                    : $game->first_release_date?->format('M j, Y') ?? 'TBA',
+                'platforms' => $platforms->sortBy('priority')->values()->toArray(),
+                'genres' => $game->genres->map(fn ($g) => [
+                    'id' => $g->id,
+                    'name' => $g->name,
+                ])->toArray(),
+                'game_type' => [
+                    'id' => $game->getGameTypeEnum()->value,
+                    'name' => $game->getGameTypeEnum()->label(),
+                    'color' => $game->getGameTypeEnum()->colorClass(),
+                ],
+                'modes' => $game->gameModes->map(fn ($m) => [
+                    'id' => $m->id,
+                    'name' => $m->name,
+                ])->toArray(),
+                'perspectives' => $game->playerPerspectives->map(fn ($p) => [
                     'id' => $p->id,
-                    'igdb_id' => $p->igdb_id,
-                    'name' => $enum?->label() ?? $p->name,
-                    'color' => $enum?->color() ?? 'gray',
-                    'priority' => PlatformEnum::getPriority($p->igdb_id),
-                ];
-            })->sortBy('priority')->values()->toArray(),
-            'genres' => $game->genres->map(fn ($g) => [
-                'id' => $g->id,
-                'name' => $g->name,
-            ])->toArray(),
-            'game_type' => [
-                'id' => $game->getGameTypeEnum()->value,
-                'name' => $game->getGameTypeEnum()->label(),
-                'color' => $game->getGameTypeEnum()->colorClass(),
-            ],
-            'modes' => $game->gameModes->map(fn ($m) => [
-                'id' => $m->id,
-                'name' => $m->name,
-            ])->toArray(),
-            'perspectives' => $game->playerPerspectives->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-            ])->toArray(),
-        ])->toArray();
+                    'name' => $p->name,
+                ])->toArray(),
+            ];
+        })->toArray();
     }
 }
