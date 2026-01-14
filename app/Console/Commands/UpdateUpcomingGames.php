@@ -9,7 +9,6 @@ use App\Models\Platform;
 use App\Services\IgdbService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use View;
 
 class UpdateUpcomingGames extends Command
 {
@@ -20,7 +19,7 @@ class UpdateUpcomingGames extends Command
                             {--limit=500 : Max games to fetch (default: 500, IGDB max per query)}
                             {--igdb-id= : Fetch a single game by IGDB ID}';
 
-    protected $description = 'Fetch upcoming games from IGDB, enrich with Steam data, and store in local database';
+    protected $description = 'Fetch upcoming games from IGDB and store in local database';
 
     public function handle(IgdbService $igdb): int
     {
@@ -38,9 +37,9 @@ class UpdateUpcomingGames extends Command
                              similar_games.name, similar_games.cover.image_id, similar_games.id,
                              screenshots.image_id,
                              videos.video_id,
-                             external_games.category, external_games.uid,
+                             external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
-                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
                              game_engines.name, game_engines.id,
                              player_perspectives.name, player_perspectives.id;
@@ -52,6 +51,7 @@ class UpdateUpcomingGames extends Command
 
                 if ($response->failed() || empty($response->json())) {
                     $this->error("Game with IGDB ID {$igdbId} not found.");
+
                     return self::FAILURE;
                 }
 
@@ -65,7 +65,8 @@ class UpdateUpcomingGames extends Command
                 // Store raw JSON before enrichment
                 $rawJson = $rawIgdbResponse;
             } catch (\Exception $e) {
-                $this->error('Failed to fetch game: ' . $e->getMessage());
+                $this->error('Failed to fetch game: '.$e->getMessage());
+
                 return self::FAILURE;
             }
         } else {
@@ -79,9 +80,10 @@ class UpdateUpcomingGames extends Command
             $startDateInput = $this->option('start-date');
             if ($startDateInput) {
                 try {
-                    $startDate = Carbon::createFromFormat('Y-m-d', $startDateInput)->startOfDay();
+                    $startDate = Carbon::createFromFormat('Y-m-d', $startDateInput)?->startOfDay();
                 } catch (\Exception $e) {
-                    $this->error("Invalid start-date format. Use Y-m-d format (e.g., 2024-01-15)");
+                    $this->error('Invalid start-date format. Use Y-m-d format (e.g., 2024-01-15)');
+
                     return self::FAILURE;
                 }
             } else {
@@ -91,8 +93,8 @@ class UpdateUpcomingGames extends Command
             $endDate = $startDate->copy()->addDays($days);
 
             $this->info("Fetching upcoming games from {$startDate->format('Y-m-d')} to {$endDate->format('Y-m-d')}...");
-            if (!empty($platformIds)) {
-                $this->info('Platforms: ' . implode(', ', $platformIds));
+            if (! empty($platformIds)) {
+                $this->info('Platforms: '.implode(', ', $platformIds));
             }
             $this->info("Limit: {$limit} games");
 
@@ -142,17 +144,19 @@ class UpdateUpcomingGames extends Command
                 $games = $igdb->enrichWithSteamData($games);
                 $rawJson = null; // Not storing raw JSON for bulk fetches
             } catch (\Exception $e) {
-                $this->error('Failed to fetch or enrich games: ' . $e->getMessage());
+                $this->error('Failed to fetch or enrich games: '.$e->getMessage());
+
                 return self::FAILURE;
             }
         }
 
         if (empty($games)) {
             $this->warn('No games found.');
+
             return self::SUCCESS;
         }
 
-        $this->info("Processing " . count($games) . " game(s)...");
+        $this->info('Processing '.count($games).' game(s)...');
 
         $bar = $this->output->createProgressBar(count($games));
         $bar->start();
@@ -169,7 +173,7 @@ class UpdateUpcomingGames extends Command
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
 
             // If IGDB didn't provide a cover, try SteamGridDB
-            if (!$coverImageId) {
+            if (! $coverImageId) {
                 $this->line("No IGDB cover for {$gameName}, trying SteamGridDB...");
                 $steamGridDbCover = $igdb->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
 
@@ -177,13 +181,13 @@ class UpdateUpcomingGames extends Command
                     $coverImageId = $steamGridDbCover;
                     $this->info("  ✓ Found SteamGridDB cover: {$steamGridDbCover}");
                 } else {
-                    $this->warn("  ✗ No SteamGridDB cover found");
+                    $this->warn('  ✗ No SteamGridDB cover found');
                 }
             }
 
             // For hero: Use IGDB cover if available, else fetch from SteamGridDB
             $heroImageId = $igdbGame['cover']['image_id'] ?? null;
-            if (!$heroImageId) {
+            if (! $heroImageId) {
                 $steamGridDbHero = $igdb->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
                 if ($steamGridDbHero) {
                     $heroImageId = $steamGridDbHero;
@@ -224,7 +228,7 @@ class UpdateUpcomingGames extends Command
             }
 
             // Sync platforms
-            if (!empty($igdbGame['platforms'])) {
+            if (! empty($igdbGame['platforms'])) {
                 $platformModelIds = collect($igdbGame['platforms'])->map(function ($plat) {
                     return Platform::firstOrCreate(
                         ['igdb_id' => $plat['id']],
@@ -236,7 +240,7 @@ class UpdateUpcomingGames extends Command
             }
 
             // Sync genres
-            if (!empty($igdbGame['genres'])) {
+            if (! empty($igdbGame['genres'])) {
                 $genreIds = collect($igdbGame['genres'])->map(function ($genre) {
                     return Genre::firstOrCreate(
                         ['igdb_id' => $genre['id']],
@@ -248,7 +252,7 @@ class UpdateUpcomingGames extends Command
             }
 
             // Sync game modes
-            if (!empty($igdbGame['game_modes'])) {
+            if (! empty($igdbGame['game_modes'])) {
                 $modeIds = collect($igdbGame['game_modes'])->map(function ($mode) {
                     return GameMode::firstOrCreate(
                         ['igdb_id' => $mode['id']],
@@ -260,7 +264,7 @@ class UpdateUpcomingGames extends Command
             }
 
             // Sync companies (developers/publishers)
-            if (!empty($igdbGame['involved_companies'])) {
+            if (! empty($igdbGame['involved_companies'])) {
                 $syncData = [];
                 foreach ($igdbGame['involved_companies'] as $involvedCompany) {
                     if (empty($involvedCompany['company'])) {
@@ -281,7 +285,7 @@ class UpdateUpcomingGames extends Command
             }
 
             // Sync game engines
-            if (!empty($igdbGame['game_engines'])) {
+            if (! empty($igdbGame['game_engines'])) {
                 $engineIds = collect($igdbGame['game_engines'])->map(function ($engine) {
                     return \App\Models\GameEngine::firstOrCreate(
                         ['igdb_id' => $engine['id']],
@@ -293,7 +297,7 @@ class UpdateUpcomingGames extends Command
             }
 
             // Sync player perspectives
-            if (!empty($igdbGame['player_perspectives'])) {
+            if (! empty($igdbGame['player_perspectives'])) {
                 $perspectiveIds = collect($igdbGame['player_perspectives'])->map(function ($perspective) {
                     return \App\Models\PlayerPerspective::firstOrCreate(
                         ['igdb_id' => $perspective['id']],
@@ -304,6 +308,9 @@ class UpdateUpcomingGames extends Command
                 $game->playerPerspectives()->sync($perspectiveIds);
             }
 
+            // Sync external game sources (Steam, GOG, Epic, etc.)
+            $igdb->syncExternalSources($game, $igdbGame);
+
             $bar->advance();
         }
 
@@ -313,5 +320,4 @@ class UpdateUpcomingGames extends Command
 
         return self::SUCCESS;
     }
-
 }

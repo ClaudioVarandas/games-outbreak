@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\DTOs\ExternalSourceData;
+use App\Enums\PlatformEnum;
+use App\Models\ExternalGameSource;
+use App\Models\Game;
+use App\Models\GameExternalSource;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -14,7 +19,7 @@ use RuntimeException;
 class IgdbService
 {
     // Default platforms: PC (6), PS5 (167), Xbox Series X|S (169), Switch (130)
-    private array $defaultPlatforms = [6, 167, 169, 130];
+    // private array $defaultPlatforms = [6, 167, 169, 130];
 
     public function getAccessToken(): string
     {
@@ -34,6 +39,131 @@ class IgdbService
     }
 
     /**
+     * Extract external game sources from IGDB response.
+     *
+     * @param  array  $igdbGame  Raw IGDB game response with external_games expanded
+     * @return Collection<ExternalSourceData>
+     */
+    public function extractExternalSources(array $igdbGame): Collection
+    {
+        $sources = collect();
+
+        if (empty($igdbGame['external_games']) || ! is_array($igdbGame['external_games'])) {
+            return $sources;
+        }
+
+        foreach ($igdbGame['external_games'] as $externalGame) {
+            if (! is_array($externalGame)) {
+                continue;
+            }
+
+            // Handle both formats: external_game_source as integer ID or as object
+            $externalGameSource = $externalGame['external_game_source'] ?? null;
+            $sourceId = is_array($externalGameSource)
+                ? ($externalGameSource['id'] ?? null)
+                : ($externalGameSource ?? $externalGame['category'] ?? null);
+
+            $sourceName = is_array($externalGameSource)
+                ? ($externalGameSource['name'] ?? null)
+                : $this->getCategoryName($sourceId);
+
+            $externalUid = $externalGame['uid'] ?? null;
+            $externalUrl = $externalGame['url'] ?? null;
+
+            if (! $sourceId || ! $externalUid) {
+                continue;
+            }
+
+            $sources->push(new ExternalSourceData(
+                sourceId: (int) $sourceId,
+                sourceName: $sourceName ?? 'Unknown',
+                externalUid: (string) $externalUid,
+                externalUrl: $externalUrl,
+                category: $sourceId,
+            ));
+        }
+
+        return $sources;
+    }
+
+    /**
+     * Sync external sources for a game from IGDB data.
+     *
+     * @param  Game  $game  The game model
+     * @param  array  $igdbGame  Raw IGDB game response
+     */
+    public function syncExternalSources(Game $game, array $igdbGame): void
+    {
+        $sources = $this->extractExternalSources($igdbGame);
+
+        if ($sources->isEmpty()) {
+            return;
+        }
+
+        foreach ($sources as $sourceData) {
+            $externalGameSource = ExternalGameSource::where('igdb_id', $sourceData->sourceId)->first();
+
+            if (! $externalGameSource) {
+                continue;
+            }
+
+            GameExternalSource::updateOrCreate(
+                [
+                    'game_id' => $game->id,
+                    'external_game_source_id' => $externalGameSource->id,
+                ],
+                [
+                    'external_uid' => $sourceData->externalUid,
+                    'external_url' => $sourceData->externalUrl,
+                ]
+            );
+        }
+    }
+
+    /**
+     * Get the Steam AppID for a game from external sources.
+     *
+     * @param  Game  $game  The game model
+     * @return string|null The Steam AppID or null if not found
+     */
+    public function getSteamAppIdFromSources(Game $game): ?string
+    {
+        $steamSource = $game->gameExternalSources()
+            ->whereHas('externalGameSource', function ($query) {
+                $query->where('igdb_id', 1); // Steam
+            })
+            ->first();
+
+        return $steamSource?->external_uid;
+    }
+
+    /**
+     * Get category name from IGDB category ID (fallback).
+     */
+    private function getCategoryName(?int $category): ?string
+    {
+        return match ($category) {
+            1 => 'Steam',
+            5 => 'GOG',
+            10 => 'YouTube',
+            11 => 'Xbox Marketplace',
+            13 => 'Apple App Store',
+            14 => 'Google Play',
+            15 => 'itch.io',
+            20 => 'Amazon ASIN',
+            22 => 'Twitch',
+            23 => 'Android',
+            26 => 'Epic Games Store',
+            28 => 'Oculus',
+            29 => 'Utomik',
+            31 => 'Focus Entertainment',
+            36 => 'PlayStation Store',
+            37 => 'Xbox Game Pass',
+            default => null,
+        };
+    }
+
+    /**
      * Fetch upcoming games from IGDB
      *
      * @param  array  $platformIds  Platform IDs to filter by
@@ -50,7 +180,7 @@ class IgdbService
         int $limit = 500,
         int $offset = 0
     ): array {
-        $platformIds = empty($platformIds) ? $this->defaultPlatforms : $platformIds;
+        $platformIds = empty($platformIds) ? PlatformEnum::getActivePlatformsValues() : $platformIds;
         $startDate ??= Carbon::today();
         $endDate ??= $startDate->copy()->addWeek();
 
@@ -64,7 +194,7 @@ class IgdbService
                             similar_games.name, similar_games.cover.image_id, similar_games.id,
                             screenshots.image_id,
                             videos.video_id,
-                            external_games.category, external_games.uid,
+                            external_games.external_game_source, external_games.uid, external_games.url,
                             websites.category, websites.url, game_type,
                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
                             involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
@@ -95,6 +225,10 @@ class IgdbService
     /**
      * Fetch popular upcoming games from Steam (sorted by wishlists)
      * Handles real/current response structure and missing keys safely
+     *
+     * @deprecated Will be removed in future version.
+     *             Steam upcoming games now fetched via SteamSpy.
+     * @see \App\Services\SteamSpyService::fetchTop100InTwoWeeks()
      */
     public function fetchSteamPopularUpcoming(int $count = 50): Collection
     {
@@ -142,6 +276,10 @@ class IgdbService
 
     /**
      * Get detailed Steam data for a list of AppIDs
+     *
+     * @deprecated Will be removed in future version.
+     *             Direct Steam API access replaced by SteamSpy integration.
+     * @see \App\Services\SteamSpyService::fetchGameDetails()
      */
     public function getSteamAppDetails(array $appIds): array
     {
@@ -176,169 +314,16 @@ class IgdbService
     /**
      * Enrich IGDB games with Steam data (for PC games)
      *
-     * This method:
-     * - Looks for Steam AppID in 'external_games' (preferred, category 1 = Steam)
-     * - Falls back to 'websites' (category 13 = Steam store page)
-     * - Fetches detailed Steam data in batch
-     * - Attaches relevant Steam info to each matching game
+     * @deprecated Will be removed in future version.
+     *             Steam data enrichment has been replaced by separate SteamSpy sync.
+     *             This method now returns the input unchanged.
+     * @see \App\Services\SteamSpyService::fetchGameDetails()
+     * @see \App\Console\Commands\SteamSpySync
      */
     public function enrichWithSteamData(array $igdbGames): array
     {
-        if (empty($igdbGames)) {
-            return $igdbGames;
-        }
-
-        $gameAppIdMap = []; // [igdb_index => appid]
-
-        foreach ($igdbGames as $index => $game) {
-            $appId = null;
-
-            // Priority 1: external_games (category 1 = Steam) – UID is the AppID
-            if (! empty($game['external_games']) && is_array($game['external_games'])) {
-                foreach ($game['external_games'] as $ext) {
-                    if (
-                        is_array($ext) &&
-                        ($ext['category'] ?? null) === 1 && // Steam
-                        ! empty($ext['uid']) &&
-                        ctype_digit((string) $ext['uid'])
-                    ) {
-                        $appId = (int) $ext['uid'];
-                        break;
-                    }
-                }
-            }
-
-            // Priority 2: websites – look for ANY Steam store URL containing /app/{number}
-            if (! $appId && ! empty($game['websites']) && is_array($game['websites'])) {
-                foreach ($game['websites'] as $site) {
-                    if (is_array($site) && ! empty($site['url'])) {
-                        $url = $site['url'];
-
-                        // Improved regex: captures digits after /app/, handles paths and query strings
-                        if (preg_match('#/app/(\d+)(?:/|$)#i', $url, $matches)) {
-                            $appId = (int) $matches[1];
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if ($appId) {
-                $gameAppIdMap[$index] = $appId;
-            }
-        }
-
-        if (empty($gameAppIdMap)) {
-            return $igdbGames;
-        }
-
-        // Batch fetch from Steam (same as before, with error handling)
-        $uniqueAppIds = array_unique(array_values($gameAppIdMap));
-
-        $steamDetails = [];
-
-        foreach ($uniqueAppIds as $appId) {
-            // Check cache first (24 hour TTL)
-            $cacheKey = "steam_app_details_{$appId}";
-            $cachedData = Cache::get($cacheKey);
-
-            if ($cachedData !== null) {
-                $steamDetails[$appId] = $cachedData;
-
-                continue;
-            }
-
-            try {
-                $response = Http::timeout(15)
-                    ->retry(3, 1000)
-                    ->get('https://store.steampowered.com/api/appdetails', [
-                        'appids' => $appId, // Single AppID
-                        'filters' => 'name,release_date,header_image,capsule_image,price_overview,platforms,metacritic,recommendations,is_free',
-                        'cc' => 'us',
-                    ]);
-
-                if ($response->successful()) {
-                    $data = $response->json();
-
-                    // Response format: { "APPID": { "success": true, "data": { ... } } }
-                    $info = $data[(string) $appId] ?? null;
-
-                    if ($info['success'] ?? false) {
-                        $steamData = $info['data'];
-                        $steamDetails[$appId] = $steamData;
-
-                        // Cache for 24 hours
-                        Cache::put($cacheKey, $steamData, now()->addHours(24));
-                    }
-
-                    // New: Fetch wishlist/followers from SteamDB
-                    $wishlistCount = null;
-                    /*                    try {
-                                            $steamdbResponse = Http::timeout(10)
-                                                ->get("https://steamdb.info/app/{$appId}/");
-
-                                            if ($steamdbResponse->successful()) {
-                                                // SteamDB shows followers in a table row like: <td>Followers</td><td>1,234,567</td>
-                                                preg_match('/Followers<\/td>\s*<td[^>]*>([\d,]+)</i', $steamdbResponse->body(), $matches);
-                                                if (isset($matches[1])) {
-                                                    $wishlistCount = (int) str_replace(',', '', $matches[1]);
-                                                }
-                                            }
-                                        } catch (\Exception $e) {
-                                            \Log::warning("SteamDB wishlist fetch failed for AppID {$appId}", ['error' => $e->getMessage()]);
-                                        }*/
-
-                    // Store wishlist count in steam data for later use
-                    if (isset($steamDetails[$appId])) {
-                        $steamDetails[$appId]['_wishlist_count'] = 0;
-                    }
-
-                } else {
-                    \Log::warning('Steam appdetails failed for single AppID', [
-                        'appid' => $appId,
-                        'status' => $response->status(),
-                        'body' => $response->body(),
-                    ]);
-                }
-            } catch (\Exception $e) {
-                \Log::error('Steam API exception for AppID', [
-                    'appid' => $appId,
-                    'message' => $e->getMessage(),
-                ]);
-            }
-
-            // Optional: gentle delay to stay well under rate limits
-            usleep(300000); // 0.3 seconds
-        }
-
-        // Attach data
-        foreach ($gameAppIdMap as $index => $appId) {
-            if (isset($steamDetails[$appId])) {
-                $steam = $steamDetails[$appId];
-                $wishlistCount = $steam['_wishlist_count'] ?? null;
-
-                $igdbGames[$index]['steam'] = [
-                    'appid' => $appId,
-                    'header_image' => $steam['header_image'] ?? null,
-                    'capsule_image' => $steam['capsule_image'] ?? $steam['header_image'] ?? null,
-                    'release_date' => $steam['release_date']['date'] ?? null,
-                    'is_coming_soon' => $steam['release_date']['coming_soon'] ?? true,
-                    'price_overview' => $steam['price_overview'] ?? null,
-                    'is_free' => $steam['is_free'] ?? false,
-                    'platforms' => $steam['platforms'] ?? null,
-                    'metacritic_score' => $steam['metacritic']['score'] ?? null,
-                    'recommendations' => $steam['recommendations']['total'] ?? null,
-                    'wishlist_count' => $wishlistCount,
-                    'wishlist_formatted' => $wishlistCount ? number_format($wishlistCount) : null,
-                    'reviews_summary' => [
-                        'rating' => $steam['review_score_desc'] ?? null,
-                        'percentage' => $steam['review_percentage'] ?? null,
-                        'total' => $steam['total_reviews'] ?? null,
-                    ],
-                ];
-            }
-        }
-
+        // DEPRECATED: Return input unchanged to avoid performance impact
+        // Steam data is now fetched separately via SteamSpy
         return $igdbGames;
     }
 

@@ -30,17 +30,17 @@ class CreateGameList extends Command
     {
         // Get or ask for required options with validation
         $name = $this->option('name');
-        while (!$name) {
+        while (! $name) {
             $name = $this->ask('List name');
-            if (!$name) {
+            if (! $name) {
                 $this->error('List name is required.');
             }
         }
 
         $startDate = $this->option('start-date');
         $startDateObj = null;
-        while (!$startDateObj) {
-            if (!$startDate) {
+        while (! $startDateObj) {
+            if (! $startDate) {
                 $startDate = $this->ask('Start date (Y-m-d format, e.g., 2026-01-01)');
             }
 
@@ -56,8 +56,8 @@ class CreateGameList extends Command
 
         $endDate = $this->option('end-date');
         $endDateObj = null;
-        while (!$endDateObj) {
-            if (!$endDate) {
+        while (! $endDateObj) {
+            if (! $endDate) {
                 $endDate = $this->ask('End date (Y-m-d format, e.g., 2026-01-31)');
             }
 
@@ -69,6 +69,7 @@ class CreateGameList extends Command
                     if ($startDateObj->gt($endDateObj)) {
                         $this->error('End date must be after or equal to start date.');
                         $endDate = null;
+
                         continue;
                     }
                 } catch (\Exception $e) {
@@ -81,13 +82,13 @@ class CreateGameList extends Command
         $igdbIds = $this->option('igdb-ids');
         $igdbIdArray = [];
         while (empty($igdbIdArray)) {
-            if (!$igdbIds) {
+            if (! $igdbIds) {
                 $igdbIds = $this->ask('IGDB game IDs (comma-separated, e.g., 12345,67890,11111)');
             }
 
             if ($igdbIds) {
                 $igdbIdArray = array_map('trim', explode(',', $igdbIds));
-                $igdbIdArray = array_filter($igdbIdArray, fn($id) => !empty($id) && is_numeric($id));
+                $igdbIdArray = array_filter($igdbIdArray, fn ($id) => ! empty($id) && is_numeric($id));
 
                 if (empty($igdbIdArray)) {
                     $this->error('Please provide at least one valid numeric IGDB ID.');
@@ -122,7 +123,7 @@ class CreateGameList extends Command
         $this->info("Creating game list: {$name}");
         $this->info("Start date: {$startDateObj->format('Y-m-d')}");
         $this->info("End date: {$endDateObj->format('Y-m-d')}");
-        $this->info("Processing " . count($igdbIdArray) . " game(s)...");
+        $this->info('Processing '.count($igdbIdArray).' game(s)...');
 
         // Create the game list
         $gameList = GameList::create([
@@ -148,25 +149,27 @@ class CreateGameList extends Command
             $this->line("Processing IGDB ID: {$igdbId}...");
 
             try {
-                $game = $this->getOrFetchGame((int)$igdbId, $igdbService);
+                $game = $this->getOrFetchGame((int) $igdbId, $igdbService);
 
-                if (!$game) {
+                if (! $game) {
                     $this->warn("  Failed to fetch game with IGDB ID: {$igdbId}");
                     $failCount++;
+
                     continue;
                 }
 
                 // Check if game is already in list
                 if ($gameList->games()->where('game_id', $game->id)->exists()) {
                     $this->warn("  Game '{$game->name}' is already in the list, skipping...");
+
                     continue;
                 }
 
                 // Attach game to list with order, release_date, and platforms
                 $game->load('platforms');
                 $platformIds = $game->platforms
-                    ->filter(fn($p) => \App\Enums\PlatformEnum::getActivePlatforms()->has($p->igdb_id))
-                    ->map(fn($p) => $p->igdb_id)
+                    ->filter(fn ($p) => \App\Enums\PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+                    ->map(fn ($p) => $p->igdb_id)
                     ->values()
                     ->toArray();
 
@@ -186,7 +189,7 @@ class CreateGameList extends Command
 
         // Summary
         $this->newLine();
-        $this->info("=== Summary ===");
+        $this->info('=== Summary ===');
         $this->info("List ID: {$gameList->id}");
         $this->info("List Name: {$gameList->name}");
         if ($gameList->slug) {
@@ -211,11 +214,12 @@ class CreateGameList extends Command
 
         if ($game) {
             $this->line("  Game found in database: {$game->name}");
+
             return $game;
         }
 
         // Fetch from IGDB
-        $this->line("  Fetching game from IGDB...");
+        $this->line('  Fetching game from IGDB...');
 
         try {
             $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
@@ -224,7 +228,7 @@ class CreateGameList extends Command
                              similar_games.name, similar_games.cover.image_id, similar_games.id,
                              screenshots.image_id,
                              videos.video_id,
-                             external_games.category, external_games.uid,
+                             external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
                              release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
@@ -237,7 +241,8 @@ class CreateGameList extends Command
                 ->post('https://api.igdb.com/v4/games');
 
             if ($response->failed() || empty($response->json())) {
-                $this->warn("  Game not found in IGDB.");
+                $this->warn('  Game not found in IGDB.');
+
                 return null;
             }
 
@@ -254,7 +259,7 @@ class CreateGameList extends Command
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
 
             // If IGDB didn't provide a cover, try SteamGridDB
-            if (!$coverImageId) {
+            if (! $coverImageId) {
                 $steamGridDbCover = $igdbService->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
                 if ($steamGridDbCover) {
                     $coverImageId = $steamGridDbCover;
@@ -263,7 +268,7 @@ class CreateGameList extends Command
 
             // For hero: Use IGDB cover if available, else fetch from SteamGridDB
             $heroImageId = $igdbGame['cover']['image_id'] ?? null;
-            if (!$heroImageId) {
+            if (! $heroImageId) {
                 $steamGridDbHero = $igdbService->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
                 if ($steamGridDbHero) {
                     $heroImageId = $steamGridDbHero;
@@ -296,9 +301,11 @@ class CreateGameList extends Command
             Game::syncReleaseDates($game, $igdbGame['release_dates'] ?? null);
 
             $this->line("  Game created in database: {$game->name}");
+
             return $game;
         } catch (\Exception $e) {
             $this->error("  Error fetching from IGDB: {$e->getMessage()}");
+
             return null;
         }
     }
@@ -308,23 +315,20 @@ class CreateGameList extends Command
      */
     private function syncRelations(Game $game, array $igdbGame): void
     {
-        if (!empty($igdbGame['platforms'])) {
-            $ids = collect($igdbGame['platforms'])->map(fn($p) =>
-                Platform::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
+        if (! empty($igdbGame['platforms'])) {
+            $ids = collect($igdbGame['platforms'])->map(fn ($p) => Platform::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
             );
             $game->platforms()->sync($ids);
         }
 
-        if (!empty($igdbGame['genres'])) {
-            $ids = collect($igdbGame['genres'])->map(fn($g) =>
-                Genre::firstOrCreate(['igdb_id' => $g['id']], ['name' => $g['name'] ?? 'Unknown'])->id
+        if (! empty($igdbGame['genres'])) {
+            $ids = collect($igdbGame['genres'])->map(fn ($g) => Genre::firstOrCreate(['igdb_id' => $g['id']], ['name' => $g['name'] ?? 'Unknown'])->id
             );
             $game->genres()->sync($ids);
         }
 
-        if (!empty($igdbGame['game_modes'])) {
-            $ids = collect($igdbGame['game_modes'])->map(fn($m) =>
-                GameMode::firstOrCreate(['igdb_id' => $m['id']], ['name' => $m['name'] ?? 'Unknown'])->id
+        if (! empty($igdbGame['game_modes'])) {
+            $ids = collect($igdbGame['game_modes'])->map(fn ($m) => GameMode::firstOrCreate(['igdb_id' => $m['id']], ['name' => $m['name'] ?? 'Unknown'])->id
             );
             $game->gameModes()->sync($ids);
         }
@@ -340,7 +344,7 @@ class CreateGameList extends Command
         $counter = 1;
 
         while (GameList::where('slug', $slug)->exists()) {
-            $slug = $originalSlug . '-' . $counter;
+            $slug = $originalSlug.'-'.$counter;
             $counter++;
         }
 

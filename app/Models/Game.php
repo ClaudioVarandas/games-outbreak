@@ -7,6 +7,8 @@ use App\Services\IgdbService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\File;
 
 class Game extends Model
@@ -119,9 +121,26 @@ class Game extends Model
             ->withTimestamps();
     }
 
-    public function releaseDates(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function releaseDates(): HasMany
     {
         return $this->hasMany(GameReleaseDate::class);
+    }
+
+    public function externalSources(): BelongsToMany
+    {
+        return $this->belongsToMany(ExternalGameSource::class, 'game_external_sources')
+            ->withPivot(['external_uid', 'external_url', 'sync_status', 'retry_count', 'last_synced_at'])
+            ->withTimestamps();
+    }
+
+    public function gameExternalSources(): HasMany
+    {
+        return $this->hasMany(GameExternalSource::class);
+    }
+
+    public function steamGameData(): HasOne
+    {
+        return $this->hasOne(SteamGameData::class);
     }
 
     // === HELPER METHODS ===
@@ -477,7 +496,7 @@ class Game extends Model
                              similar_games.name, similar_games.cover.image_id, similar_games.id,
                              screenshots.image_id,
                              videos.video_id,
-                             external_games.category, external_games.uid,
+                             external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
                              release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
@@ -497,12 +516,19 @@ class Game extends Model
 
             $igdbGame = $response->json()[0];
 
-            // Enrich with Steam data
-            $igdbGame = $igdbService->enrichWithSteamData([$igdbGame])[0] ?? $igdbGame;
-
             $gameName = $igdbGame['name'] ?? 'Unknown Game';
-            $steamAppId = $igdbGame['steam']['appid'] ?? null;
             $igdbGameId = $igdbGame['id'] ?? null;
+
+            // Extract Steam AppID from external_games (category 1 = Steam)
+            $steamAppId = null;
+            if (! empty($igdbGame['external_games'])) {
+                foreach ($igdbGame['external_games'] as $ext) {
+                    if (($ext['category'] ?? null) === 1 && ! empty($ext['uid'])) {
+                        $steamAppId = (int) $ext['uid'];
+                        break;
+                    }
+                }
+            }
 
             // Store IGDB cover.image_id in cover_image_id
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
@@ -536,15 +562,18 @@ class Game extends Model
                 'hero_image_id' => $heroImageId,
                 'logo_image_id' => $logoImageId,
                 'game_type' => $igdbGame['game_type'] ?? 0,
-                'steam_data' => $igdbGame['steam'] ?? null,
                 'screenshots' => $igdbGame['screenshots'] ?? null,
                 'trailers' => $igdbGame['videos'] ?? null,
                 'similar_games' => $igdbGame['similar_games'] ?? null,
+                'last_igdb_sync_at' => now(),
             ]);
 
             // Sync relations (platforms, genres, game modes, release dates)
             self::syncRelations($game, $igdbGame);
             self::syncReleaseDates($game, $igdbGame['release_dates'] ?? null);
+
+            // Sync external game sources (Steam, GOG, Epic, etc.)
+            $igdbService->syncExternalSources($game, $igdbGame);
 
             // Dispatch job to fetch missing images asynchronously
             if (! empty($imagesToFetch)) {
@@ -684,7 +713,7 @@ class Game extends Model
         }
 
         // 4. Missing data (0-10 points)
-        if (! $this->cover_image_id || ! $this->summary || ! $this->steam_data) {
+        if (! $this->cover_image_id || ! $this->summary) {
             $score += 10;
         }
 
@@ -740,7 +769,7 @@ class Game extends Model
                              similar_games.name, similar_games.cover.image_id, similar_games.id,
                              screenshots.image_id,
                              videos.video_id,
-                             external_games.category, external_games.uid,
+                             external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
                              release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
@@ -760,9 +789,6 @@ class Game extends Model
 
             $igdbGame = $response->json()[0];
 
-            // Enrich with Steam data
-            $igdbGame = $igdbService->enrichWithSteamData([$igdbGame])[0] ?? $igdbGame;
-
             // Detect changes using hash comparison
             $currentHash = $this->generateDataHash();
 
@@ -775,8 +801,6 @@ class Game extends Model
                     : $this->first_release_date,
                 'cover_image_id' => $igdbGame['cover']['image_id'] ?? $this->cover_image_id,
                 'game_type' => $igdbGame['game_type'] ?? $this->game_type,
-                'steam_data' => $igdbGame['steam'] ?? $this->steam_data,
-                'steam_wishlist_count' => $igdbGame['steam']['wishlist_count'] ?? $this->steam_wishlist_count,
                 'similar_games' => $igdbGame['similar_games'] ?? $this->similar_games,
                 'screenshots' => $igdbGame['screenshots'] ?? $this->screenshots,
                 'trailers' => $igdbGame['videos'] ?? $this->trailers,
@@ -795,6 +819,9 @@ class Game extends Model
                 self::syncRelations($this, $igdbGame);
                 self::syncReleaseDates($this, $igdbGame['release_dates'] ?? null);
 
+                // Sync external game sources (Steam, GOG, Epic, etc.)
+                $igdbService->syncExternalSources($this, $igdbGame);
+
                 \Log::info('Updated game data from IGDB', [
                     'igdb_id' => $this->igdb_id,
                     'name' => $this->name,
@@ -804,7 +831,8 @@ class Game extends Model
                 return true;
             }
 
-            // Even if no changes, update sync timestamp
+            // Even if no changes, sync external sources and update timestamp
+            $igdbService->syncExternalSources($this, $igdbGame);
             $this->update(['last_igdb_sync_at' => now()]);
 
             \Log::info('No changes detected for game', [
@@ -837,9 +865,6 @@ class Game extends Model
             'first_release_date' => $data['first_release_date'] ?? '',
             'cover_image_id' => $data['cover_image_id'] ?? '',
             'game_type' => $data['game_type'] ?? 0,
-            'steam_data' => is_string($data['steam_data'] ?? null)
-                ? $data['steam_data']
-                : json_encode($data['steam_data'] ?? []),
             'screenshots' => is_string($data['screenshots'] ?? null)
                 ? $data['screenshots']
                 : json_encode($data['screenshots'] ?? []),

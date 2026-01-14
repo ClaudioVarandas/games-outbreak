@@ -23,8 +23,7 @@ class FetchGameImages implements ShouldQueue
         public ?int $steamAppId = null,
         public ?int $igdbId = null,
         public array $imageTypes = ['cover', 'hero', 'logo']
-    ) {
-    }
+    ) {}
 
     /**
      * Execute the job.
@@ -32,29 +31,39 @@ class FetchGameImages implements ShouldQueue
     public function handle(IgdbService $igdbService): void
     {
         $game = Game::find($this->gameId);
-        
-        if (!$game) {
+
+        if (! $game) {
             \Log::warning("FetchGameImages: Game {$this->gameId} not found");
+
             return;
+        }
+
+        // Get Steam AppID using dual lookup: constructor param -> external sources -> steam_data (deprecated)
+        $steamAppId = $this->steamAppId;
+        if (! $steamAppId) {
+            $steamAppId = $igdbService->getSteamAppIdFromSources($game);
+        }
+        if (! $steamAppId && ! empty($game->steam_data['appid'])) {
+            $steamAppId = (int) $game->steam_data['appid'];
         }
 
         $updates = [];
 
         foreach ($this->imageTypes as $type) {
             // Skip if image already exists
-            $imageField = match($type) {
+            $imageField = match ($type) {
                 'cover' => 'cover_image_id',
                 'hero' => 'hero_image_id',
                 'logo' => 'logo_image_id',
                 default => null,
             };
 
-            if (!$imageField) {
+            if (! $imageField) {
                 continue;
             }
 
             // Only fetch if the field is null or empty
-            if (!empty($game->$imageField)) {
+            if (! empty($game->$imageField)) {
                 continue;
             }
 
@@ -62,7 +71,7 @@ class FetchGameImages implements ShouldQueue
             $imageId = $igdbService->fetchImageFromSteamGridDb(
                 $this->gameName,
                 $type,
-                $this->steamAppId,
+                $steamAppId,
                 $this->igdbId
             );
 
@@ -72,7 +81,7 @@ class FetchGameImages implements ShouldQueue
         }
 
         // Update game record if any images were fetched
-        if (!empty($updates)) {
+        if (! empty($updates)) {
             $game->update($updates);
             \Log::info("FetchGameImages: Updated images for game {$this->gameId}", $updates);
         }

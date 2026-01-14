@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
 // === GAME UPDATE SCHEDULES ===
@@ -31,5 +29,21 @@ Schedule::command('igdb:update-popular --limit=100 --min-views=5')
 Schedule::command('igdb:update-stale --min-days=90 --batch-size=50')
     ->monthlyOn(1, '2:00')
     ->name('igdb-stale-games-update')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// === EXTERNAL SOURCES SCHEDULES ===
+
+// Sync external game source definitions (Steam, GOG, Epic, etc.) - Monthly on 1st at 1 AM
+Schedule::command('igdb:sync-sources')
+    ->monthlyOn(1, '1:00')
+    ->name('igdb-sync-sources')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// SteamSpy data sync for games with Steam links - Daily at 5 AM
+Schedule::command('steamspy:sync --limit=100 --threshold=50')
+    ->dailyAt('5:00')
+    ->name('steamspy-sync')
     ->withoutOverlapping()
     ->onOneServer();

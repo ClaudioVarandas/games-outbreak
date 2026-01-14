@@ -27,25 +27,27 @@ class RefreshGameListGames extends Command
         // Load the game list
         $gameList = GameList::with('games')->find($gameListId);
 
-        if (!$gameList) {
+        if (! $gameList) {
             $this->error("Game list with ID {$gameListId} not found.");
+
             return self::FAILURE;
         }
 
         $this->info("Refreshing games in list: {$gameList->name}");
-        $this->info("Total games: " . $gameList->games->count());
+        $this->info('Total games: '.$gameList->games->count());
 
         if ($gameList->games->isEmpty()) {
             $this->warn('No games found in this list.');
+
             return self::SUCCESS;
         }
 
         // Filter games if not forcing refresh
         $gamesToRefresh = $gameList->games;
-        if (!$force) {
+        if (! $force) {
             $gamesToRefresh = $gamesToRefresh->filter(function ($game) {
                 // Skip if synced within last 24 hours
-                return !$game->last_igdb_sync_at ||
+                return ! $game->last_igdb_sync_at ||
                        $game->last_igdb_sync_at->lt(now()->subDay());
             });
 
@@ -57,18 +59,20 @@ class RefreshGameListGames extends Command
 
         if ($gamesToRefresh->isEmpty()) {
             $this->info('All games were recently synced. Use --force to refresh anyway.');
+
             return self::SUCCESS;
         }
 
-        $this->info("Refreshing " . $gamesToRefresh->count() . " game(s)...");
+        $this->info('Refreshing '.$gamesToRefresh->count().' game(s)...');
         $bar = $this->output->createProgressBar($gamesToRefresh->count());
         $bar->start();
 
         foreach ($gamesToRefresh as $game) {
-            if (!$game->igdb_id) {
+            if (! $game->igdb_id) {
                 $this->newLine();
                 $this->warn("Skipping '{$game->name}' - no IGDB ID");
                 $bar->advance();
+
                 continue;
             }
 
@@ -80,7 +84,7 @@ class RefreshGameListGames extends Command
                              similar_games.name, similar_games.cover.image_id, similar_games.id,
                              screenshots.image_id,
                              videos.video_id,
-                             external_games.category, external_games.uid,
+                             external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
                              release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
@@ -96,24 +100,32 @@ class RefreshGameListGames extends Command
                     $this->newLine();
                     $this->warn("Could not fetch '{$game->name}' (IGDB ID: {$game->igdb_id})");
                     $bar->advance();
+
                     continue;
                 }
 
                 $rawIgdbResponse = $response->json()[0];
                 $igdbGame = $rawIgdbResponse;
 
-                // Enrich with Steam data
-                $igdbGame = $igdb->enrichWithSteamData([$igdbGame])[0] ?? $igdbGame;
-
                 $gameName = $igdbGame['name'] ?? $game->name;
-                $steamAppId = $igdbGame['steam']['appid'] ?? null;
                 $igdbGameId = $igdbGame['id'] ?? null;
+
+                // Extract Steam AppID from external_games (category 1 = Steam)
+                $steamAppId = null;
+                if (! empty($igdbGame['external_games'])) {
+                    foreach ($igdbGame['external_games'] as $ext) {
+                        if (($ext['category'] ?? null) === 1 && ! empty($ext['uid'])) {
+                            $steamAppId = (int) $ext['uid'];
+                            break;
+                        }
+                    }
+                }
 
                 // Store IGDB cover.image_id in cover_image_id
                 $coverImageId = $igdbGame['cover']['image_id'] ?? null;
 
                 // If IGDB didn't provide a cover, try SteamGridDB
-                if (!$coverImageId) {
+                if (! $coverImageId) {
                     $steamGridDbCover = $igdb->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
                     if ($steamGridDbCover) {
                         $coverImageId = $steamGridDbCover;
@@ -122,7 +134,7 @@ class RefreshGameListGames extends Command
 
                 // For hero: Use IGDB cover if available, else fetch from SteamGridDB
                 $heroImageId = $igdbGame['cover']['image_id'] ?? null;
-                if (!$heroImageId) {
+                if (! $heroImageId) {
                     $steamGridDbHero = $igdb->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
                     if ($steamGridDbHero) {
                         $heroImageId = $steamGridDbHero;
@@ -144,8 +156,6 @@ class RefreshGameListGames extends Command
                     'logo_image_id' => $logoImageId,
                     'game_type' => $igdbGame['game_type'] ?? 0,
                     'raw_igdb_json' => $rawIgdbResponse,
-                    'steam_data' => $igdbGame['steam'] ?? null,
-                    'steam_wishlist_count' => $igdbGame['steam']['wishlist_count'] ?? null,
                     'similar_games' => $igdbGame['similar_games'] ?? null,
                     'screenshots' => $igdbGame['screenshots'] ?? null,
                     'trailers' => $igdbGame['game_videos'] ?? null,
@@ -159,7 +169,7 @@ class RefreshGameListGames extends Command
                 $game->calculateAndSaveUpdatePriority();
 
                 // Sync platforms
-                if (!empty($igdbGame['platforms'])) {
+                if (! empty($igdbGame['platforms'])) {
                     $platformModelIds = collect($igdbGame['platforms'])->map(function ($plat) {
                         return Platform::firstOrCreate(
                             ['igdb_id' => $plat['id']],
@@ -171,7 +181,7 @@ class RefreshGameListGames extends Command
                 }
 
                 // Sync genres
-                if (!empty($igdbGame['genres'])) {
+                if (! empty($igdbGame['genres'])) {
                     $genreIds = collect($igdbGame['genres'])->map(function ($genre) {
                         return Genre::firstOrCreate(
                             ['igdb_id' => $genre['id']],
@@ -183,7 +193,7 @@ class RefreshGameListGames extends Command
                 }
 
                 // Sync game modes
-                if (!empty($igdbGame['game_modes'])) {
+                if (! empty($igdbGame['game_modes'])) {
                     $modeIds = collect($igdbGame['game_modes'])->map(function ($mode) {
                         return GameMode::firstOrCreate(
                             ['igdb_id' => $mode['id']],
@@ -195,7 +205,7 @@ class RefreshGameListGames extends Command
                 }
 
                 // Sync companies (developers/publishers)
-                if (!empty($igdbGame['involved_companies'])) {
+                if (! empty($igdbGame['involved_companies'])) {
                     $syncData = [];
                     foreach ($igdbGame['involved_companies'] as $involvedCompany) {
                         if (empty($involvedCompany['company'])) {
@@ -216,7 +226,7 @@ class RefreshGameListGames extends Command
                 }
 
                 // Sync game engines
-                if (!empty($igdbGame['game_engines'])) {
+                if (! empty($igdbGame['game_engines'])) {
                     $engineIds = collect($igdbGame['game_engines'])->map(function ($engine) {
                         return \App\Models\GameEngine::firstOrCreate(
                             ['igdb_id' => $engine['id']],
@@ -228,7 +238,7 @@ class RefreshGameListGames extends Command
                 }
 
                 // Sync player perspectives
-                if (!empty($igdbGame['player_perspectives'])) {
+                if (! empty($igdbGame['player_perspectives'])) {
                     $perspectiveIds = collect($igdbGame['player_perspectives'])->map(function ($perspective) {
                         return \App\Models\PlayerPerspective::firstOrCreate(
                             ['igdb_id' => $perspective['id']],
@@ -239,9 +249,12 @@ class RefreshGameListGames extends Command
                     $game->playerPerspectives()->sync($perspectiveIds);
                 }
 
+                // Sync external game sources (Steam, GOG, Epic, etc.)
+                $igdb->syncExternalSources($game, $igdbGame);
+
             } catch (\Exception $e) {
                 $this->newLine();
-                $this->error("Failed to refresh '{$game->name}': " . $e->getMessage());
+                $this->error("Failed to refresh '{$game->name}': ".$e->getMessage());
             }
 
             $bar->advance();

@@ -243,7 +243,7 @@ class UserListController extends Controller
                              similar_games.name, similar_games.cover.image_id, similar_games.id,
                              screenshots.image_id,
                              videos.video_id,
-                             external_games.category, external_games.uid,
+                             external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
                              release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,

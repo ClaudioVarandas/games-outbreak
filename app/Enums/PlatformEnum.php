@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Enums;
@@ -78,9 +79,15 @@ enum PlatformEnum: int
     public static function getActivePlatforms(): \Illuminate\Support\Collection
     {
         $activeIds = config('platforms.active', []);
+
         return collect(self::cases())
-            ->filter(fn($enum) => in_array($enum->value, $activeIds))
-            ->keyBy(fn($enum) => $enum->value);
+            ->filter(fn ($enum) => in_array($enum->value, $activeIds))
+            ->keyBy(fn ($enum) => $enum->value);
+    }
+
+    public static function getActivePlatformsValues(): array
+    {
+        return self::getActivePlatforms()->pluck('value')->values()->all();
     }
 
     /**
@@ -90,6 +97,7 @@ enum PlatformEnum: int
     public static function getPriority(int $igdbId): int
     {
         $priorities = config('platforms.priority', []);
+
         return $priorities[$igdbId] ?? 999;
     }
 }
