@@ -66,7 +66,6 @@ This application is a Laravel application and its main Laravel ecosystems packag
 
 - php - 8.4.16
 - laravel/framework (LARAVEL) - v12
-- laravel/nightwatch (NIGHTWATCH) - v1
 - laravel/prompts (PROMPTS) - v0
 - laravel/breeze (BREEZE) - v2
 - laravel/mcp (MCP) - v0
@@ -287,8 +286,6 @@ it('returns all', function () {
     $response->assertSuccessful();
 });
 </code-snippet>
-
-- When testing form submissions that redirect back with errors, assert that old input is preserved using `assertSessionHasOldInput()`.
 
 ### Mocking
 - Mocking can be very helpful when appropriate.
