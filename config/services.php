@@ -36,6 +36,10 @@ return [
     ],
     'igdb' => [
         'rate_limit_delay_ms' => env('IGDB_RATE_LIMIT_DELAY_MS', 280000), // Default 280ms
+        // External sources to sync (IGDB IDs): 1=Steam, 5=GOG, 26=Epic, 36=PlayStation
+        'active_external_sources' => array_map('intval', array_filter(
+            explode(',', env('IGDB_ACTIVE_EXTERNAL_SOURCES', '1'))
+        )),
     ],
     'steamgriddb' => [
         'api_key' => env('STEAMGRIDDB_API_KEY'),

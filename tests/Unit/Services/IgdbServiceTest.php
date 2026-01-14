@@ -590,6 +590,53 @@ class IgdbServiceTest extends TestCase
         $this->assertEquals(1, $game->gameExternalSources()->count());
     }
 
+    public function test_sync_external_sources_respects_active_sources_config(): void
+    {
+        // Create both Steam and GOG sources in DB
+        ExternalGameSource::create([
+            'igdb_id' => 1,
+            'name' => 'Steam',
+            'slug' => 'steam',
+        ]);
+
+        $gogSource = ExternalGameSource::create([
+            'igdb_id' => 5,
+            'name' => 'GOG',
+            'slug' => 'gog',
+        ]);
+
+        $game = Game::factory()->create([
+            'igdb_id' => 12345,
+            'name' => 'Test Game',
+        ]);
+
+        $igdbGame = [
+            'id' => 12345,
+            'external_games' => [
+                ['external_game_source' => 1, 'uid' => '123456'],
+                ['external_game_source' => 5, 'uid' => 'test-game-gog'],
+            ],
+        ];
+
+        // Default config only has Steam (1) active
+        $this->service->syncExternalSources($game, $igdbGame);
+
+        // Should only have Steam - GOG is not in active_external_sources config
+        $this->assertEquals(1, $game->gameExternalSources()->count());
+        $this->assertDatabaseMissing('game_external_sources', [
+            'game_id' => $game->id,
+            'external_game_source_id' => $gogSource->id,
+        ]);
+
+        // Now enable GOG in config
+        config(['services.igdb.active_external_sources' => [1, 5]]);
+
+        $this->service->syncExternalSources($game, $igdbGame);
+
+        // Now should have both
+        $this->assertEquals(2, $game->gameExternalSources()->count());
+    }
+
     public function test_get_steam_app_id_from_sources_returns_steam_uid(): void
     {
         // Create external game source in DB

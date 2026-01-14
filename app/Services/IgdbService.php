@@ -100,7 +100,14 @@ class IgdbService
             return;
         }
 
+        $activeSources = config('services.igdb.active_external_sources', [1]);
+
         foreach ($sources as $sourceData) {
+            // Only sync sources that are configured as active
+            if (! in_array($sourceData->sourceId, $activeSources, true)) {
+                continue;
+            }
+
             $externalGameSource = ExternalGameSource::where('igdb_id', $sourceData->sourceId)->first();
 
             if (! $externalGameSource) {
