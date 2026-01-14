@@ -120,6 +120,7 @@ class SteamSpyServiceTest extends TestCase
     {
         $game = Game::factory()->create([
             'update_priority' => 60, // High priority
+            'first_release_date' => now()->subMonths(3), // Released 3 months ago (not recently released)
         ]);
 
         $sourceLink = new GameExternalSource([
@@ -139,6 +140,7 @@ class SteamSpyServiceTest extends TestCase
     {
         $game = Game::factory()->create([
             'update_priority' => 60, // High priority
+            'first_release_date' => now()->subMonths(3), // Released 3 months ago (not recently released)
         ]);
 
         $sourceLink = new GameExternalSource([
@@ -158,6 +160,7 @@ class SteamSpyServiceTest extends TestCase
     {
         $game = Game::factory()->create([
             'update_priority' => 20, // Low priority
+            'first_release_date' => now()->subMonths(3), // Released 3 months ago (not recently released)
         ]);
 
         $sourceLink = new GameExternalSource([
@@ -177,6 +180,7 @@ class SteamSpyServiceTest extends TestCase
     {
         $game = Game::factory()->create([
             'update_priority' => 20, // Low priority
+            'first_release_date' => now()->subMonths(3), // Released 3 months ago (not recently released)
         ]);
 
         $sourceLink = new GameExternalSource([
@@ -184,6 +188,66 @@ class SteamSpyServiceTest extends TestCase
             'external_game_source_id' => 1,
             'external_uid' => '123456',
             'last_synced_at' => now()->subDays(15),
+        ]);
+        $sourceLink->setRelation('game', $game);
+
+        $isStale = $this->service->isStale($game, $sourceLink);
+
+        $this->assertFalse($isStale);
+    }
+
+    public function test_is_stale_returns_true_when_synced_before_release(): void
+    {
+        $game = Game::factory()->create([
+            'update_priority' => 60,
+            'first_release_date' => now()->subDays(2), // Released 2 days ago
+        ]);
+
+        $sourceLink = new GameExternalSource([
+            'game_id' => $game->id,
+            'external_game_source_id' => 1,
+            'external_uid' => '123456',
+            'last_synced_at' => now()->subDays(5), // Synced 5 days ago (before release)
+        ]);
+        $sourceLink->setRelation('game', $game);
+
+        $isStale = $this->service->isStale($game, $sourceLink);
+
+        $this->assertTrue($isStale);
+    }
+
+    public function test_is_stale_returns_true_for_recently_released_game_after_3_days(): void
+    {
+        $game = Game::factory()->create([
+            'update_priority' => 20,
+            'first_release_date' => now()->subDays(7), // Released 7 days ago (within 14 day window)
+        ]);
+
+        $sourceLink = new GameExternalSource([
+            'game_id' => $game->id,
+            'external_game_source_id' => 1,
+            'external_uid' => '123456',
+            'last_synced_at' => now()->subDays(4), // Synced 4 days ago (after 3 day threshold)
+        ]);
+        $sourceLink->setRelation('game', $game);
+
+        $isStale = $this->service->isStale($game, $sourceLink);
+
+        $this->assertTrue($isStale);
+    }
+
+    public function test_is_stale_returns_false_for_recently_released_game_within_3_days(): void
+    {
+        $game = Game::factory()->create([
+            'update_priority' => 20,
+            'first_release_date' => now()->subDays(7), // Released 7 days ago (within 14 day window)
+        ]);
+
+        $sourceLink = new GameExternalSource([
+            'game_id' => $game->id,
+            'external_game_source_id' => 1,
+            'external_uid' => '123456',
+            'last_synced_at' => now()->subDays(2), // Synced 2 days ago (within 3 day threshold)
         ]);
         $sourceLink->setRelation('game', $game);
 

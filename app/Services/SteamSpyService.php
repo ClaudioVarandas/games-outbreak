@@ -21,6 +21,10 @@ class SteamSpyService
 
     private const LOW_PRIORITY_STALE_DAYS = 30;
 
+    private const RECENTLY_RELEASED_DAYS = 14;
+
+    private const RECENTLY_RELEASED_STALE_DAYS = 3;
+
     public function fetchGameDetails(string $appId): ?array
     {
         usleep(self::RATE_LIMIT_DELAY_MS);
@@ -112,13 +116,29 @@ class SteamSpyService
 
     public function isStale(Game $game, GameExternalSource $sourceLink): bool
     {
+        // Never synced = always stale
         if (! $sourceLink->last_synced_at) {
             return true;
         }
 
-        $daysSinceSync = $sourceLink->last_synced_at->diffInDays(now());
-        $isHighPriority = ($game->update_priority ?? 0) >= self::HIGH_PRIORITY_THRESHOLD;
+        $releaseDate = $game->first_release_date;
+        $lastSyncedAt = $sourceLink->last_synced_at;
+        $now = now();
 
+        // Synced before release AND game is now released = stale (need post-release data)
+        if ($releaseDate && $lastSyncedAt->lt($releaseDate) && $releaseDate->lte($now)) {
+            return true;
+        }
+
+        $daysSinceSync = $lastSyncedAt->diffInDays($now);
+
+        // Recently released games (last 14 days) need more frequent syncs
+        if ($releaseDate && $releaseDate->diffInDays($now) <= self::RECENTLY_RELEASED_DAYS) {
+            return $daysSinceSync >= self::RECENTLY_RELEASED_STALE_DAYS;
+        }
+
+        // Standard stale check based on priority
+        $isHighPriority = ($game->update_priority ?? 0) >= self::HIGH_PRIORITY_THRESHOLD;
         $staleDays = $isHighPriority
             ? self::HIGH_PRIORITY_STALE_DAYS
             : self::LOW_PRIORITY_STALE_DAYS;
