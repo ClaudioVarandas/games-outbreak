@@ -10,6 +10,22 @@
 
         $isInBacklog = $backlogList && $backlogList->games->contains('id', $game->id);
         $isInWishlist = $wishlistList && $wishlistList->games->contains('id', $game->id);
+
+        $systemListsByType = collect();
+        if ($user->isAdmin()) {
+            $systemListsByType = \App\Models\GameList::where('is_system', true)
+                ->where('is_active', true)
+                ->whereIn('list_type', [
+                    \App\Enums\ListTypeEnum::MONTHLY->value,
+                    \App\Enums\ListTypeEnum::SEASONED->value,
+                    \App\Enums\ListTypeEnum::INDIE_GAMES->value,
+                    \App\Enums\ListTypeEnum::EVENTS->value,
+                ])
+                ->with('games')
+                ->orderBy('name')
+                ->get()
+                ->groupBy('list_type');
+        }
     @endphp
 
     <div class="bg-gray-800 p-6 rounded-xl" x-data="{
@@ -20,6 +36,8 @@
         isInWishlist: {{ $isInWishlist ? 'true' : 'false' }},
         selectedListId: null,
         addToListLoading: false,
+        selectedSystemListId: null,
+        systemListLoading: false,
         notification: { show: false, message: '', type: 'success' },
         showNotification(message, type = 'success') {
             this.notification = { show: true, message, type };
@@ -132,6 +150,41 @@
                 this.showNotification('Failed to add game to list', 'error');
             } finally {
                 this.addToListLoading = false;
+            }
+        },
+        async addToSystemList() {
+            if (!this.selectedSystemListId || this.systemListLoading) return;
+            this.systemListLoading = true;
+            try {
+                const [type, slug] = this.selectedSystemListId.split(':');
+
+                const formData = new FormData();
+                formData.append('_token', '{{ csrf_token() }}');
+                formData.append('game_id', '{{ $game->igdb_id }}');
+
+                const response = await fetch(`/admin/system-lists/${type}/${slug}/games`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: formData,
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    this.selectedSystemListId = null;
+                    this.showNotification('Game added to system list successfully!', 'success');
+                } else if (data.info) {
+                    this.showNotification(data.info, 'info');
+                } else {
+                    this.showNotification(data.error || data.message || 'Failed to add game to system list', 'error');
+                }
+            } catch (error) {
+                console.error('Error adding to system list:', error);
+                this.showNotification('Failed to add game to system list', 'error');
+            } finally {
+                this.systemListLoading = false;
             }
         }
     }">
@@ -262,6 +315,48 @@
                     <p class="text-xs text-gray-400 mt-2">Create a custom list first to add games to it.</p>
                 @endif
             </div>
+
+            <!-- System Lists Section (Admin Only) -->
+            @if($user->isAdmin() && $systemListsByType->isNotEmpty())
+                <div class="pt-4 border-t border-gray-700">
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-4">System Lists</p>
+                    <div class="flex items-stretch gap-2">
+                        <select x-model="selectedSystemListId"
+                                :disabled="systemListLoading"
+                                class="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
+                            <option value="">Select a system list...</option>
+                            @foreach($systemListsByType as $listType => $lists)
+                                @php
+                                    $typeEnum = \App\Enums\ListTypeEnum::fromValue($listType);
+                                    $typeSlug = $typeEnum?->toSlug() ?? $listType;
+                                    $typeLabel = $typeEnum?->label() ?? ucfirst($listType);
+                                @endphp
+                                <optgroup label="{{ $typeLabel }}">
+                                    @foreach($lists as $list)
+                                        @php
+                                            $isInList = $list->games->contains('id', $game->id);
+                                        @endphp
+                                        <option value="{{ $typeSlug }}:{{ $list->slug }}" {{ $isInList ? 'disabled' : '' }}>
+                                            {{ $list->name }}{{ $isInList ? ' (already added)' : '' }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        </select>
+                        <button @click="addToSystemList()"
+                                :disabled="!selectedSystemListId || systemListLoading"
+                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shrink-0">
+                            <svg x-show="!systemListLoading" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            <svg x-show="systemListLoading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            @endif
 
             <!-- Create New List Link -->
             <div class="pt-2 border-t border-gray-700">
