@@ -327,81 +327,114 @@ class GamesController extends Controller
                     ->toArray();
             }
 
-            // Normalize query: remove common punctuation and split into words
-            // This allows "Dynasty Warriors Origins" to match "Dynasty Warriors: Origins"
-            $normalizedQuery = preg_replace('/[:;,\-\.]/', ' ', $query);
-            $normalizedQuery = preg_replace('/\s+/', ' ', $normalizedQuery);
-            $normalizedQuery = trim($normalizedQuery);
-
-            // Split into words and build IGDB query that matches all words
-            // This works around IGDB's issue where removing punctuation breaks exact phrase matching
-            $words = array_filter(explode(' ', $normalizedQuery), fn ($w) => strlen($w) > 0);
             $platformsList = implode(',', $validPlatformIds);
+            $escapedQuery = str_replace('"', "'", $query);
 
-            // Build IGDB query: search for each word individually (AND logic)
-            // This allows "Dynasty Warriors Origins" to match "Dynasty Warriors: Origins"
-            $nameConditions = [];
-            foreach ($words as $word) {
-                $escapedWord = str_replace('"', "'", $word);
-                $nameConditions[] = 'name ~ *"'.$escapedWord.'"*';
+            // Strategy 1: Use IGDB /search endpoint for fuzzy matching (like IGDB website)
+            // This handles typos, word order variations, and punctuation differences
+            $searchQuery = 'fields game.id, game.name, game.first_release_date, game.cover.image_id, game.platforms.id, game.platforms.name, game.game_type; '.
+                'search "'.$escapedQuery.'"; '.
+                'where game != null & game.platforms = ('.$platformsList.') & game.game_type = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9); '.
+                'limit 10;';
+
+            $searchResponse = Http::igdb()
+                ->withBody($searchQuery, 'text/plain')
+                ->post('https://api.igdb.com/v4/search');
+
+            $searchResults = $searchResponse->json() ?? [];
+
+            // Extract game data from search results (nested under 'game' key)
+            $igdbResponseData = collect($searchResults)
+                ->filter(fn ($item) => isset($item['game']))
+                ->map(fn ($item) => $item['game'])
+                ->values()
+                ->toArray();
+
+            // Strategy 2: If search returned few results, try without platform filter (fallback)
+            if (count($igdbResponseData) < 3) {
+                $broadSearchQuery = 'fields game.id, game.name, game.first_release_date, game.cover.image_id, game.platforms.id, game.platforms.name, game.game_type; '.
+                    'search "'.$escapedQuery.'"; '.
+                    'where game != null & game.game_type = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9); '.
+                    'limit 10;';
+
+                $broadResponse = Http::igdb()
+                    ->withBody($broadSearchQuery, 'text/plain')
+                    ->post('https://api.igdb.com/v4/search');
+
+                $broadResults = $broadResponse->json() ?? [];
+
+                // Merge broad results, avoiding duplicates
+                $existingIds = collect($igdbResponseData)->pluck('id')->toArray();
+                $newResults = collect($broadResults)
+                    ->filter(fn ($item) => isset($item['game']) && ! in_array($item['game']['id'] ?? null, $existingIds))
+                    ->map(fn ($item) => $item['game'])
+                    ->values()
+                    ->toArray();
+
+                $igdbResponseData = array_merge($igdbResponseData, $newResults);
             }
-            $nameWhereClause = implode(' & ', $nameConditions);
 
-            // Use 'game_type' instead of deprecated 'category'
-            // Included game_type values: 0 = main game, 1 = DLC/Add-on, 2 = expansion, 3 = port, 4 = standalone expansion, 5 = bundle, 8 = remake, 9 = remaster, 10 = expanded game
-            // First query: games matching name AND platform filter
-            $igdbQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type, category, collection; '.
-                'where '.$nameWhereClause.' '.
-                '& platforms = ('.$platformsList.') '.
-                '& game_type = (0, 1, 2, 3, 4, 5, 8, 9, 10); '.
-                'sort first_release_date desc; '.
-                'limit 8;';
+            // Strategy 3: If still no results, fall back to word-based /games query
+            if (empty($igdbResponseData)) {
+                $normalizedQuery = preg_replace('/[:;,\-\.]/', ' ', $query);
+                $normalizedQuery = preg_replace('/\s+/', ' ', $normalizedQuery);
+                $normalizedQuery = trim($normalizedQuery);
 
-            // Second query: bundles/ports with "Bundle" in name (without platform filter, like IGDB website does)
-            $bundleQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type, category, collection; '.
-                'where '.$nameWhereClause.' '.
-                '& (name ~ *"Bundle"* | name ~ *"Collection"*) '.
-                '& game_type = (3, 5); '.
-                'sort first_release_date desc; '.
-                'limit 3;';
+                $words = array_filter(explode(' ', $normalizedQuery), fn ($w) => strlen($w) > 0);
+                $nameConditions = [];
+                foreach ($words as $word) {
+                    $escapedWord = str_replace('"', "'", $word);
+                    $nameConditions[] = 'name ~ *"'.$escapedWord.'"*';
+                }
+                $nameWhereClause = implode(' & ', $nameConditions);
 
-            $response = Http::igdb()
-                ->withBody($igdbQuery, 'text/plain')
-                ->post('https://api.igdb.com/v4/games');
+                // Try with platform filter first
+                $gamesQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type; '.
+                    'where '.$nameWhereClause.' & platforms = ('.$platformsList.') & game_type = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9); '.
+                    'sort first_release_date desc; limit 8;';
 
-            $igdbResponseData = $response->json() ?? [];
+                $gamesResponse = Http::igdb()
+                    ->withBody($gamesQuery, 'text/plain')
+                    ->post('https://api.igdb.com/v4/games');
 
-            // Fetch bundles separately (without platform filter, like IGDB website)
-            $bundleResponse = Http::igdb()
-                ->withBody($bundleQuery, 'text/plain')
-                ->post('https://api.igdb.com/v4/games');
+                $igdbResponseData = $gamesResponse->json() ?? [];
 
-            $bundleData = $bundleResponse->json() ?? [];
+                // If still empty, try without platform filter
+                if (empty($igdbResponseData)) {
+                    $broadGamesQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type; '.
+                        'where '.$nameWhereClause.' & game_type = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9); '.
+                        'sort first_release_date desc; limit 8;';
 
-            // Merge results: add bundles at the beginning if they're not already in results
-            $existingIds = collect($igdbResponseData)->pluck('id')->toArray();
-            $newBundles = collect($bundleData)->filter(fn ($bundle) => ! in_array($bundle['id'] ?? null, $existingIds))->toArray();
+                    $broadGamesResponse = Http::igdb()
+                        ->withBody($broadGamesQuery, 'text/plain')
+                        ->post('https://api.igdb.com/v4/games');
 
-            // Prepend bundles to results (like IGDB website does)
-            $igdbResponseData = array_merge($newBundles, $igdbResponseData);
+                    $igdbResponseData = $broadGamesResponse->json() ?? [];
+                }
+            }
 
-            // Limit to 8 total results
+            // Filter out non-array items and limit to 8 total results
+            $igdbResponseData = array_filter($igdbResponseData, fn ($item) => is_array($item) && isset($item['id']));
             $igdbResponseData = array_slice($igdbResponseData, 0, 8);
 
-            if ($response->failed() || empty($igdbResponseData)) {
+            if (empty($igdbResponseData)) {
                 return response()->json([]);
             }
 
             $igdbResults = collect($igdbResponseData)->map(function ($game) {
+                if (! is_array($game) || ! isset($game['id'])) {
+                    return null;
+                }
+
                 $gameType = isset($game['game_type']) ? (int) $game['game_type'] : 0;
                 $gameName = $game['name'] ?? 'Unknown Game';
 
-                // Detect bundles by name (IGDB sometimes classifies bundles as PORT/3 instead of BUNDLE/5)
+                // Detect bundles by name (IGDB sometimes doesn't classify bundles correctly)
                 $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
 
                 // If it's a bundle by name, treat it as bundle regardless of game_type
-                if ($isBundle && $gameType !== 5) {
-                    $gameType = 5; // Force to BUNDLE
+                if ($isBundle && $gameType !== \App\Enums\GameTypeEnum::BUNDLE->value) {
+                    $gameType = \App\Enums\GameTypeEnum::BUNDLE->value;
                 }
 
                 $gameTypeEnum = \App\Enums\GameTypeEnum::fromValue($gameType) ?? \App\Enums\GameTypeEnum::MAIN;
@@ -442,7 +475,7 @@ class GamesController extends Controller
                     'game_type' => $gameType,
                     'game_type_label' => $gameTypeLabel,
                 ];
-            });
+            })->filter()->values();
 
             return response()->json($igdbResults);
 
@@ -605,10 +638,11 @@ class GamesController extends Controller
             $nameWhereClause = implode(' & ', $nameConditions);
 
             // Main query: games matching name AND platform filter
+            // IGDB game_type values: 0=Main, 1=DLC, 2=Expansion, 3=Bundle, 4=Standalone, 5=Mod, 6=Episode, 7=Season, 8=Remake, 9=Remaster
             $igdbQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type, category, collection; '.
                 'where '.$nameWhereClause.' '.
                 '& platforms = ('.$platformsList.') '.
-                '& game_type = (0, 1, 2, 3, 4, 5, 8, 9, 10); '.
+                '& game_type = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9); '.
                 'sort first_release_date desc; '.
                 'limit '.$perPage.'; '.
                 'offset '.$offset.';';
@@ -617,7 +651,7 @@ class GamesController extends Controller
             $bundleQuery = 'fields name, first_release_date, cover.image_id, platforms.id, platforms.name, game_type, category, collection; '.
                 'where '.$nameWhereClause.' '.
                 '& (name ~ *"Bundle"* | name ~ *"Collection"*) '.
-                '& game_type = (3, 5); '.
+                '& game_type = (3); '.
                 'sort first_release_date desc; '.
                 'limit 10;';
 
@@ -655,8 +689,8 @@ class GamesController extends Controller
 
                 // Detect bundles by name
                 $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
-                if ($isBundle && $gameType !== 5) {
-                    $gameType = 5;
+                if ($isBundle && $gameType !== \App\Enums\GameTypeEnum::BUNDLE->value) {
+                    $gameType = \App\Enums\GameTypeEnum::BUNDLE->value;
                 }
 
                 // Try to find existing game

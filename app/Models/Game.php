@@ -309,12 +309,12 @@ class Game extends Model
         $gameType = $this->game_type ?? 0;
         $gameName = $this->name ?? '';
 
-        // Detect bundles by name (IGDB sometimes classifies bundles as PORT/3 instead of BUNDLE/5)
+        // Detect bundles by name (IGDB sometimes doesn't classify bundles correctly)
         $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
 
         // If it's a bundle by name, treat it as bundle regardless of game_type
-        if ($isBundle && $gameType !== 5) {
-            $gameType = 5; // Force to BUNDLE
+        if ($isBundle && $gameType !== GameTypeEnum::BUNDLE->value) {
+            $gameType = GameTypeEnum::BUNDLE->value;
         }
 
         return GameTypeEnum::fromValue($gameType) ?? GameTypeEnum::MAIN;

@@ -1,19 +1,22 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Enums;
 
 enum GameTypeEnum: int
 {
+    // IGDB game_type values - https://api-docs.igdb.com/#game-type
     case MAIN = 0;
     case DLC = 1;
     case EXPANSION = 2;
-    case PORT = 3;
+    case BUNDLE = 3;
     case STANDALONE = 4;
-    case BUNDLE = 5;
+    case MOD = 5;
+    case EPISODE = 6;
+    case SEASON = 7;
     case REMAKE = 8;
     case REMASTER = 9;
-    case EXPANDED = 10;
 
     public function label(): string
     {
@@ -21,12 +24,13 @@ enum GameTypeEnum: int
             self::MAIN => 'Main Game',
             self::DLC => 'DLC',
             self::EXPANSION => 'Expansion',
-            self::PORT => 'Port',
-            self::STANDALONE => 'Standalone',
             self::BUNDLE => 'Bundle',
+            self::STANDALONE => 'Standalone',
+            self::MOD => 'Mod',
+            self::EPISODE => 'Episode',
+            self::SEASON => 'Season',
             self::REMAKE => 'Remake',
             self::REMASTER => 'Remaster',
-            self::EXPANDED => 'Expanded',
         };
     }
 
@@ -36,29 +40,18 @@ enum GameTypeEnum: int
             self::MAIN => 'bg-orange-600/80',
             self::DLC => 'bg-orange-600/80',
             self::EXPANSION => 'bg-orange-600/80',
-            self::PORT => 'bg-blue-600/80',
-            self::STANDALONE => 'bg-yellow-600/80',
             self::BUNDLE => 'bg-pink-600/80',
+            self::STANDALONE => 'bg-yellow-600/80',
+            self::MOD => 'bg-green-600/80',
+            self::EPISODE => 'bg-cyan-600/80',
+            self::SEASON => 'bg-indigo-600/80',
             self::REMAKE => 'bg-red-600/80',
             self::REMASTER => 'bg-yellow-500/80',
-            self::EXPANDED => 'bg-purple-600/80',
         };
     }
 
     public static function fromValue(int $value): ?self
     {
-        return match ($value) {
-            0 => self::MAIN,
-            1 => self::DLC,
-            2 => self::EXPANSION,
-            3 => self::PORT,
-            4 => self::STANDALONE,
-            5 => self::BUNDLE,
-            8 => self::REMAKE,
-            9 => self::REMASTER,
-            10 => self::EXPANDED,
-            default => null,
-        };
+        return self::tryFrom($value);
     }
 }
-

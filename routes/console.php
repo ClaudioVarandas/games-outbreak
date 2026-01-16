@@ -4,8 +4,8 @@ use Illuminate\Support\Facades\Schedule;
 
 // === GAME UPDATE SCHEDULES ===
 
-// Tier 1: Upcoming games (0-14 days ahead) - Twice daily
-Schedule::command('igdb:upcoming:update --days=3')
+// Tier 1: Upcoming games (0-7 days ahead) - Twice daily
+Schedule::command('igdb:upcoming:update --days=7')
     ->twiceDaily(4, 16)
     ->name('igdb-upcoming-update')
     ->withoutOverlapping()
