@@ -22,6 +22,10 @@ export default {
         'bg-yellow-500/80',
         'bg-pink-600/80',
         'bg-purple-600/80',
+        // Platform group colors (highlights tabs)
+        'bg-purple-600',
+        'bg-yellow-600',
+        'bg-cyan-600',
     ],
 
     theme: {

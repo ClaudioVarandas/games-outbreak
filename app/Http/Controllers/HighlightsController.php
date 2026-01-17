@@ -33,13 +33,19 @@ class HighlightsController extends Controller
                 $groupValue = $game->pivot->platform_group ?? PlatformGroupEnum::MULTIPLATFORM->value;
 
                 // Determine release date for month grouping
-                $releaseDate = $game->pivot->release_date ?? $game->first_release_date;
-                if ($releaseDate && is_string($releaseDate)) {
-                    $releaseDate = Carbon::parse($releaseDate);
-                }
+                // If is_tba is explicitly set, treat as TBA regardless of dates
+                if ($game->pivot->is_tba) {
+                    $monthKey = 'tba';
+                    $monthLabel = 'TBA';
+                } else {
+                    $releaseDate = $game->pivot->release_date ?? $game->first_release_date;
+                    if ($releaseDate && is_string($releaseDate)) {
+                        $releaseDate = Carbon::parse($releaseDate);
+                    }
 
-                $monthKey = $releaseDate ? $releaseDate->format('Y-m') : 'tba';
-                $monthLabel = $releaseDate ? $releaseDate->format('F Y') : 'TBA';
+                    $monthKey = $releaseDate ? $releaseDate->format('Y-m') : 'tba';
+                    $monthLabel = $releaseDate ? $releaseDate->format('F Y') : 'TBA';
+                }
 
                 if (! isset($gamesByGroup[$groupValue][$monthKey])) {
                     $gamesByGroup[$groupValue][$monthKey] = [
@@ -52,9 +58,18 @@ class HighlightsController extends Controller
                 $groupCounts[$groupValue] = ($groupCounts[$groupValue] ?? 0) + 1;
             }
 
-            // Sort months chronologically within each group
+            // Sort months chronologically within each group, with TBA first
             foreach ($gamesByGroup as $groupValue => $months) {
-                ksort($gamesByGroup[$groupValue]);
+                uksort($gamesByGroup[$groupValue], function ($a, $b) {
+                    if ($a === 'tba') {
+                        return -1;
+                    }
+                    if ($b === 'tba') {
+                        return 1;
+                    }
+
+                    return $a <=> $b;
+                });
             }
         }
 

@@ -20,6 +20,7 @@
                     \App\Enums\ListTypeEnum::SEASONED->value,
                     \App\Enums\ListTypeEnum::INDIE_GAMES->value,
                     \App\Enums\ListTypeEnum::EVENTS->value,
+                    \App\Enums\ListTypeEnum::HIGHLIGHTS->value,
                 ])
                 ->with('games')
                 ->orderBy('name')

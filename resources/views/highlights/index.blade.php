@@ -56,7 +56,7 @@
                             @if(!empty($gamesByGroup[$group->value]))
                                 <div>
                                     @foreach($gamesByGroup[$group->value] as $monthKey => $monthData)
-                                        <div class="mt-10">
+                                        <div class="pt-10">
                                             <!-- Month Header -->
                                             <div class="flex items-center justify-center gap-4 mb-8">
                                                 <div class="flex items-center gap-1.5">
@@ -66,7 +66,7 @@
                                                 </div>
                                                 <div class="text-center px-4">
                                                     <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">
-                                                        {{ $monthData['label'] }}
+                                                        {{ $monthKey === 'tba' ? 'To Be Announced' : $monthData['label'] }}
                                                     </h3>
                                                     <span class="text-sm text-gray-500 dark:text-gray-400">
                                                         {{ count($monthData['games']) }} {{ Str::plural('game', count($monthData['games'])) }}
