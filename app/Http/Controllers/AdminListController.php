@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ListTypeEnum;
 use App\Enums\PlatformEnum;
+use App\Enums\PlatformGroupEnum;
 use App\Http\Requests\StoreGameListRequest;
 use App\Http\Requests\UpdateGameListRequest;
 use App\Models\Game;
@@ -65,11 +66,20 @@ class AdminListController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        // Get all highlights lists (similar to seasoned - only active, no grouping)
+        $highlightsLists = GameList::where('is_system', true)
+            ->where('list_type', ListTypeEnum::HIGHLIGHTS)
+            ->where('is_active', true)
+            ->with('games')
+            ->orderByDesc('created_at')
+            ->get();
+
         return view('admin.system-lists.index', compact(
             'monthlyLists',
             'indieGamesList',
             'seasonedLists',
-            'eventsLists'
+            'eventsLists',
+            'highlightsLists'
         ));
     }
 
@@ -145,6 +155,7 @@ class AdminListController extends Controller
             ListTypeEnum::INDIE_GAMES->value,
             ListTypeEnum::SEASONED->value,
             ListTypeEnum::EVENTS->value,
+            ListTypeEnum::HIGHLIGHTS->value,
         ])) {
             return redirect()->back()
                 ->withErrors(['list_type' => 'Invalid list type for system lists.'])
@@ -222,6 +233,7 @@ class AdminListController extends Controller
                 ListTypeEnum::INDIE_GAMES->value,
                 ListTypeEnum::SEASONED->value,
                 ListTypeEnum::EVENTS->value,
+                ListTypeEnum::HIGHLIGHTS->value,
             ])) {
                 return redirect()->back()
                     ->withErrors(['list_type' => 'Invalid list type for system lists.'])
@@ -403,10 +415,17 @@ class AdminListController extends Controller
                 ->toArray();
         }
 
+        // Handle platform_group for highlights lists
+        $platformGroup = $request->input('platform_group');
+        if ($list->list_type === ListTypeEnum::HIGHLIGHTS && ! $platformGroup) {
+            $platformGroup = PlatformGroupEnum::suggestFromPlatforms($platformIds)->value;
+        }
+
         $list->games()->attach($game->id, [
             'order' => $maxOrder + 1,
             'release_date' => $releaseDate,
             'platforms' => json_encode($platformIds),
+            'platform_group' => $platformGroup,
         ]);
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -460,6 +479,127 @@ class AdminListController extends Controller
             'success' => true,
             'message' => 'Games reordered successfully.',
         ]);
+    }
+
+    /**
+     * Update platform group for a game in a highlights list.
+     */
+    public function updateGamePlatformGroup(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    {
+        $list = $this->getSystemListByTypeAndSlug($type, $slug);
+
+        if ($list->list_type !== ListTypeEnum::HIGHLIGHTS) {
+            return response()->json(['error' => 'Platform group is only available for highlights lists.'], 400);
+        }
+
+        $request->validate([
+            'platform_group' => ['required', 'string'],
+        ]);
+
+        $platformGroup = PlatformGroupEnum::tryFrom($request->input('platform_group'));
+        if (! $platformGroup) {
+            return response()->json(['error' => 'Invalid platform group.'], 400);
+        }
+
+        $list->games()->updateExistingPivot($game->id, [
+            'platform_group' => $platformGroup->value,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Platform group updated.',
+            'platform_group' => [
+                'value' => $platformGroup->value,
+                'label' => $platformGroup->label(),
+                'color' => $platformGroup->colorClass(),
+            ],
+        ]);
+    }
+
+    /**
+     * Toggle highlight status for a game in a monthly/indie list.
+     * When toggled on, also adds the game to the yearly highlights list.
+     * When toggled off, removes the game from the yearly highlights list.
+     */
+    public function toggleGameHighlight(string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    {
+        $list = $this->getSystemListByTypeAndSlug($type, $slug);
+
+        if (! $list->canHaveHighlights()) {
+            return response()->json(['error' => 'Highlight toggle is only available for monthly and indie lists.'], 400);
+        }
+
+        $pivotData = $list->games()->where('games.id', $game->id)->first()?->pivot;
+        if (! $pivotData) {
+            return response()->json(['error' => 'Game not found in this list.'], 404);
+        }
+
+        $newValue = ! (bool) $pivotData->is_highlight;
+
+        $list->games()->updateExistingPivot($game->id, [
+            'is_highlight' => $newValue,
+        ]);
+
+        // Sync to yearly highlights list
+        $this->syncGameToYearlyHighlights($list, $game, $pivotData, $newValue);
+
+        return response()->json([
+            'success' => true,
+            'message' => $newValue ? 'Game marked as highlight.' : 'Highlight removed from game.',
+            'is_highlight' => $newValue,
+        ]);
+    }
+
+    /**
+     * Sync a game to/from the yearly highlights list based on highlight status.
+     */
+    protected function syncGameToYearlyHighlights(GameList $sourceList, Game $game, $pivotData, bool $isHighlight): void
+    {
+        $year = $sourceList->start_at?->year ?? now()->year;
+        $startOfYear = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
+        $endOfYear = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
+
+        $highlightsList = GameList::where('list_type', ListTypeEnum::HIGHLIGHTS->value)
+            ->where('is_system', true)
+            ->whereBetween('start_at', [$startOfYear, $endOfYear])
+            ->first();
+
+        if (! $highlightsList) {
+            return;
+        }
+
+        if ($isHighlight) {
+            // Add to highlights list if not already there
+            if (! $highlightsList->games()->where('games.id', $game->id)->exists()) {
+                $platforms = $pivotData->platforms;
+                if (is_string($platforms)) {
+                    $platforms = json_decode($platforms, true) ?? [];
+                }
+                if (! is_array($platforms) || empty($platforms)) {
+                    // Fallback to game's own platforms
+                    $game->load('platforms');
+                    $platforms = $game->platforms
+                        ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+                        ->map(fn ($p) => $p->igdb_id)
+                        ->values()
+                        ->toArray();
+                }
+
+                $platformGroup = PlatformGroupEnum::suggestFromPlatforms($platforms);
+                $maxOrder = $highlightsList->games()->max('order') ?? 0;
+
+                $highlightsList->games()->attach($game->id, [
+                    'order' => $maxOrder + 1,
+                    'release_date' => $pivotData->release_date,
+                    'platforms' => json_encode($platforms),
+                    'platform_group' => $platformGroup->value,
+                    'is_highlight' => false,
+                ]);
+            }
+        } else {
+            // Remove from highlights list
+            $highlightsList->games()->detach($game->id);
+        }
     }
 
     /**

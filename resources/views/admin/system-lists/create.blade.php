@@ -23,6 +23,7 @@
                     <option value="indie-games" {{ old('list_type') == 'indie-games' ? 'selected' : '' }}>Indie Games</option>
                     <option value="seasoned" {{ old('list_type') == 'seasoned' ? 'selected' : '' }}>Seasoned</option>
                     <option value="events" {{ old('list_type') == 'events' ? 'selected' : '' }}>Events</option>
+                    <option value="highlights" {{ old('list_type') == 'highlights' ? 'selected' : '' }}>Highlights</option>
                 </select>
                 @error('list_type')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

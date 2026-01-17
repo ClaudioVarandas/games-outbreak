@@ -53,7 +53,7 @@ class GameList extends Model
     public function games(): BelongsToMany
     {
         return $this->belongsToMany(Game::class, 'game_list_game')
-            ->withPivot('order', 'release_date', 'platforms')
+            ->withPivot('order', 'release_date', 'platforms', 'platform_group', 'is_highlight')
             ->withTimestamps()
             ->orderByPivot('order');
     }
@@ -114,6 +114,11 @@ class GameList extends Model
         return $query->where('list_type', ListTypeEnum::EVENTS->value);
     }
 
+    public function scopeHighlights(Builder $query): Builder
+    {
+        return $query->where('list_type', ListTypeEnum::HIGHLIGHTS->value);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)
@@ -166,6 +171,16 @@ class GameList extends Model
     public function isEvents(): bool
     {
         return $this->list_type === ListTypeEnum::EVENTS;
+    }
+
+    public function isHighlights(): bool
+    {
+        return $this->list_type === ListTypeEnum::HIGHLIGHTS;
+    }
+
+    public function canHaveHighlights(): bool
+    {
+        return $this->isMonthly() || $this->isIndieGames();
     }
 
     public function isSpecialList(): bool

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Games lists, news and fun!!')
+@section('title', 'Curated Game lists anduse fun!!')
 
 @section('content')
     <div class="container mx-auto px-4 py-8">

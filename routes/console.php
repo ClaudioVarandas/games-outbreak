@@ -47,3 +47,12 @@ Schedule::command('steamspy:sync --limit=100 --threshold=50')
     ->name('steamspy-sync')
     ->withoutOverlapping()
     ->onOneServer();
+
+// === HIGHLIGHTS SYNC SCHEDULE ===
+
+// Sync highlighted games from monthly/indie lists to yearly highlights - Weekly on Mondays at 4 AM
+Schedule::command('highlights:sync')
+    ->weeklyOn(1, '4:00')
+    ->name('highlights-sync')
+    ->withoutOverlapping()
+    ->onOneServer();

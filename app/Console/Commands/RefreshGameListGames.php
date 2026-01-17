@@ -10,6 +10,7 @@ use App\Models\Platform;
 use App\Services\IgdbService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\Response;
 
 class RefreshGameListGames extends Command
 {
@@ -92,6 +93,7 @@ class RefreshGameListGames extends Command
                              player_perspectives.name, player_perspectives.id;
                          where id = {$game->igdb_id}; limit 1;";
 
+                /** @var Response $response */
                 $response = \Illuminate\Support\Facades\Http::igdb()
                     ->withBody($query, 'text/plain')
                     ->post('https://api.igdb.com/v4/games');

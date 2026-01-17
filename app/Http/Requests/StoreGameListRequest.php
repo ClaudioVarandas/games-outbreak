@@ -33,7 +33,7 @@ class StoreGameListRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_public' => ['boolean'],
-            'list_type' => ['nullable', 'string', 'in:regular,monthly,indie-games,seasoned,events'],
+            'list_type' => ['nullable', 'string', 'in:regular,monthly,indie-games,seasoned,events,highlights'],
             'slug' => [
                 'nullable',
                 'string',

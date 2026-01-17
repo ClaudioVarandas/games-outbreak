@@ -3,6 +3,10 @@
 <div class="bg-gray-700 border-b border-gray-600">
     <div class="container mx-auto px-4">
         <nav class="flex gap-6 py-3">
+            <a href="{{ route('highlights') }}"
+               class="{{ $active === 'highlights' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
+                Highlights
+            </a>
             <a href="{{ route('releases', 'monthly') }}"
                class="{{ $active === 'monthly' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
                 Monthly Releases

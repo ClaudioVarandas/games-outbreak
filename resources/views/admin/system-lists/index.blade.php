@@ -394,6 +394,87 @@
                 <p class="text-gray-600 dark:text-gray-400">No events lists.</p>
             @endif
         </div>
+
+        <!-- Highlights Lists (Active Only - No Grouping) -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+                Highlights Lists
+                @if($highlightsLists->count() > 0)
+                    <span class="text-lg font-normal text-gray-600 dark:text-gray-400">({{ $highlightsLists->count() }} active)</span>
+                @endif
+            </h2>
+            @if($highlightsLists->count() > 0)
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach($highlightsLists as $list)
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative">
+                            <!-- Status Icons - Top Right -->
+                            <div class="absolute top-4 right-4 flex gap-2">
+                                @if($list->is_active)
+                                    <svg class="w-5 h-5 text-green-600 dark:text-green-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Active">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                @else
+                                    <svg class="w-5 h-5 text-red-600 dark:text-red-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Inactive">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                @endif
+                                @if($list->is_public)
+                                    <svg class="w-5 h-5 text-green-600 dark:text-green-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Public">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                @else
+                                    <svg class="w-5 h-5 text-gray-600 dark:text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Private">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                                    </svg>
+                                @endif
+                            </div>
+
+                            <div class="mb-4 pr-20">
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ $list->name }}</h3>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                    {{ $list->games->count() }} {{ Str::plural('game', $list->games->count()) }}
+                                </div>
+                                @if($list->start_at || $list->end_at)
+                                    <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-500">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span>
+                                            @if($list->start_at && $list->end_at)
+                                                {{ $list->start_at->locale('pt_PT')->translatedFormat('d M, Y') }} - {{ $list->end_at->locale('pt_PT')->translatedFormat('d M, Y') }}
+                                            @elseif($list->start_at)
+                                                {{ $list->start_at->locale('pt_PT')->translatedFormat('d M, Y') }}
+                                            @else
+                                                {{ $list->end_at->locale('pt_PT')->translatedFormat('d M, Y') }}
+                                            @endif
+                                        </span>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex gap-2 justify-end">
+                                <a href="{{ route('admin.system-lists.edit', [$list->list_type->toSlug(), $list->slug]) }}"
+                                   class="p-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                                   title="Edit">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </a>
+                                <button onclick="openDeleteModal('{{ $list->name }}', '{{ route('admin.system-lists.destroy', [$list->list_type->toSlug(), $list->slug]) }}')"
+                                        class="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                                        title="Delete">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-gray-600 dark:text-gray-400">No active highlights lists.</p>
+            @endif
+        </div>
     </div>
 
     <script>

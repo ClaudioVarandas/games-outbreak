@@ -13,6 +13,7 @@ enum ListTypeEnum: string
     case SEASONED = 'seasoned';
     case INDIE_GAMES = 'indie-games';
     case EVENTS = 'events';
+    case HIGHLIGHTS = 'highlights';
 
     public function label(): string
     {
@@ -24,6 +25,7 @@ enum ListTypeEnum: string
             self::SEASONED => 'Seasoned',
             self::INDIE_GAMES => 'Indie Games',
             self::EVENTS => 'Events',
+            self::HIGHLIGHTS => 'Highlights',
         };
     }
 
@@ -37,6 +39,7 @@ enum ListTypeEnum: string
             self::SEASONED => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
             self::INDIE_GAMES => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
             self::EVENTS => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
+            self::HIGHLIGHTS => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
         };
     }
 
@@ -50,6 +53,7 @@ enum ListTypeEnum: string
             self::SEASONED => false,
             self::INDIE_GAMES => false,
             self::EVENTS => false,
+            self::HIGHLIGHTS => false,
         };
     }
 
@@ -60,6 +64,7 @@ enum ListTypeEnum: string
             self::SEASONED => true,
             self::INDIE_GAMES => true,
             self::EVENTS => true,
+            self::HIGHLIGHTS => true,
             default => false,
         };
     }
@@ -74,6 +79,7 @@ enum ListTypeEnum: string
             'seasoned' => self::SEASONED,
             'indie-games' => self::INDIE_GAMES,
             'events' => self::EVENTS,
+            'highlights' => self::HIGHLIGHTS,
             default => null,
         };
     }
@@ -88,6 +94,7 @@ enum ListTypeEnum: string
             self::SEASONED => 'seasoned',
             self::INDIE_GAMES => 'indie',
             self::EVENTS => 'events',
+            self::HIGHLIGHTS => 'highlights',
         };
     }
 
@@ -101,6 +108,7 @@ enum ListTypeEnum: string
             'seasoned' => self::SEASONED,
             'indie' => self::INDIE_GAMES,
             'events' => self::EVENTS,
+            'highlights' => self::HIGHLIGHTS,
             default => null,
         };
     }
