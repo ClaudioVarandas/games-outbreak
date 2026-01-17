@@ -6,6 +6,7 @@ use App\Enums\ListTypeEnum;
 use App\Enums\PlatformEnum;
 use App\Enums\PlatformGroupEnum;
 use App\Models\GameList;
+use Carbon\Carbon;
 use Illuminate\View\View;
 
 class HighlightsController extends Controller
@@ -23,15 +24,37 @@ class HighlightsController extends Controller
             }])
             ->first();
 
-        // Group games by platform_group
+        // Group games by platform_group and then by month
         $gamesByGroup = [];
         $groupCounts = [];
 
         if ($highlightsList) {
             foreach ($highlightsList->games as $game) {
                 $groupValue = $game->pivot->platform_group ?? PlatformGroupEnum::MULTIPLATFORM->value;
-                $gamesByGroup[$groupValue][] = $game;
+
+                // Determine release date for month grouping
+                $releaseDate = $game->pivot->release_date ?? $game->first_release_date;
+                if ($releaseDate && is_string($releaseDate)) {
+                    $releaseDate = Carbon::parse($releaseDate);
+                }
+
+                $monthKey = $releaseDate ? $releaseDate->format('Y-m') : 'tba';
+                $monthLabel = $releaseDate ? $releaseDate->format('F Y') : 'TBA';
+
+                if (! isset($gamesByGroup[$groupValue][$monthKey])) {
+                    $gamesByGroup[$groupValue][$monthKey] = [
+                        'label' => $monthLabel,
+                        'games' => [],
+                    ];
+                }
+
+                $gamesByGroup[$groupValue][$monthKey]['games'][] = $game;
                 $groupCounts[$groupValue] = ($groupCounts[$groupValue] ?? 0) + 1;
+            }
+
+            // Sort months chronologically within each group
+            foreach ($gamesByGroup as $groupValue => $months) {
+                ksort($gamesByGroup[$groupValue]);
             }
         }
 

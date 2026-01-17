@@ -33,7 +33,7 @@ enum PlatformGroupEnum: string
             self::NINTENDO => 'bg-red-600',
             self::XBOX => 'bg-green-600',
             self::MOBILE => 'bg-yellow-600',
-            self::PC => 'bg-gray-600',
+            self::PC => 'bg-cyan-600',
         };
     }
 

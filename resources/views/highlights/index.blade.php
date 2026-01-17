@@ -52,24 +52,53 @@
                                 </span>
                             </div>
 
-                            <!-- Games Grid -->
+                            <!-- Games by Month -->
                             @if(!empty($gamesByGroup[$group->value]))
-                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-                                    @foreach($gamesByGroup[$group->value] as $game)
-                                        @php
-                                            $pivotReleaseDate = $game->pivot->release_date ?? null;
-                                            if ($pivotReleaseDate && is_string($pivotReleaseDate)) {
-                                                $pivotReleaseDate = \Carbon\Carbon::parse($pivotReleaseDate);
-                                            }
-                                            $displayDate = $pivotReleaseDate ?? $game->first_release_date;
-                                        @endphp
-                                        <x-game-card
-                                            :game="$game"
-                                            :displayReleaseDate="$displayDate"
-                                            variant="glassmorphism"
-                                            layout="overlay"
-                                            aspectRatio="3/4"
-                                            :platformEnums="$platformEnums" />
+                                <div>
+                                    @foreach($gamesByGroup[$group->value] as $monthKey => $monthData)
+                                        <div class="mt-10">
+                                            <!-- Month Header -->
+                                            <div class="flex items-center justify-center gap-4 mb-8">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+                                                    <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+                                                    <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+                                                </div>
+                                                <div class="text-center px-4">
+                                                    <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">
+                                                        {{ $monthData['label'] }}
+                                                    </h3>
+                                                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                                                        {{ count($monthData['games']) }} {{ Str::plural('game', count($monthData['games'])) }}
+                                                    </span>
+                                                </div>
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+                                                    <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+                                                    <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Games Grid for this Month -->
+                                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
+                                                @foreach($monthData['games'] as $game)
+                                                    @php
+                                                        $pivotReleaseDate = $game->pivot->release_date ?? null;
+                                                        if ($pivotReleaseDate && is_string($pivotReleaseDate)) {
+                                                            $pivotReleaseDate = \Carbon\Carbon::parse($pivotReleaseDate);
+                                                        }
+                                                        $displayDate = $pivotReleaseDate ?? $game->first_release_date;
+                                                    @endphp
+                                                    <x-game-card
+                                                        :game="$game"
+                                                        :displayReleaseDate="$displayDate"
+                                                        variant="glassmorphism"
+                                                        layout="overlay"
+                                                        aspectRatio="3/4"
+                                                        :platformEnums="$platformEnums" />
+                                                @endforeach
+                                            </div>
+                                        </div>
                                     @endforeach
                                 </div>
                             @else
