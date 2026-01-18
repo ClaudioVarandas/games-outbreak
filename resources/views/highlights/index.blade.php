@@ -22,7 +22,21 @@
 
             @if($platformGroups->isNotEmpty())
                 <!-- Platform Group Filter Tabs -->
-                <div class="mb-8" x-data="{ activeGroup: '{{ $defaultGroup }}' }">
+                <div class="mb-8" x-data="{
+                    activeGroup: '{{ $defaultGroup }}',
+                    validGroups: @js($platformGroups->pluck('value')->toArray()),
+                    init() {
+                        const hash = window.location.hash.substring(1);
+                        if (hash && this.validGroups.includes(hash)) {
+                            this.activeGroup = hash;
+                        } else {
+                            window.location.hash = this.activeGroup;
+                        }
+                        this.$watch('activeGroup', (value) => {
+                            window.location.hash = value;
+                        });
+                    }
+                }">
                     <!-- Tab Navigation -->
                     <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">
                         @foreach($platformGroups as $group)
