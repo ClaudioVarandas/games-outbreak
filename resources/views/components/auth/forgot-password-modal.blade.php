@@ -12,6 +12,7 @@
 
         <form id="forgot-password-form" method="POST" action="{{ route('password.email') }}">
             @csrf
+            <x-honeypot />
 
             <!-- Email Address -->
             <div>

@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Rules\Honeypot;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PasswordResetLinkController extends Controller
@@ -26,9 +29,12 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse|JsonResponse
     {
+        $this->ensureIsNotRateLimited($request);
+
         try {
             $request->validate([
                 'email' => ['required', 'email'],
+                'website_url' => [new Honeypot],
             ]);
 
             // We will send the password reset link to this user. Once we have attempted
@@ -67,5 +73,23 @@ class PasswordResetLinkController extends Controller
             }
             throw $e;
         }
+    }
+
+    protected function ensureIsNotRateLimited(Request $request): void
+    {
+        $key = 'password-reset:'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            throw ValidationException::withMessages([
+                'email' => trans('auth.throttle', [
+                    'seconds' => $seconds,
+                    'minutes' => ceil($seconds / 60),
+                ]),
+            ]);
+        }
+
+        RateLimiter::hit($key, 60);
     }
 }

@@ -8,6 +8,7 @@
 
         <form id="login-form" method="POST" action="{{ route('login') }}">
             @csrf
+            <x-honeypot />
 
             <!-- Email Address -->
             <div>

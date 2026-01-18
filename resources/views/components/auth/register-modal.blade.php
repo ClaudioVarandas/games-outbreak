@@ -8,6 +8,7 @@
 
         <form id="register-form" method="POST" action="{{ route('register') }}">
             @csrf
+            <x-honeypot />
 
             <!-- Name -->
             <div>
@@ -16,10 +17,18 @@
                 <div id="register-name-errors" class="mt-2"></div>
             </div>
 
+            <!-- Username -->
+            <div class="mt-4">
+                <x-input-label for="register-username" :value="__('Username')" />
+                <x-text-input id="register-username" class="block mt-1 w-full" type="text" name="username" :value="old('username')" required autocomplete="username" pattern="[a-z0-9_-]+" />
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('Lowercase letters, numbers, underscores, and hyphens only') }}</p>
+                <div id="register-username-errors" class="mt-2"></div>
+            </div>
+
             <!-- Email Address -->
             <div class="mt-4">
                 <x-input-label for="register-email" :value="__('Email')" />
-                <x-text-input id="register-email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
+                <x-text-input id="register-email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="email" />
                 <div id="register-email-errors" class="mt-2"></div>
             </div>
 
