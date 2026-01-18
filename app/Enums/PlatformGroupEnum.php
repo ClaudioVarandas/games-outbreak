@@ -18,7 +18,7 @@ enum PlatformGroupEnum: string
         return match ($this) {
             self::MULTIPLATFORM => 'Multiplatform',
             self::PLAYSTATION => 'PlayStation',
-            self::NINTENDO => 'Switch',
+            self::NINTENDO => 'Nintendo',
             self::XBOX => 'Xbox',
             self::MOBILE => 'Mobile',
             self::PC => 'PC',
