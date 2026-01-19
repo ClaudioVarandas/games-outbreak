@@ -23,7 +23,7 @@ enum ListTypeEnum: string
             self::WISHLIST => 'Wishlist',
             self::MONTHLY => 'Monthly',
             self::SEASONED => 'Seasoned',
-            self::INDIE_GAMES => 'Indie Games',
+            self::INDIE_GAMES => 'Indies',
             self::EVENTS => 'Events',
             self::HIGHLIGHTS => 'Highlights',
         };

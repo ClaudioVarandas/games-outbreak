@@ -17,7 +17,7 @@
                class="{{ $active === 'monthly' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
                 Monthly Releases
             </a>
-            <a href="{{ route('releases', 'indie-games') }}"
+            <a href="{{ route('indie-games') }}"
                class="{{ $active === 'indie-games' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
                 Indie Games
             </a>

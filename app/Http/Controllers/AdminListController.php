@@ -521,7 +521,7 @@ class AdminListController extends Controller
      * When toggled on, also adds the game to the yearly highlights list.
      * When toggled off, removes the game from the yearly highlights list.
      */
-    public function toggleGameHighlight(string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    public function toggleGameHighlight(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -536,12 +536,24 @@ class AdminListController extends Controller
 
         $newValue = ! (bool) $pivotData->is_highlight;
 
-        $list->games()->updateExistingPivot($game->id, [
-            'is_highlight' => $newValue,
-        ]);
+        if ($newValue) {
+            $isTba = (bool) $request->input('is_tba', false);
+            $releaseDate = $isTba ? null : $request->input('release_date', $pivotData->release_date);
 
-        // Sync to yearly highlights list
-        $this->syncGameToYearlyHighlights($list, $game, $pivotData, $newValue);
+            $list->games()->updateExistingPivot($game->id, [
+                'is_highlight' => true,
+                'release_date' => $releaseDate,
+                'is_tba' => $isTba,
+            ]);
+
+            $this->syncGameToYearlyHighlights($list, $game, $pivotData, true, $releaseDate, $isTba);
+        } else {
+            $list->games()->updateExistingPivot($game->id, [
+                'is_highlight' => false,
+            ]);
+
+            $this->syncGameToYearlyHighlights($list, $game, $pivotData, false);
+        }
 
         return response()->json([
             'success' => true,
@@ -551,9 +563,140 @@ class AdminListController extends Controller
     }
 
     /**
+     * Toggle indie status for a game in a monthly/seasoned list.
+     * When toggled on, also adds the game to the yearly indie list.
+     */
+    public function toggleGameIndie(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    {
+        $list = $this->getSystemListByTypeAndSlug($type, $slug);
+
+        if (! $list->canMarkAsIndie()) {
+            return response()->json(['error' => 'Indie toggle is only available for monthly and seasoned lists.'], 400);
+        }
+
+        $pivotData = $list->games()->where('games.id', $game->id)->first()?->pivot;
+        if (! $pivotData) {
+            return response()->json(['error' => 'Game not found in this list.'], 404);
+        }
+
+        $currentValue = (bool) $pivotData->is_indie;
+        $newValue = ! $currentValue;
+
+        if ($newValue) {
+            $indieGenre = $request->input('indie_genre');
+            if (! $indieGenre) {
+                return response()->json(['error' => 'Genre is required when marking as indie.'], 400);
+            }
+
+            $isTba = (bool) $request->input('is_tba', false);
+            $releaseDate = $isTba ? null : $request->input('release_date', $pivotData->release_date);
+
+            $list->games()->updateExistingPivot($game->id, [
+                'is_indie' => true,
+                'indie_genre' => $indieGenre,
+                'release_date' => $releaseDate,
+                'is_tba' => $isTba,
+            ]);
+
+            $this->syncGameToYearlyIndies($list, $game, $pivotData, true, $indieGenre, $releaseDate, $isTba);
+        } else {
+            $list->games()->updateExistingPivot($game->id, [
+                'is_indie' => false,
+                'indie_genre' => null,
+            ]);
+
+            $this->syncGameToYearlyIndies($list, $game, $pivotData, false);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $newValue ? 'Game marked as indie.' : 'Indie status removed from game.',
+            'is_indie' => $newValue,
+        ]);
+    }
+
+    /**
+     * Sync a game to/from the yearly indie list based on indie status.
+     */
+    protected function syncGameToYearlyIndies(GameList $sourceList, Game $game, $pivotData, bool $isIndie, ?string $indieGenre = null, mixed $releaseDate = null, bool $isTba = false): void
+    {
+        $year = $sourceList->start_at?->year ?? now()->year;
+        $startOfYear = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
+        $endOfYear = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
+
+        $indieList = GameList::where('list_type', ListTypeEnum::INDIE_GAMES->value)
+            ->where('is_system', true)
+            ->whereBetween('start_at', [$startOfYear, $endOfYear])
+            ->first();
+
+        if (! $indieList) {
+            return;
+        }
+
+        if ($isIndie) {
+            if (! $indieList->games()->where('games.id', $game->id)->exists()) {
+                $platforms = $pivotData->platforms;
+                if (is_string($platforms)) {
+                    $platforms = json_decode($platforms, true) ?? [];
+                }
+                if (! is_array($platforms) || empty($platforms)) {
+                    $game->load('platforms');
+                    $platforms = $game->platforms
+                        ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+                        ->map(fn ($p) => $p->igdb_id)
+                        ->values()
+                        ->toArray();
+                }
+
+                $maxOrder = $indieList->games()->max('order') ?? 0;
+
+                $indieList->games()->attach($game->id, [
+                    'order' => $maxOrder + 1,
+                    'release_date' => $releaseDate ?? $pivotData->release_date,
+                    'platforms' => json_encode($platforms),
+                    'is_tba' => $isTba,
+                    'indie_genre' => $indieGenre,
+                ]);
+            }
+        } else {
+            // Remove from indie list
+            $indieList->games()->detach($game->id);
+        }
+    }
+
+    /**
+     * Get game genres for the indie toggle modal.
+     */
+    public function getGameGenres(string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    {
+        $list = $this->getSystemListByTypeAndSlug($type, $slug);
+
+        if (! $list->games()->where('games.id', $game->id)->exists()) {
+            return response()->json(['error' => 'Game not found in this list.'], 404);
+        }
+
+        $game->load('genres');
+        $genres = $game->genres->map(fn ($genre) => [
+            'id' => $genre->id,
+            'name' => $genre->name,
+            'slug' => str()->slug($genre->name),
+        ])->toArray();
+
+        $pivotData = $list->games()->where('games.id', $game->id)->first()?->pivot;
+
+        return response()->json([
+            'genres' => $genres,
+            'current_indie_genre' => $pivotData->indie_genre ?? null,
+            'is_indie' => (bool) ($pivotData->is_indie ?? false),
+            'release_date' => $pivotData->release_date ?? $game->first_release_date?->format('Y-m-d'),
+            'is_tba' => (bool) ($pivotData->is_tba ?? false),
+        ]);
+    }
+
+    /**
      * Sync a game to/from the yearly highlights list based on highlight status.
      */
-    protected function syncGameToYearlyHighlights(GameList $sourceList, Game $game, $pivotData, bool $isHighlight): void
+    protected function syncGameToYearlyHighlights(GameList $sourceList, Game $game, $pivotData, bool $isHighlight, mixed $releaseDate = null, bool $isTba = false): void
     {
         $year = $sourceList->start_at?->year ?? now()->year;
         $startOfYear = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
@@ -590,10 +733,11 @@ class AdminListController extends Controller
 
                 $highlightsList->games()->attach($game->id, [
                     'order' => $maxOrder + 1,
-                    'release_date' => $pivotData->release_date,
+                    'release_date' => $releaseDate ?? $pivotData->release_date,
                     'platforms' => json_encode($platforms),
                     'platform_group' => $platformGroup->value,
                     'is_highlight' => false,
+                    'is_tba' => $isTba,
                 ]);
             }
         } else {

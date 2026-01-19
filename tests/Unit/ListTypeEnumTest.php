@@ -9,7 +9,7 @@ class ListTypeEnumTest extends TestCase
 {
     public function test_indie_games_label_returns_correct_value(): void
     {
-        $this->assertEquals('Indie Games', ListTypeEnum::INDIE_GAMES->label());
+        $this->assertEquals('Indies', ListTypeEnum::INDIE_GAMES->label());
     }
 
     public function test_indie_games_is_not_unique_per_user(): void

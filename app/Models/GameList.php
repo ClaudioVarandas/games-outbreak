@@ -53,7 +53,7 @@ class GameList extends Model
     public function games(): BelongsToMany
     {
         return $this->belongsToMany(Game::class, 'game_list_game')
-            ->withPivot('order', 'release_date', 'platforms', 'platform_group', 'is_highlight', 'is_tba')
+            ->withPivot('order', 'release_date', 'platforms', 'platform_group', 'is_highlight', 'is_tba', 'is_indie', 'indie_genre')
             ->withTimestamps()
             ->orderByPivot('order');
     }
@@ -181,6 +181,11 @@ class GameList extends Model
     public function canHaveHighlights(): bool
     {
         return $this->isMonthly() || $this->isIndieGames();
+    }
+
+    public function canMarkAsIndie(): bool
+    {
+        return $this->isMonthly() || $this->isSeasoned();
     }
 
     public function isSpecialList(): bool

@@ -67,15 +67,15 @@ class IndieGamesTest extends TestCase
 
     public function test_indie_games_route_loads_successfully(): void
     {
-        $response = $this->get('/releases/indie-games');
+        $response = $this->get('/indie-games');
 
         $response->assertStatus(200);
-        $response->assertViewIs('releases.index');
+        $response->assertViewIs('indie-games.index');
     }
 
     public function test_indie_games_route_accessible_without_auth(): void
     {
-        $response = $this->get('/releases/indie-games');
+        $response = $this->get('/indie-games');
 
         $response->assertStatus(200);
         $this->assertGuest();
@@ -83,115 +83,85 @@ class IndieGamesTest extends TestCase
 
     public function test_indie_games_page_displays_active_public_lists(): void
     {
-        $currentMonth = now();
-        $activePublic1 = GameList::factory()->indieGames()->create([
+        $activePublic = GameList::factory()->indieGames()->create([
             'is_active' => true,
             'is_public' => true,
-            'start_at' => $currentMonth->copy()->startOfMonth(),
-            'end_at' => $currentMonth->copy()->endOfMonth(),
+            'is_system' => true,
+            'start_at' => '2026-01-01',
+            'end_at' => '2026-12-31',
         ]);
-        $inactive = GameList::factory()->indieGames()->create([
+        GameList::factory()->indieGames()->create([
             'is_active' => false,
             'is_public' => true,
-            'start_at' => $currentMonth->copy()->startOfMonth(),
-            'end_at' => $currentMonth->copy()->endOfMonth(),
+            'is_system' => true,
+            'start_at' => '2026-01-01',
+            'end_at' => '2026-12-31',
         ]);
 
-        $response = $this->get('/releases/indie-games');
+        $response = $this->get('/indie-games?year=2026');
 
         $response->assertStatus(200);
-        $response->assertViewHas('lists', function ($lists) use ($activePublic1, $inactive) {
-            return $lists->count() === 1 &&
-                   $lists->contains('id', $activePublic1->id) &&
-                   !$lists->contains('id', $inactive->id);
-        });
+        $response->assertSee($activePublic->name);
     }
 
     public function test_indie_games_page_filters_out_inactive_lists(): void
     {
-        $currentMonth = now();
         $active = GameList::factory()->indieGames()->create([
+            'name' => 'Active Indies 2026',
             'is_active' => true,
             'is_public' => true,
-            'start_at' => $currentMonth->copy()->startOfMonth(),
-            'end_at' => $currentMonth->copy()->endOfMonth(),
+            'is_system' => true,
+            'start_at' => '2026-01-01',
+            'end_at' => '2026-12-31',
         ]);
-        $inactive = GameList::factory()->indieGames()->create([
+        GameList::factory()->indieGames()->create([
+            'name' => 'Inactive Indies 2026',
             'is_active' => false,
             'is_public' => true,
-            'start_at' => $currentMonth->copy()->startOfMonth(),
-            'end_at' => $currentMonth->copy()->endOfMonth(),
+            'is_system' => true,
+            'start_at' => '2026-01-01',
+            'end_at' => '2026-12-31',
         ]);
 
-        $response = $this->get('/releases/indie-games');
+        $response = $this->get('/indie-games?year=2026');
 
-        $response->assertViewHas('lists', function ($lists) use ($active, $inactive) {
-            return $lists->count() === 1 &&
-                   $lists->contains('id', $active->id) &&
-                   !$lists->contains('id', $inactive->id);
-        });
+        $response->assertStatus(200);
+        $response->assertSee($active->name);
+        $response->assertDontSee('Inactive Indies 2026');
     }
 
     public function test_indie_games_page_filters_out_private_lists(): void
     {
-        $currentMonth = now();
         $public = GameList::factory()->indieGames()->create([
+            'name' => 'Public Indies 2026',
             'is_active' => true,
             'is_public' => true,
-            'start_at' => $currentMonth->copy()->startOfMonth(),
-            'end_at' => $currentMonth->copy()->endOfMonth(),
+            'is_system' => true,
+            'start_at' => '2026-01-01',
+            'end_at' => '2026-12-31',
         ]);
-        $private = GameList::factory()->indieGames()->create([
+        GameList::factory()->indieGames()->create([
+            'name' => 'Private Indies 2026',
             'is_active' => true,
             'is_public' => false,
-            'start_at' => $currentMonth->copy()->startOfMonth(),
-            'end_at' => $currentMonth->copy()->endOfMonth(),
+            'is_system' => true,
+            'start_at' => '2026-01-01',
+            'end_at' => '2026-12-31',
         ]);
 
-        $response = $this->get('/releases/indie-games');
+        $response = $this->get('/indie-games?year=2026');
 
-        $response->assertViewHas('lists', function ($lists) use ($public, $private) {
-            return $lists->count() === 1 &&
-                   $lists->contains('id', $public->id) &&
-                   !$lists->contains('id', $private->id);
-        });
-    }
-
-    public function test_indie_games_page_shows_list_for_current_month(): void
-    {
-        $currentMonth = now();
-        // Create a list for current month
-        $currentList = GameList::factory()->indieGames()->create([
-            'is_active' => true,
-            'is_public' => true,
-            'start_at' => $currentMonth->copy()->startOfMonth(),
-            'end_at' => $currentMonth->copy()->endOfMonth(),
-        ]);
-        // Create a list for a different month (should not appear)
-        $otherMonthList = GameList::factory()->indieGames()->create([
-            'is_active' => true,
-            'is_public' => true,
-            'start_at' => $currentMonth->copy()->subMonth()->startOfMonth(),
-            'end_at' => $currentMonth->copy()->subMonth()->endOfMonth(),
-        ]);
-
-        $response = $this->get('/releases/indie-games');
-
-        $response->assertViewHas('lists', function ($lists) use ($currentList, $otherMonthList) {
-            return $lists->count() === 1 &&
-                   $lists->contains('id', $currentList->id) &&
-                   !$lists->contains('id', $otherMonthList->id);
-        });
+        $response->assertStatus(200);
+        $response->assertSee($public->name);
+        $response->assertDontSee('Private Indies 2026');
     }
 
     public function test_indie_games_page_loads_with_no_lists(): void
     {
-        $response = $this->get('/releases/indie-games');
+        $response = $this->get('/indie-games');
 
         $response->assertStatus(200);
-        $response->assertViewHas('lists', function ($lists) {
-            return $lists->count() === 0;
-        });
+        $response->assertSee('No active indie games list');
     }
 
     // Admin Form Tests
@@ -253,59 +223,68 @@ class IndieGamesTest extends TestCase
 
     public function test_indie_games_list_with_games_displays_correctly(): void
     {
-        $currentMonth = now();
         $list = GameList::factory()->indieGames()->create([
             'is_active' => true,
             'is_public' => true,
-            'start_at' => $currentMonth->copy()->startOfMonth(),
-            'end_at' => $currentMonth->copy()->endOfMonth(),
+            'is_system' => true,
+            'start_at' => '2026-01-01',
+            'end_at' => '2026-12-31',
         ]);
 
         $games = Game::factory()->count(5)->create();
         foreach ($games as $index => $game) {
-            $list->games()->attach($game->id, ['order' => $index]);
+            $list->games()->attach($game->id, [
+                'order' => $index,
+                'indie_genre' => 'metroidvania',
+            ]);
         }
 
-        $response = $this->get('/releases/indie-games');
+        $response = $this->get('/indie-games?year=2026');
 
         $response->assertStatus(200);
-        $response->assertViewHas('lists', function ($lists) use ($list) {
-            $foundList = $lists->firstWhere('id', $list->id);
-            return $foundList && $foundList->games->count() === 5;
-        });
+        $response->assertSee($list->name);
+        foreach ($games as $game) {
+            $response->assertSee($game->name);
+        }
     }
 
-    public function test_indie_games_lists_in_different_months(): void
+    public function test_indie_games_year_navigation(): void
     {
-        // Create lists for different months (business rule: 1 per month)
-        $jan2026 = \Carbon\Carbon::create(2026, 1, 1);
-        $feb2026 = \Carbon\Carbon::create(2026, 2, 1);
-
-        $list1 = GameList::factory()->indieGames()->create([
-            'name' => 'Indie Platformers',
+        $list2025 = GameList::factory()->indieGames()->create([
+            'name' => 'Indies 2025',
             'is_active' => true,
             'is_public' => true,
-            'start_at' => $jan2026->copy()->startOfMonth(),
-            'end_at' => $jan2026->copy()->endOfMonth(),
+            'is_system' => true,
+            'start_at' => '2025-01-01',
+            'end_at' => '2025-12-31',
         ]);
-        $list2 = GameList::factory()->indieGames()->create([
-            'name' => 'Indie RPGs',
+        $list2026 = GameList::factory()->indieGames()->create([
+            'name' => 'Indies 2026',
             'is_active' => true,
             'is_public' => true,
-            'start_at' => $feb2026->copy()->startOfMonth(),
-            'end_at' => $feb2026->copy()->endOfMonth(),
+            'is_system' => true,
+            'start_at' => '2026-01-01',
+            'end_at' => '2026-12-31',
         ]);
 
-        // Test January shows only January list
-        $response1 = $this->get('/releases/indie-games?year=2026&month=1');
+        // Test 2025 shows only 2025 list
+        $response1 = $this->get('/indie-games?year=2025');
         $response1->assertStatus(200);
-        $response1->assertSee('Indie Platformers');
-        $response1->assertDontSee('Indie RPGs');
+        $response1->assertSee('Indies 2025');
+        $response1->assertDontSee('Indies 2026');
 
-        // Test February shows only February list
-        $response2 = $this->get('/releases/indie-games?year=2026&month=2');
+        // Test 2026 shows only 2026 list
+        $response2 = $this->get('/indie-games?year=2026');
         $response2->assertStatus(200);
-        $response2->assertSee('Indie RPGs');
-        $response2->assertDontSee('Indie Platformers');
+        $response2->assertSee('Indies 2026');
+        $response2->assertDontSee('Indies 2025');
+    }
+
+    public function test_old_indie_games_route_redirects_to_new_route(): void
+    {
+        $response = $this->get('/releases/indie-games');
+
+        $response->assertRedirect('/indie-games');
+        $response->assertStatus(301);
     }
 }

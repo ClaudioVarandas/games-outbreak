@@ -55,7 +55,7 @@ class HomepageControllerTest extends TestCase
         // Create games within the current week (from today to Sunday)
         $today = \Carbon\Carbon::today();
         $weekEnd = $today->copy()->endOfWeek(\Carbon\Carbon::SUNDAY)->endOfDay();
-        
+
         // Ensure dates are in the future relative to today, but within the current week
         $thisWeek = $today->copy()->addDays(1); // Tomorrow
         $nextWeek = $weekEnd->copy()->subDays(1); // Saturday (or earlier if weekEnd is today)
@@ -124,21 +124,20 @@ class HomepageControllerTest extends TestCase
         });
     }
 
-    public function test_old_indie_games_redirects(): void
+    public function test_indie_games_page_loads(): void
     {
         $response = $this->get('/indie-games');
 
-        $response->assertStatus(301);
-        $response->assertRedirect('/releases/indie-games');
+        $response->assertStatus(200);
+        $response->assertViewIs('indie-games.index');
     }
 
-    public function test_releases_indie_games_loads(): void
+    public function test_old_releases_indie_games_redirects(): void
     {
         $response = $this->get('/releases/indie-games');
 
-        $response->assertStatus(200);
-        $response->assertViewIs('releases.index');
-        $response->assertViewHas('type', 'indie-games');
+        $response->assertStatus(301);
+        $response->assertRedirect('/indie-games');
     }
 
     public function test_releases_seasoned_loads(): void
@@ -167,21 +166,21 @@ class HomepageControllerTest extends TestCase
         $response->assertViewHas('selectedList', $list);
     }
 
-    public function test_releases_indie_games_navigation(): void
+    public function test_indie_games_year_navigation(): void
     {
-        // Create indie-games list for January 2026
+        // Create indie-games list for 2026
         $list = GameList::factory()->system()->indieGames()->active()->public()->create([
+            'name' => 'Indies 2026',
             'start_at' => \Carbon\Carbon::create(2026, 1, 1),
-            'end_at' => \Carbon\Carbon::create(2026, 1, 31),
+            'end_at' => \Carbon\Carbon::create(2026, 12, 31),
         ]);
 
-        // Test accessing specific month
-        $response = $this->get('/releases/indie-games?year=2026&month=1');
+        // Test accessing specific year
+        $response = $this->get('/indie-games?year=2026');
 
         $response->assertStatus(200);
-        $response->assertViewHas('year', '2026');
-        $response->assertViewHas('month', '1');
-        $response->assertViewHas('selectedList', $list);
+        $response->assertViewHas('year', 2026);
+        $response->assertSee('Indies 2026');
     }
 
     public function test_releases_list_selection(): void
@@ -191,7 +190,7 @@ class HomepageControllerTest extends TestCase
         $list2 = GameList::factory()->system()->seasoned()->active()->public()->create(['name' => 'Seasoned List 2']);
 
         // Test selecting specific list
-        $response = $this->get('/releases/seasoned?list=' . $list2->id);
+        $response = $this->get('/releases/seasoned?list='.$list2->id);
 
         $response->assertStatus(200);
         $response->assertViewHas('selectedList', $list2);
