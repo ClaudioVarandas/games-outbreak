@@ -44,4 +44,7 @@ return [
     'steamgriddb' => [
         'api_key' => env('STEAMGRIDDB_API_KEY'),
     ],
+    'jina' => [
+        'api_key' => env('JINA_API_KEY'),
+    ],
 ];

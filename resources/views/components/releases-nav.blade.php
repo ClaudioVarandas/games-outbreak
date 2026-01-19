@@ -3,6 +3,12 @@
 <div class="bg-gray-700 border-b border-gray-600">
     <div class="container mx-auto px-4">
         <nav class="flex gap-6 py-3">
+            @if(\App\Http\Middleware\EnsureNewsFeatureEnabled::isVisibleTo(auth()->user()))
+                <a href="{{ route('news.index') }}"
+                   class="{{ $active === 'news' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
+                    News
+                </a>
+            @endif
             <a href="{{ route('highlights') }}"
                class="{{ $active === 'highlights' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
                 Highlights

@@ -7,11 +7,11 @@
         "dev": "vite"
     },
     "devDependencies": {
+        "@alpinejs/collapse": "^3.15.3",
         "@alpinejs/persist": "^3.15.1",
         "@tailwindcss/forms": "^0.5.2",
         "@tailwindcss/vite": "^4.1.18",
         "alpinejs": "^3.4.2",
-        "@alpinejs/collapse": "^3.15.3",
         "autoprefixer": "^10.4.2",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
@@ -21,6 +21,11 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "@tiptap/extension-image": "^3.15.3",
+        "@tiptap/extension-link": "^3.15.3",
+        "@tiptap/extension-placeholder": "^3.15.3",
+        "@tiptap/starter-kit": "^3.15.3",
+        "@tiptap/vue-3": "^3.15.3",
         "@vitejs/plugin-vue": "^6.0.3",
         "vue": "^3.5.25"
     }

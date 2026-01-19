@@ -2,6 +2,7 @@ import './bootstrap';
 import {createApp, h} from 'vue';
 import GlobalSearch from './components/GlobalSearch.vue';
 import AddGameToList from './components/AddGameToList.vue';
+import TiptapEditor from './components/TiptapEditor.vue';
 import './components/AuthModals.js';
 
 // Wait for DOM to be ready before mounting Vue
@@ -46,6 +47,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }).mount(element);
         }
+    });
+
+    // Mount Tiptap editor components
+    document.querySelectorAll('[data-vue-component="tiptap-editor"]').forEach(element => {
+        const name = element.getAttribute('data-name') || 'content';
+        const placeholder = element.getAttribute('data-placeholder') || 'Write your content here...';
+        const initialContentRaw = element.getAttribute('data-initial-content');
+        let initialContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+        if (initialContentRaw) {
+            try {
+                initialContent = JSON.parse(initialContentRaw);
+            } catch (e) {
+                console.error('Failed to parse initial content:', e);
+            }
+        }
+        createApp({
+            render() {
+                return h(TiptapEditor, {
+                    name: name,
+                    initialContent: initialContent,
+                    placeholder: placeholder
+                });
+            }
+        }).mount(element);
     });
 });
 

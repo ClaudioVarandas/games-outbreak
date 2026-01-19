@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Controllers\AdminListController;
+use App\Http\Controllers\AdminNewsController;
 use App\Http\Controllers\GameListController;
 use App\Http\Controllers\GamesController;
 use App\Http\Controllers\HighlightsController;
 use App\Http\Controllers\HomepageController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserListController;
 use App\Http\Middleware\EnsureAdminUser;
+use App\Http\Middleware\EnsureNewsFeatureEnabled;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +31,18 @@ Route::get('/api/game/{game:slug}/similar', [GamesController::class, 'similarGam
 Route::get('/search', [GamesController::class, 'searchResults'])->middleware('prevent-caching')->name('search');
 
 Route::get('/game/{game:slug}/similar-games-html', [GamesController::class, 'similarGamesHtml'])->middleware('prevent-caching')->name('game.similar.html');
+
+// ============================================================================
+// News Routes (Public)
+// ============================================================================
+
+Route::middleware([EnsureNewsFeatureEnabled::class])
+    ->prefix('news')
+    ->name('news.')
+    ->group(function () {
+        Route::get('/', [NewsController::class, 'index'])->name('index');
+        Route::get('/{news:slug}', [NewsController::class, 'show'])->name('show');
+    });
 
 // Public list view (read-only)
 Route::get('/list/{type}/{slug}', [GameListController::class, 'showBySlug'])->name('lists.show');
@@ -101,6 +116,20 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
 
         // All users' lists overview
         Route::get('/user-lists', [AdminListController::class, 'userLists'])->name('user-lists');
+
+        // News management
+        Route::middleware([EnsureNewsFeatureEnabled::class])
+            ->prefix('news')
+            ->name('news.')
+            ->group(function () {
+                Route::get('/', [AdminNewsController::class, 'index'])->name('index');
+                Route::get('/create', [AdminNewsController::class, 'create'])->name('create');
+                Route::post('/', [AdminNewsController::class, 'store'])->name('store');
+                Route::get('/{news}/edit', [AdminNewsController::class, 'edit'])->name('edit');
+                Route::patch('/{news}', [AdminNewsController::class, 'update'])->name('update');
+                Route::delete('/{news}', [AdminNewsController::class, 'destroy'])->name('destroy');
+                Route::post('/import-url', [AdminNewsController::class, 'importFromUrl'])->name('import-url');
+            });
     });
 
 // ============================================================================
