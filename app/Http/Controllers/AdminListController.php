@@ -684,11 +684,18 @@ class AdminListController extends Controller
 
         $pivotData = $list->games()->where('games.id', $game->id)->first()?->pivot;
 
+        $releaseDate = $pivotData->release_date ?? $game->first_release_date;
+        if ($releaseDate instanceof \Carbon\Carbon) {
+            $releaseDate = $releaseDate->format('Y-m-d');
+        } elseif ($releaseDate && is_string($releaseDate)) {
+            $releaseDate = \Carbon\Carbon::parse($releaseDate)->format('Y-m-d');
+        }
+
         return response()->json([
             'genres' => $genres,
             'current_indie_genre' => $pivotData->indie_genre ?? null,
             'is_indie' => (bool) ($pivotData->is_indie ?? false),
-            'release_date' => $pivotData->release_date ?? $game->first_release_date?->format('Y-m-d'),
+            'release_date' => $releaseDate,
             'is_tba' => (bool) ($pivotData->is_tba ?? false),
         ]);
     }
