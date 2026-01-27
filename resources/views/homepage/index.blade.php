@@ -20,20 +20,7 @@
 
         <!-- Official Events Section -->
         <section class="mb-12">
-            <x-seasonal-banners :banners="[
-                [
-                    'image' => '/images/new-game-plus-showcase-january-8-2026-1200x628-1.webp',
-                    'link' => route('lists.show',['type' => \App\Enums\ListTypeEnum::EVENTS->value ,'slug' => 'new-game-plus-showcase']),
-                    'alt' => 'New Game Plus Showcase',
-                    'status' => 'past'
-                ],
-                [
-                    'image' => '/images/xbox_developer_direct-Announce.jpg',
-                    'link' => route('lists.show',['type' => \App\Enums\ListTypeEnum::EVENTS->value ,'slug' => 'xbox-developer-direct-26']),
-                    'alt' => 'Xbox Developer Direct 26',
-                    'status' => 'upcoming'
-                ]
-            ]"/>
+            <x-seasonal-banners :banners="$eventBanners"/>
         </section>
 
         <h1 class="text-2xl md:text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-2 md:gap-4">

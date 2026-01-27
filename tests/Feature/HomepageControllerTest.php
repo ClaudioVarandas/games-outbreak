@@ -202,4 +202,52 @@ class HomepageControllerTest extends TestCase
 
         $response->assertStatus(404);
     }
+
+    public function test_homepage_shows_past_event_status_for_past_events(): void
+    {
+        GameList::factory()->system()->events()->public()->create([
+            'name' => 'Past Showcase',
+            'og_image_path' => '/images/test.webp',
+            'event_data' => ['event_time' => now()->subDays(3)->format('Y-m-d\TH:i'), 'event_timezone' => 'UTC'],
+        ]);
+
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('eventBanners', function (array $banners) {
+            return count($banners) === 1 && $banners[0]['status'] === 'past';
+        });
+    }
+
+    public function test_homepage_shows_upcoming_event_status_for_future_events(): void
+    {
+        GameList::factory()->system()->events()->public()->create([
+            'name' => 'Future Showcase',
+            'og_image_path' => '/images/test.webp',
+            'event_data' => ['event_time' => now()->addDays(3)->format('Y-m-d\TH:i'), 'event_timezone' => 'UTC'],
+        ]);
+
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('eventBanners', function (array $banners) {
+            return count($banners) === 1 && $banners[0]['status'] === 'upcoming';
+        });
+    }
+
+    public function test_homepage_excludes_inactive_events(): void
+    {
+        GameList::factory()->system()->events()->public()->create([
+            'name' => 'Inactive Event',
+            'is_active' => false,
+            'event_data' => ['event_time' => now()->addDays(3)->format('Y-m-d\TH:i'), 'event_timezone' => 'UTC'],
+        ]);
+
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('eventBanners', function (array $banners) {
+            return count($banners) === 0;
+        });
+    }
 }

@@ -53,6 +53,30 @@ class HomepageController extends Controller
     }
 
     /**
+     * Get active event lists with computed status.
+     */
+    private function getEventBanners(): array
+    {
+        return GameList::events()
+            ->where('is_active', true)
+            ->where('is_public', true)
+            ->orderBy('start_at', 'desc')
+            ->get()
+            ->map(function (GameList $event) {
+                $eventTime = $event->getEventTime();
+                $status = $eventTime && $eventTime->isPast() ? 'past' : 'upcoming';
+
+                return [
+                    'image' => $event->og_image_path ? asset($event->og_image_path) : '',
+                    'link' => route('lists.show', ['type' => ListTypeEnum::EVENTS->value, 'slug' => $event->slug]),
+                    'alt' => $event->name,
+                    'status' => $status,
+                ];
+            })
+            ->toArray();
+    }
+
+    /**
      * Display the homepage with featured game releases.
      */
     public function index(): View
@@ -62,6 +86,7 @@ class HomepageController extends Controller
         $featuredGames = collect();
         $weeklyUpcomingGames = $this->getWeeklyUpcomingGames();
         $platformEnums = PlatformEnum::getActivePlatforms();
+        $eventBanners = $this->getEventBanners();
 
         if ($activeList) {
             // Get all games from the active list (no date filtering)
@@ -74,7 +99,7 @@ class HomepageController extends Controller
                 ->get();
         }
 
-        return view('homepage.index', compact('activeList', 'seasonedLists', 'featuredGames', 'weeklyUpcomingGames', 'platformEnums'));
+        return view('homepage.index', compact('activeList', 'seasonedLists', 'featuredGames', 'weeklyUpcomingGames', 'platformEnums', 'eventBanners'));
     }
 
     /**
@@ -175,4 +200,3 @@ class HomepageController extends Controller
         ));
     }
 }
-
