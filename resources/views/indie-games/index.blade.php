@@ -69,11 +69,15 @@
                 <main x-data="{
                     searchQuery: '',
                     selectedGenres: [],
-                    matchesFilters(gameName, primaryGenreId) {
+                    matchesFilters(gameName, primaryGenreId, genreIds) {
                         const matchesSearch = this.searchQuery === '' || gameName.includes(this.searchQuery);
-                        const matchesGenre = this.selectedGenres.length === 0 ||
-                            this.selectedGenres.includes(primaryGenreId) ||
-                            (primaryGenreId === null && this.selectedGenres.includes('other'));
+                        if (this.selectedGenres.length === 0) return matchesSearch;
+                        const hasNoGenre = primaryGenreId === null && genreIds.length === 0;
+                        const matchesGenre = this.selectedGenres.some(g =>
+                            (g === 'other' && hasNoGenre) ||
+                            g === primaryGenreId ||
+                            genreIds.includes(g)
+                        );
                         return matchesSearch && matchesGenre;
                     }
                 }"
@@ -115,8 +119,10 @@
                                         }
                                         $displayDate = $pivotReleaseDate ?? $game->first_release_date;
                                         $primaryGenreId = $game->pivot->primary_genre_id;
+                                        $rawGenreIds = $game->pivot->genre_ids;
+                                        $genreIds = is_string($rawGenreIds) ? json_decode($rawGenreIds, true) ?? [] : ($rawGenreIds ?? []);
                                     @endphp
-                                    <div x-show="matchesFilters(@js(strtolower($game->name)), {{ $primaryGenreId ? $primaryGenreId : 'null' }})">
+                                    <div x-show="matchesFilters(@js(strtolower($game->name)), {{ $primaryGenreId ? $primaryGenreId : 'null' }}, @js(array_map('intval', $genreIds)))">
                                         <x-game-card
                                             :game="$game"
                                             :displayReleaseDate="$displayDate"
@@ -177,6 +183,7 @@
                         plugins: ['remove_button'],
                         placeholder: 'Filter by genre...',
                         allowEmptyOption: true,
+                        maxItems: 5,
                         onChange: (values) => {
                             this.selectedGenres = values.map(v => v === 'other' ? 'other' : parseInt(v));
                             this.$dispatch('genre-filter-change', { genres: this.selectedGenres });
