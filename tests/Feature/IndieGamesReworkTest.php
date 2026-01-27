@@ -11,6 +11,8 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->admin = User::factory()->create(['is_admin' => true]);
+    $this->genre = Genre::factory()->create(['name' => 'Metroidvania', 'slug' => 'metroidvania']);
+    $this->genre2 = Genre::factory()->create(['name' => 'Roguelike', 'slug' => 'roguelike']);
 });
 
 describe('Indie Games Page', function () {
@@ -22,7 +24,7 @@ describe('Indie Games Page', function () {
         $response->assertSee('No active indie games list');
     });
 
-    it('displays the active indie list with games grouped by genre', function () {
+    it('displays the active indie list with games grouped by month', function () {
         $list = GameList::factory()->create([
             'name' => 'Indies 2026',
             'list_type' => ListTypeEnum::INDIE_GAMES,
@@ -38,11 +40,13 @@ describe('Indie Games Page', function () {
 
         $list->games()->attach($game1->id, [
             'order' => 1,
-            'indie_genre' => 'metroidvania',
+            'genre_ids' => json_encode([$this->genre->id]),
+            'primary_genre_id' => $this->genre->id,
         ]);
         $list->games()->attach($game2->id, [
             'order' => 2,
-            'indie_genre' => 'roguelike',
+            'genre_ids' => json_encode([$this->genre2->id]),
+            'primary_genre_id' => $this->genre2->id,
         ]);
 
         $response = $this->get(route('indie-games'));
@@ -166,7 +170,8 @@ describe('Toggle Game Indie', function () {
                 'slug' => $list->slug,
                 'game' => $game->id,
             ]), [
-                'indie_genre' => 'metroidvania',
+                'primary_genre_id' => $this->genre->id,
+                'genre_ids' => [$this->genre->id],
             ]);
 
         $response->assertJson([
@@ -176,7 +181,7 @@ describe('Toggle Game Indie', function () {
 
         $pivotRecord = $list->games()->where('game_id', $game->id)->first();
         expect($pivotRecord->pivot->is_indie)->toBe(1);
-        expect($pivotRecord->pivot->indie_genre)->toBe('metroidvania');
+        expect($pivotRecord->pivot->primary_genre_id)->toBe($this->genre->id);
     });
 
     it('removes indie status when already marked', function () {
@@ -192,7 +197,8 @@ describe('Toggle Game Indie', function () {
         $list->games()->attach($game->id, [
             'order' => 1,
             'is_indie' => true,
-            'indie_genre' => 'roguelike',
+            'genre_ids' => json_encode([$this->genre2->id]),
+            'primary_genre_id' => $this->genre2->id,
         ]);
 
         $response = $this->actingAs($this->admin)
@@ -209,7 +215,6 @@ describe('Toggle Game Indie', function () {
 
         $pivotRecord = $list->games()->where('game_id', $game->id)->first();
         expect($pivotRecord->pivot->is_indie)->toBe(0);
-        expect($pivotRecord->pivot->indie_genre)->toBeNull();
     });
 
     it('requires genre when marking as indie', function () {
@@ -254,7 +259,7 @@ describe('Toggle Game Indie', function () {
                 'slug' => $list->slug,
                 'game' => $game->id,
             ]), [
-                'indie_genre' => 'platformer',
+                'primary_genre_id' => $this->genre->id,
             ]);
 
         $response->assertStatus(400);
@@ -292,13 +297,14 @@ describe('Toggle Game Indie', function () {
                 'slug' => $monthlyList->slug,
                 'game' => $game->id,
             ]), [
-                'indie_genre' => 'metroidvania',
+                'primary_genre_id' => $this->genre->id,
+                'genre_ids' => [$this->genre->id],
             ]);
 
         $this->assertDatabaseHas('game_list_game', [
             'game_list_id' => $indieList->id,
             'game_id' => $game->id,
-            'indie_genre' => 'metroidvania',
+            'primary_genre_id' => $this->genre->id,
         ]);
     });
 
@@ -326,7 +332,8 @@ describe('Toggle Game Indie', function () {
         ]);
         $indieList->games()->attach($game->id, [
             'order' => 1,
-            'indie_genre' => 'roguelike',
+            'genre_ids' => json_encode([$this->genre2->id]),
+            'primary_genre_id' => $this->genre2->id,
         ]);
 
         $this->actingAs($this->admin)
@@ -335,12 +342,13 @@ describe('Toggle Game Indie', function () {
                 'slug' => $monthlyList->slug,
                 'game' => $game->id,
             ]), [
-                'indie_genre' => 'metroidvania',
+                'primary_genre_id' => $this->genre->id,
+                'genre_ids' => [$this->genre->id],
             ]);
 
         expect($indieList->games()->where('game_id', $game->id)->count())->toBe(1);
-        expect($indieList->games()->where('game_id', $game->id)->first()->pivot->indie_genre)
-            ->toBe('roguelike');
+        expect($indieList->games()->where('game_id', $game->id)->first()->pivot->primary_genre_id)
+            ->toBe($this->genre2->id);
     });
 
     it('removes game from yearly indie list when indie status is toggled off', function () {
@@ -364,13 +372,15 @@ describe('Toggle Game Indie', function () {
         $monthlyList->games()->attach($game->id, [
             'order' => 1,
             'is_indie' => true,
-            'indie_genre' => 'metroidvania',
+            'genre_ids' => json_encode([$this->genre->id]),
+            'primary_genre_id' => $this->genre->id,
             'platforms' => json_encode([6, 130]),
             'release_date' => '2026-01-15',
         ]);
         $indieList->games()->attach($game->id, [
             'order' => 1,
-            'indie_genre' => 'metroidvania',
+            'genre_ids' => json_encode([$this->genre->id]),
+            'primary_genre_id' => $this->genre->id,
         ]);
 
         expect($indieList->games()->where('game_id', $game->id)->exists())->toBeTrue();
@@ -414,13 +424,14 @@ describe('Get Game Genres', function () {
 
         $response->assertOk();
         $response->assertJsonStructure([
-            'genres' => [
+            'igdb_genres' => [
                 ['id', 'name', 'slug'],
             ],
-            'current_indie_genre',
+            'genre_ids',
+            'primary_genre_id',
             'is_indie',
         ]);
-        $response->assertJsonPath('genres.0.name', 'Platformer');
+        $response->assertJsonPath('igdb_genres.0.name', 'Platformer');
     });
 });
 

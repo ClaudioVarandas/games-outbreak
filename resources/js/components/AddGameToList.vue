@@ -58,7 +58,7 @@
               </span>
             </div>
           </div>
-          <button 
+          <button
                   type="button"
                   @click="openAddForm(game)"
                   :disabled="adding"
@@ -97,118 +97,25 @@
       </div>
     </Transition>
 
-    <!-- Add Game Form Modal -->
-    <Transition
-      enter-active-class="transition ease-out duration-300"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition ease-in duration-200"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="showForm && selectedGame"
-        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-        @click.self="closeForm"
-      >
-        <div class="bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div class="p-6">
-            <div class="flex items-center justify-between mb-6">
-              <h3 class="text-2xl font-bold text-white">Add Game to List</h3>
-              <button
-                @click="closeForm"
-                class="text-gray-400 hover:text-white transition"
-              >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
-
-            <!-- Game Info -->
-            <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-700">
-              <img
-                :src="selectedGame.cover_url || '/images/game-cover-placeholder.svg'"
-                alt="Cover"
-                class="w-20 h-28 object-cover rounded shadow"
-                @error="$event.target.src = '/images/game-cover-placeholder.svg'"
-              >
-              <div>
-                <h4 class="text-xl font-bold text-white mb-1">{{ selectedGame.name }}</h4>
-                <p class="text-sm text-gray-400">{{ selectedGame.release || 'TBA' }}</p>
-              </div>
-            </div>
-
-            <!-- Form Fields -->
-            <form @submit.prevent="submitAddGame" class="space-y-6">
-              <!-- Release Date -->
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">
-                  Release Date
-                </label>
-                <input
-                  v-model="formReleaseDate"
-                  type="date"
-                  class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                <p class="mt-1 text-xs text-gray-400">
-                  Default: {{ selectedGame.release_date || selectedGame.release || 'TBA' }}
-                </p>
-              </div>
-
-              <!-- Platforms -->
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">
-                  Platforms
-                </label>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <label
-                    v-for="platform in availablePlatforms"
-                    :key="platform.id"
-                    class="flex items-center gap-2 p-3 rounded-lg bg-gray-700 hover:bg-gray-600 cursor-pointer transition"
-                  >
-                    <input
-                      type="checkbox"
-                      :value="platform.id"
-                      v-model="formPlatforms"
-                      class="rounded border-gray-500 text-orange-600 focus:ring-orange-500"
-                    >
-                    <span class="text-sm text-white">{{ platform.label }}</span>
-                  </label>
-                </div>
-                <p class="mt-2 text-xs text-gray-400">
-                  Default: {{ selectedGame.platforms || 'None' }}
-                </p>
-              </div>
-
-              <!-- Form Actions -->
-              <div class="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  :disabled="adding"
-                  class="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition"
-                >
-                  <span v-if="adding">Adding...</span>
-                  <span v-else>Add to List</span>
-                </button>
-                <button
-                  type="button"
-                  @click="closeForm"
-                  class="px-6 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-medium transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <!-- Add Game Form Modal (using reusable component) -->
+    <GameFormModal
+      :show="showForm"
+      :game="selectedGame || {}"
+      mode="add"
+      :available-platforms="availablePlatforms"
+      :available-genres="showGenreSelection ? availableGenres : []"
+      :submitting="adding"
+      :initial-release-date="selectedGame?.release_date || ''"
+      :initial-platforms="selectedGame?.platform_ids || []"
+      @close="closeForm"
+      @submit="handleFormSubmit"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue';
+import GameFormModal from './GameFormModal.vue';
 
 const props = defineProps({
   listId: {
@@ -220,6 +127,14 @@ const props = defineProps({
     required: true
   },
   availablePlatforms: {
+    type: Array,
+    default: () => []
+  },
+  showGenreSelection: {
+    type: Boolean,
+    default: false
+  },
+  availableGenres: {
     type: Array,
     default: () => []
   }
@@ -236,8 +151,6 @@ const addingGameId = ref(null);
 const notification = ref({ show: false, message: '', type: 'success' });
 const showForm = ref(false);
 const selectedGame = ref(null);
-const formReleaseDate = ref('');
-const formPlatforms = ref([]);
 
 const showNotification = (message, type = 'success') => {
   notification.value = { show: true, message, type };
@@ -254,7 +167,6 @@ const closeDropdown = () => {
   isOpen.value = false;
 };
 
-// Handle click outside
 const handleClickOutside = (event) => {
   if (searchContainer.value && !searchContainer.value.contains(event.target)) {
     closeDropdown();
@@ -269,7 +181,6 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
 
-// Custom debounce
 const debounce = (fn, delay = 300) => {
   let timeout;
   return (...args) => {
@@ -309,13 +220,13 @@ const shouldShowBadge = (game) => {
 
 const getBadgeColor = (gameType) => {
   const colorMap = {
-    0: 'bg-orange-600/80',      // MAIN
-    1: 'bg-orange-600/80',     // DLC
-    2: 'bg-orange-600/80',       // Expansion
-    4: 'bg-yellow-600/80',     // Standalone
-    8: 'bg-red-600/80',        // Remake
-    9: 'bg-yellow-500/80',      // Remaster
-    10: 'bg-purple-600/80',     // Expanded
+    0: 'bg-orange-600/80',
+    1: 'bg-orange-600/80',
+    2: 'bg-orange-600/80',
+    4: 'bg-yellow-600/80',
+    8: 'bg-red-600/80',
+    9: 'bg-yellow-500/80',
+    10: 'bg-purple-600/80',
   };
   return colorMap[gameType] || 'bg-gray-600/80';
 };
@@ -328,40 +239,48 @@ const submitSearch = () => {
 
 const openAddForm = (game) => {
   selectedGame.value = game;
-  formReleaseDate.value = game.release_date || '';
-  formPlatforms.value = game.platform_ids ? [...game.platform_ids] : [];
   showForm.value = true;
 };
 
 const closeForm = () => {
   showForm.value = false;
   selectedGame.value = null;
-  formReleaseDate.value = '';
-  formPlatforms.value = [];
 };
 
-const submitAddGame = async () => {
+const handleFormSubmit = async (formData) => {
   if (adding.value || !selectedGame.value) return;
-  
+
   adding.value = true;
   addingGameId.value = selectedGame.value.igdb_id;
 
   try {
-    const formData = new FormData();
-    formData.append('game_id', selectedGame.value.igdb_id);
-    formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
-    
-    if (formReleaseDate.value) {
-      formData.append('release_date', formReleaseDate.value);
+    const submitData = new FormData();
+    submitData.append('game_id', selectedGame.value.igdb_id);
+    submitData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+
+    if (formData.releaseDate && !formData.isTba) {
+      submitData.append('release_date', formData.releaseDate);
     }
-    
-    if (formPlatforms.value.length > 0) {
-      formData.append('platforms', JSON.stringify(formPlatforms.value));
+
+    if (formData.platforms && formData.platforms.length > 0) {
+      submitData.append('platforms', JSON.stringify(formData.platforms));
+    }
+
+    submitData.append('is_tba', formData.isTba ? '1' : '0');
+
+    if (props.showGenreSelection) {
+      if (formData.primaryGenreId) {
+        submitData.append('primary_genre_id', formData.primaryGenreId);
+      }
+
+      if (formData.genreIds && formData.genreIds.length > 0) {
+        submitData.append('genre_ids', JSON.stringify(formData.genreIds));
+      }
     }
 
     const response = await fetch(props.routePrefix, {
       method: 'POST',
-      body: formData,
+      body: submitData,
       headers: {
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': 'application/json'
@@ -372,7 +291,6 @@ const submitAddGame = async () => {
     try {
       data = await response.json();
     } catch (e) {
-      // If response is not JSON (e.g., redirect), reload page
       if (response.ok || response.redirected) {
         window.location.reload();
         return;
@@ -386,17 +304,14 @@ const submitAddGame = async () => {
 
     if (response.ok) {
       if (data.success) {
-        // Reload page to show updated list
         window.location.reload();
       } else if (data.info) {
-        // Game already in list
         showNotification(data.info, 'info');
         adding.value = false;
         addingGameId.value = null;
         closeForm();
       }
     } else {
-      // Error response
       showNotification(data.error || data.message || 'Failed to add game to list', 'error');
       adding.value = false;
       addingGameId.value = null;
@@ -409,7 +324,6 @@ const submitAddGame = async () => {
   }
 };
 
-// Close on escape
 watch(query, (newVal) => {
   if (!newVal) closeDropdown();
 });

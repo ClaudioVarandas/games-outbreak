@@ -25,4 +25,18 @@ export default defineConfig({
             vue: 'vue/dist/vue.esm-bundler.js',
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (id.includes('@tiptap') || id.includes('prosemirror')) {
+                        return 'tiptap';
+                    }
+                    if (id.includes('node_modules/vue')) {
+                        return 'vue';
+                    }
+                },
+            },
+        },
+    },
 });

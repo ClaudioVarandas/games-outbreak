@@ -12,29 +12,39 @@ class GenreFactory extends Factory
 {
     protected $model = Genre::class;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
-        $genres = [
-            ['igdb_id' => 12, 'name' => 'Role-playing (RPG)'],
-            ['igdb_id' => 5, 'name' => 'Shooter'],
-            ['igdb_id' => 31, 'name' => 'Adventure'],
-            ['igdb_id' => 32, 'name' => 'Indie'],
-            ['igdb_id' => 15, 'name' => 'Strategy'],
-            ['igdb_id' => 4, 'name' => 'Fighting'],
-            ['igdb_id' => 8, 'name' => 'Platform'],
-            ['igdb_id' => 9, 'name' => 'Puzzle'],
-        ];
-
-        $genre = fake()->randomElement($genres);
+        $name = fake()->unique()->words(2, true);
 
         return [
-            'igdb_id' => $genre['igdb_id'],
-            'name' => $genre['name'],
+            'igdb_id' => null,
+            'name' => ucwords($name),
+            'slug' => str()->slug($name),
+            'is_system' => false,
+            'is_visible' => true,
+            'is_pending_review' => false,
+            'sort_order' => fake()->numberBetween(1, 100),
         ];
+    }
+
+    public function system(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_system' => true,
+        ]);
+    }
+
+    public function hidden(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_visible' => false,
+        ]);
+    }
+
+    public function pendingReview(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_pending_review' => true,
+        ]);
     }
 }

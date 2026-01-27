@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\ListTypeEnum;
 use App\Enums\PlatformEnum;
 use App\Models\GameList;
+use App\Models\Genre;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -40,54 +41,38 @@ class IndieGamesController extends Controller
             ->unique()
             ->values();
 
-        $configuredGenres = config('system-lists.indies.genres', []);
+        $genres = Genre::visible()
+            ->where('is_pending_review', false)
+            ->notOther()
+            ->ordered()
+            ->get();
 
-        $gamesByGenre = $this->groupGamesByGenre($indieList, $configuredGenres);
+        $otherGenre = Genre::where('slug', 'other')->first();
 
-        $genreCounts = [];
-        foreach ($gamesByGenre as $genreKey => $monthData) {
-            $count = 0;
-            foreach ($monthData as $month) {
-                $count += count($month['games']);
-            }
-            $genreCounts[$genreKey] = $count;
-        }
+        $gamesByMonth = $this->groupGamesByMonth($indieList);
 
         $platformEnums = PlatformEnum::getActivePlatforms();
-
-        $defaultGenre = count($configuredGenres) > 0 && isset($gamesByGenre[$configuredGenres[0]])
-            ? $configuredGenres[0]
-            : (array_key_first($gamesByGenre) ?? 'other');
 
         return view('indie-games.index', compact(
             'indieList',
             'year',
             'availableYears',
-            'configuredGenres',
-            'gamesByGenre',
-            'genreCounts',
-            'platformEnums',
-            'defaultGenre'
+            'genres',
+            'otherGenre',
+            'gamesByMonth',
+            'platformEnums'
         ));
     }
 
-    private function groupGamesByGenre(?GameList $list, array $configuredGenres): array
+    private function groupGamesByMonth(?GameList $list): array
     {
         if (! $list) {
             return [];
         }
 
-        $gamesByGenre = [];
+        $gamesByMonth = [];
 
         foreach ($list->games as $game) {
-            $indieGenre = $game->pivot->indie_genre ?? null;
-
-            if ($indieGenre && in_array($indieGenre, $configuredGenres)) {
-                $genreKey = $indieGenre;
-            } else {
-                $genreKey = 'other';
-            }
-
             if ($game->pivot->is_tba) {
                 $monthKey = 'tba';
                 $monthLabel = 'TBA';
@@ -101,29 +86,27 @@ class IndieGamesController extends Controller
                 $monthLabel = $releaseDate ? $releaseDate->format('F Y') : 'TBA';
             }
 
-            if (! isset($gamesByGenre[$genreKey][$monthKey])) {
-                $gamesByGenre[$genreKey][$monthKey] = [
+            if (! isset($gamesByMonth[$monthKey])) {
+                $gamesByMonth[$monthKey] = [
                     'label' => $monthLabel,
                     'games' => [],
                 ];
             }
 
-            $gamesByGenre[$genreKey][$monthKey]['games'][] = $game;
+            $gamesByMonth[$monthKey]['games'][] = $game;
         }
 
-        foreach ($gamesByGenre as $genreKey => $months) {
-            uksort($gamesByGenre[$genreKey], function ($a, $b) {
-                if ($a === 'tba') {
-                    return -1;
-                }
-                if ($b === 'tba') {
-                    return 1;
-                }
+        uksort($gamesByMonth, function ($a, $b) {
+            if ($a === 'tba') {
+                return -1;
+            }
+            if ($b === 'tba') {
+                return 1;
+            }
 
-                return $a <=> $b;
-            });
-        }
+            return $a <=> $b;
+        });
 
-        return $gamesByGenre;
+        return $gamesByMonth;
     }
 }

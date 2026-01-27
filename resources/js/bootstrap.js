@@ -2,10 +2,12 @@ import axios from 'axios';
 import Alpine from 'alpinejs';
 import persist from '@alpinejs/persist';
 import collapse from '@alpinejs/collapse';
+import TomSelect from 'tom-select';
 
 window.axios = axios;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 window.Alpine = Alpine;
+window.TomSelect = TomSelect;
 
 Alpine.plugin(persist);
 Alpine.plugin(collapse);

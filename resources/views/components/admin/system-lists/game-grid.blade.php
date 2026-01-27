@@ -7,7 +7,25 @@
     $platformGroups = \App\Enums\PlatformGroupEnum::orderedCases();
 @endphp
 
-<div class="mt-6" x-data="gameGrid()">
+{{-- Vue mount point for game edit modals --}}
+@php
+    $activePlatforms = \App\Enums\PlatformEnum::getActivePlatforms()->map(fn($enum) => ['id' => $enum->value, 'label' => $enum->label(), 'color' => $enum->color()])->values();
+    $systemGenres = \App\Models\Genre::visible()->where('is_pending_review', false)->ordered()->get(['id', 'name', 'slug']);
+@endphp
+<div id="game-edit-modals"
+     data-list-type="{{ $list->list_type->toSlug() }}"
+     data-list-slug="{{ $list->slug }}"
+     data-list-name="{{ $list->name }}"
+     data-toggle-highlight-url="{{ route('admin.system-lists.games.toggle-highlight', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
+     data-toggle-indie-url="{{ route('admin.system-lists.games.toggle-indie', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
+     data-get-genres-url="{{ route('admin.system-lists.games.genres', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
+     data-update-pivot-url="{{ route('admin.system-lists.games.update-pivot', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
+     data-csrf-token="{{ csrf_token() }}"
+     data-platforms="{{ $activePlatforms->toJson() }}"
+     data-system-genres="{{ $systemGenres->toJson() }}">
+</div>
+
+<div class="mt-6" x-data="gameGrid()"
     @if($viewMode === 'grid')
         <!-- Grid View -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" id="game-grid">
@@ -16,7 +34,7 @@
                      data-game-id="{{ $game->id }}"
                      data-is-highlight="{{ $game->pivot->is_highlight ? 'true' : 'false' }}"
                      data-is-indie="{{ $game->pivot->is_indie ? 'true' : 'false' }}"
-                     data-indie-genre="{{ $game->pivot->indie_genre ?? '' }}">
+                     data-primary-genre-id="{{ $game->pivot->primary_genre_id ?? '' }}">
                     <!-- Action Buttons Row -->
                     <div class="absolute top-2 left-2 right-2 z-10 flex items-center justify-between">
                         <!-- Left: Drag Handle -->
@@ -28,10 +46,21 @@
 
                         <!-- Right: Action Buttons -->
                         <div class="flex items-center gap-1.5">
+                            <!-- Edit Pivot Data Button -->
+                            <button
+                                @click="dispatchEditModal({{ $game->id }}, 'edit', 'false', '{{ addslashes($game->name) }}', '{{ $game->getCoverUrl('cover_big') }}', '{{ $game->pivot->release_date ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M d, Y') : ($game->first_release_date?->format('M d, Y') ?? 'TBA') }}')"
+                                class="p-1.5 rounded-lg shadow-lg transition bg-blue-500 hover:bg-blue-600"
+                                title="Edit game data"
+                            >
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+
                             @if($canHighlight)
                                 <!-- Highlight Toggle Button -->
                                 <button
-                                    @click="openModal({{ $game->id }}, 'highlight', '{{ $game->pivot->is_highlight ? 'true' : 'false' }}')"
+                                    @click="dispatchEditModal({{ $game->id }}, 'highlight', '{{ $game->pivot->is_highlight ? 'true' : 'false' }}', '{{ addslashes($game->name) }}', '{{ $game->getCoverUrl('cover_big') }}', '{{ $game->pivot->release_date ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M d, Y') : ($game->first_release_date?->format('M d, Y') ?? 'TBA') }}')"
                                     class="p-1.5 rounded-lg shadow-lg transition {{ $game->pivot->is_highlight ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-gray-700/70 hover:bg-yellow-500' }}"
                                     title="{{ $game->pivot->is_highlight ? 'Remove from highlights' : 'Add to highlights' }}"
                                 >
@@ -44,7 +73,7 @@
                             @if($canIndie)
                                 <!-- Indie Toggle Button (Plus Circle icon) -->
                                 <button
-                                    @click="openModal({{ $game->id }}, 'indie', '{{ $game->pivot->is_indie ? 'true' : 'false' }}')"
+                                    @click="dispatchEditModal({{ $game->id }}, 'indie', '{{ $game->pivot->is_indie ? 'true' : 'false' }}', '{{ addslashes($game->name) }}', '{{ $game->getCoverUrl('cover_big') }}', '{{ $game->pivot->release_date ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M d, Y') : ($game->first_release_date?->format('M d, Y') ?? 'TBA') }}')"
                                     class="p-1.5 rounded-lg shadow-lg transition {{ $game->pivot->is_indie ? 'bg-purple-500 hover:bg-purple-600' : 'bg-gray-700/70 hover:bg-purple-500' }}"
                                     title="{{ $game->pivot->is_indie ? 'Remove indie status' : 'Mark as indie' }}"
                                 >
@@ -109,7 +138,7 @@
                      data-game-id="{{ $game->id }}"
                      data-is-highlight="{{ $game->pivot->is_highlight ? 'true' : 'false' }}"
                      data-is-indie="{{ $game->pivot->is_indie ? 'true' : 'false' }}"
-                     data-indie-genre="{{ $game->pivot->indie_genre ?? '' }}">
+                     data-primary-genre-id="{{ $game->pivot->primary_genre_id ?? '' }}">
                     <!-- Drag Handle -->
                     <div class="cursor-move drag-handle text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -148,10 +177,18 @@
                         </select>
                     @endif
 
+                    <!-- Edit Pivot Data Button -->
+                    <button
+                        @click="dispatchEditModal({{ $game->id }}, 'edit', 'false', '{{ addslashes($game->name) }}', '{{ $game->getCoverUrl('cover_small') }}', '{{ $game->pivot->release_date ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M d, Y') : ($game->first_release_date?->format('M d, Y') ?? 'TBA') }}')"
+                        class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
+                    >
+                        Edit
+                    </button>
+
                     @if($canHighlight)
                         <!-- Highlight Toggle Button -->
                         <button
-                            @click="openModal({{ $game->id }}, 'highlight', '{{ $game->pivot->is_highlight ? 'true' : 'false' }}')"
+                            @click="dispatchEditModal({{ $game->id }}, 'highlight', '{{ $game->pivot->is_highlight ? 'true' : 'false' }}', '{{ addslashes($game->name) }}', '{{ $game->getCoverUrl('cover_small') }}', '{{ $game->pivot->release_date ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M d, Y') : ($game->first_release_date?->format('M d, Y') ?? 'TBA') }}')"
                             class="px-4 py-2 rounded-lg transition {{ $game->pivot->is_highlight ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-gray-200' }}"
                         >
                             {{ $game->pivot->is_highlight ? 'Highlighted' : 'Highlight' }}
@@ -161,7 +198,7 @@
                     @if($canIndie)
                         <!-- Indie Toggle Button -->
                         <button
-                            @click="openModal({{ $game->id }}, 'indie', '{{ $game->pivot->is_indie ? 'true' : 'false' }}')"
+                            @click="dispatchEditModal({{ $game->id }}, 'indie', '{{ $game->pivot->is_indie ? 'true' : 'false' }}', '{{ addslashes($game->name) }}', '{{ $game->getCoverUrl('cover_small') }}', '{{ $game->pivot->release_date ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M d, Y') : ($game->first_release_date?->format('M d, Y') ?? 'TBA') }}')"
                             class="px-4 py-2 rounded-lg transition {{ $game->pivot->is_indie ? 'bg-purple-500 hover:bg-purple-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-gray-200' }}"
                         >
                             {{ $game->pivot->is_indie ? 'Indie' : 'Mark Indie' }}
@@ -180,125 +217,13 @@
         </div>
     @endif
 
-    @if($canHighlight || $canIndie)
-        <!-- Unified Modal for Highlight/Indie -->
-        <div x-show="showModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeModal()"></div>
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
-                            <!-- Icon - changes based on mode -->
-                            <div
-                                class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full sm:mx-0 sm:h-10 sm:w-10"
-                                :class="modalMode === 'indie' ? 'bg-purple-100 dark:bg-purple-900' : 'bg-yellow-100 dark:bg-yellow-900'"
-                            >
-                                <!-- Indie Icon -->
-                                <svg x-show="modalMode === 'indie'" class="h-6 w-6 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
-                                </svg>
-                                <!-- Highlight Icon -->
-                                <svg x-show="modalMode === 'highlight'" class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                                </svg>
-                            </div>
-                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100" id="modal-title" x-text="modalMode === 'indie' ? 'Mark as Indie' : 'Mark as Highlight'">
-                                </h3>
-                                <div class="mt-4 space-y-4">
-                                    <!-- Genre Selection (only for indie) -->
-                                    <div x-show="modalMode === 'indie'">
-                                        <label for="genre-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Select Genre
-                                        </label>
-                                        <select
-                                            id="genre-select"
-                                            x-model="selectedGenre"
-                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                                        >
-                                            <option value="">-- Select a genre --</option>
-                                            <template x-for="genre in gameGenres" :key="genre.slug">
-                                                <option :value="genre.slug" x-text="genre.name"></option>
-                                            </template>
-                                        </select>
-                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                            Choose which genre tab this game should appear under.
-                                        </p>
-                                    </div>
-
-                                    <!-- Release Date -->
-                                    <div>
-                                        <label for="release-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Release Date
-                                        </label>
-                                        <input
-                                            type="date"
-                                            id="release-date"
-                                            x-model="releaseDate"
-                                            :disabled="isTba"
-                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                                            :class="modalMode === 'indie' ? 'focus:ring-purple-500' : 'focus:ring-yellow-500'"
-                                        >
-                                    </div>
-
-                                    <!-- TBA Checkbox -->
-                                    <div class="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            id="is-tba"
-                                            x-model="isTba"
-                                            class="h-4 w-4 border-gray-300 rounded"
-                                            :class="modalMode === 'indie' ? 'text-purple-500 focus:ring-purple-500' : 'text-yellow-500 focus:ring-yellow-500'"
-                                        >
-                                        <label for="is-tba" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                                            TBA (To Be Announced)
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button
-                            type="button"
-                            @click="confirmToggle()"
-                            :disabled="modalMode === 'indie' && !selectedGenre"
-                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                            :class="modalMode === 'indie' ? 'bg-purple-500 hover:bg-purple-600 focus:ring-purple-500' : 'bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500'"
-                        >
-                            Confirm
-                        </button>
-                        <button
-                            type="button"
-                            @click="closeModal()"
-                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                            :class="modalMode === 'indie' ? 'focus:ring-purple-500' : 'focus:ring-yellow-500'"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
     function gameGrid() {
         return {
-            showModal: false,
-            modalMode: '', // 'highlight' or 'indie'
-            selectedGameId: null,
-            selectedGenre: '',
-            gameGenres: [],
-            isCurrentlyActive: false,
-            releaseDate: '',
-            isTba: false,
-
             init() {
-                // Initialize drag-and-drop
                 const container = document.querySelector('#game-grid') || document.querySelector('#game-list');
                 if (container) {
                     Sortable.create(container, {
@@ -307,6 +232,19 @@
                         onEnd: (evt) => this.reorderGames()
                     });
                 }
+            },
+
+            dispatchEditModal(gameId, mode, isActive, gameName, gameCover, gameRelease) {
+                window.dispatchEvent(new CustomEvent('open-game-edit-modal', {
+                    detail: {
+                        gameId,
+                        mode,
+                        isActive,
+                        gameName,
+                        gameCover,
+                        gameRelease
+                    }
+                }));
             },
 
             async removeGame(gameId) {
@@ -399,104 +337,6 @@
                 }
             },
             @endif
-
-            async openModal(gameId, mode, isActive) {
-                this.selectedGameId = gameId;
-                this.modalMode = mode;
-                this.isCurrentlyActive = isActive === 'true';
-
-                // If already active, just toggle off without modal
-                if (this.isCurrentlyActive) {
-                    await this.performToggle(gameId, mode, false);
-                    return;
-                }
-
-                // Fetch game data
-                try {
-                    const response = await fetch('{{ route("admin.system-lists.games.genres", [$list->list_type->toSlug(), $list->slug, "__GAME_ID__"]) }}'.replace('__GAME_ID__', gameId), {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    });
-
-                    const data = await response.json();
-                    if (data.genres !== undefined) {
-                        this.gameGenres = data.genres || [];
-                        this.selectedGenre = data.current_indie_genre || '';
-                        this.releaseDate = data.release_date ? data.release_date.split('T')[0] : '';
-                        this.isTba = data.is_tba || false;
-                        this.showModal = true;
-                    } else {
-                        alert(data.error || 'Failed to fetch game data');
-                    }
-                } catch (error) {
-                    console.error('Fetch game data error:', error);
-                    alert('Failed to fetch game data. Please try again.');
-                }
-            },
-
-            closeModal() {
-                this.showModal = false;
-                this.selectedGameId = null;
-                this.modalMode = '';
-                this.selectedGenre = '';
-                this.gameGenres = [];
-                this.releaseDate = '';
-                this.isTba = false;
-            },
-
-            async confirmToggle() {
-                if (this.modalMode === 'indie' && !this.selectedGenre) {
-                    alert('Please select a genre');
-                    return;
-                }
-
-                await this.performToggle(this.selectedGameId, this.modalMode, true);
-                this.closeModal();
-            },
-
-            async performToggle(gameId, mode, turnOn) {
-                const url = mode === 'indie'
-                    ? '{{ route("admin.system-lists.games.toggle-indie", [$list->list_type->toSlug(), $list->slug, "__GAME_ID__"]) }}'.replace('__GAME_ID__', gameId)
-                    : '{{ route("admin.system-lists.games.toggle-highlight", [$list->list_type->toSlug(), $list->slug, "__GAME_ID__"]) }}'.replace('__GAME_ID__', gameId);
-
-                const body = {
-                    _method: 'PATCH'
-                };
-
-                if (turnOn) {
-                    body.release_date = this.releaseDate || null;
-                    body.is_tba = this.isTba;
-
-                    if (mode === 'indie') {
-                        body.indie_genre = this.selectedGenre;
-                    }
-                }
-
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'X-HTTP-Method-Override': 'PATCH',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify(body)
-                    });
-
-                    const data = await response.json();
-                    if (data.success) {
-                        window.location.reload();
-                    } else {
-                        alert(data.error || 'Failed to update game status');
-                    }
-                } catch (error) {
-                    console.error('Toggle error:', error);
-                    alert('Failed to update game status. Please try again.');
-                }
-            }
         }
     }
 </script>

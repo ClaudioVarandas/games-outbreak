@@ -27,6 +27,7 @@
         "@tiptap/starter-kit": "^3.15.3",
         "@tiptap/vue-3": "^3.15.3",
         "@vitejs/plugin-vue": "^6.0.3",
+        "tom-select": "^2.4.3",
         "vue": "^3.5.25"
     }
 }

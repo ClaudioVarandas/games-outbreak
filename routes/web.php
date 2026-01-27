@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminGenreController;
 use App\Http\Controllers\AdminListController;
 use App\Http\Controllers\AdminNewsController;
 use App\Http\Controllers\GameListController;
@@ -117,6 +118,8 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
         Route::patch('/system-lists/{type}/{slug}/games/{game:id}/highlight', [AdminListController::class, 'toggleGameHighlight'])->name('system-lists.games.toggle-highlight');
         Route::patch('/system-lists/{type}/{slug}/games/{game:id}/indie', [AdminListController::class, 'toggleGameIndie'])->name('system-lists.games.toggle-indie');
         Route::get('/system-lists/{type}/{slug}/games/{game:id}/genres', [AdminListController::class, 'getGameGenres'])->name('system-lists.games.genres');
+        Route::patch('/system-lists/{type}/{slug}/games/{game:id}/genres', [AdminListController::class, 'updateGameGenres'])->name('system-lists.games.update-genres');
+        Route::patch('/system-lists/{type}/{slug}/games/{game:id}/pivot', [AdminListController::class, 'updateGamePivotData'])->name('system-lists.games.update-pivot');
 
         // All users' lists overview
         Route::get('/user-lists', [AdminListController::class, 'userLists'])->name('user-lists');
@@ -134,6 +137,27 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
                 Route::delete('/{news}', [AdminNewsController::class, 'destroy'])->name('destroy');
                 Route::post('/import-url', [AdminNewsController::class, 'importFromUrl'])->name('import-url');
             });
+
+        // Genre management
+        Route::prefix('genres')
+            ->name('genres.')
+            ->group(function () {
+                Route::get('/', [AdminGenreController::class, 'index'])->name('index');
+                Route::post('/', [AdminGenreController::class, 'store'])->name('store');
+                Route::patch('/reorder', [AdminGenreController::class, 'reorder'])->name('reorder');
+                Route::post('/merge', [AdminGenreController::class, 'merge'])->name('merge');
+                Route::post('/bulk-remove', [AdminGenreController::class, 'bulkRemove'])->name('bulk-remove');
+                Route::post('/bulk-replace', [AdminGenreController::class, 'bulkReplace'])->name('bulk-replace');
+                Route::patch('/{genre}', [AdminGenreController::class, 'update'])->name('update');
+                Route::delete('/{genre}', [AdminGenreController::class, 'destroy'])->name('destroy');
+                Route::patch('/{genre}/approve', [AdminGenreController::class, 'approve'])->name('approve');
+                Route::delete('/{genre}/reject', [AdminGenreController::class, 'reject'])->name('reject');
+                Route::patch('/{genre}/toggle-visibility', [AdminGenreController::class, 'toggleVisibility'])->name('toggle-visibility');
+                Route::post('/{genre}/assign-games', [AdminGenreController::class, 'assignGames'])->name('assign-games');
+            });
+
+        // Genre API (for Tom Select search)
+        Route::get('/api/genres/search', [AdminGenreController::class, 'search'])->name('api.genres.search');
     });
 
 // ============================================================================

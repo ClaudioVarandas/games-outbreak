@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ListTypeEnum;
 use App\Models\Game;
 use App\Models\GameList;
+use App\Models\Genre;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -231,11 +232,13 @@ class IndieGamesTest extends TestCase
             'end_at' => '2026-12-31',
         ]);
 
+        $genre = Genre::factory()->create(['name' => 'Metroidvania', 'slug' => 'metroidvania']);
         $games = Game::factory()->count(5)->create();
         foreach ($games as $index => $game) {
             $list->games()->attach($game->id, [
                 'order' => $index,
-                'indie_genre' => 'metroidvania',
+                'genre_ids' => json_encode([$genre->id]),
+                'primary_genre_id' => $genre->id,
             ]);
         }
 

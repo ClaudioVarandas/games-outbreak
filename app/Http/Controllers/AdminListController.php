@@ -361,8 +361,19 @@ class AdminListController extends Controller
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
+        // Decode JSON strings from FormData
+        $genreIds = $request->input('genre_ids');
+        if (is_string($genreIds)) {
+            $genreIds = json_decode($genreIds, true) ?? [];
+            $request->merge(['genre_ids' => $genreIds]);
+        }
+
         $request->validate([
             'game_id' => ['required'],
+            'genre_ids' => ['nullable', 'array', 'max:3'],
+            'genre_ids.*' => ['exists:genres,id'],
+            'primary_genre_id' => ['nullable', 'exists:genres,id'],
+            'is_tba' => ['nullable', 'boolean'],
         ]);
 
         $igdbId = $request->game_id;
@@ -421,11 +432,27 @@ class AdminListController extends Controller
             $platformGroup = PlatformGroupEnum::suggestFromPlatforms($platformIds)->value;
         }
 
+        // Handle genre data
+        $genreIds = $request->input('genre_ids', []);
+        if (is_string($genreIds)) {
+            $genreIds = json_decode($genreIds, true) ?? [];
+        }
+        $primaryGenreId = $request->input('primary_genre_id');
+
+        // Handle TBA flag
+        $isTba = $request->boolean('is_tba', false);
+        if ($isTba) {
+            $releaseDate = null;
+        }
+
         $list->games()->attach($game->id, [
             'order' => $maxOrder + 1,
             'release_date' => $releaseDate,
             'platforms' => json_encode($platformIds),
             'platform_group' => $platformGroup,
+            'is_tba' => $isTba,
+            'genre_ids' => json_encode(array_map('intval', $genreIds)),
+            'primary_genre_id' => $primaryGenreId ? (int) $primaryGenreId : null,
         ]);
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -537,16 +564,34 @@ class AdminListController extends Controller
         $newValue = ! (bool) $pivotData->is_highlight;
 
         if ($newValue) {
+            $primaryGenreId = $request->input('primary_genre_id');
+            if (! $primaryGenreId) {
+                return response()->json(['error' => 'Genre is required when marking as highlight.'], 400);
+            }
+
+            $genreIds = $request->input('genre_ids', [$primaryGenreId]);
+            if (is_string($genreIds)) {
+                $genreIds = json_decode($genreIds, true) ?? [$primaryGenreId];
+            }
+
             $isTba = (bool) $request->input('is_tba', false);
             $releaseDate = $isTba ? null : $request->input('release_date', $pivotData->release_date);
 
+            $platforms = $request->input('platforms', $pivotData->platforms);
+            if (is_array($platforms)) {
+                $platforms = json_encode(array_map('intval', $platforms));
+            }
+
             $list->games()->updateExistingPivot($game->id, [
                 'is_highlight' => true,
+                'genre_ids' => json_encode(array_map('intval', $genreIds)),
+                'primary_genre_id' => (int) $primaryGenreId,
                 'release_date' => $releaseDate,
                 'is_tba' => $isTba,
+                'platforms' => $platforms,
             ]);
 
-            $this->syncGameToYearlyHighlights($list, $game, $pivotData, true, $releaseDate, $isTba);
+            $this->syncGameToYearlyHighlights($list, $game, $pivotData, true, $genreIds, $primaryGenreId, $releaseDate, $isTba, $platforms);
         } else {
             $list->games()->updateExistingPivot($game->id, [
                 'is_highlight' => false,
@@ -583,26 +628,37 @@ class AdminListController extends Controller
         $newValue = ! $currentValue;
 
         if ($newValue) {
-            $indieGenre = $request->input('indie_genre');
-            if (! $indieGenre) {
+            $primaryGenreId = $request->input('primary_genre_id');
+            if (! $primaryGenreId) {
                 return response()->json(['error' => 'Genre is required when marking as indie.'], 400);
+            }
+
+            $genreIds = $request->input('genre_ids', [$primaryGenreId]);
+            if (is_string($genreIds)) {
+                $genreIds = json_decode($genreIds, true) ?? [$primaryGenreId];
             }
 
             $isTba = (bool) $request->input('is_tba', false);
             $releaseDate = $isTba ? null : $request->input('release_date', $pivotData->release_date);
 
+            $platforms = $request->input('platforms', $pivotData->platforms);
+            if (is_array($platforms)) {
+                $platforms = json_encode(array_map('intval', $platforms));
+            }
+
             $list->games()->updateExistingPivot($game->id, [
                 'is_indie' => true,
-                'indie_genre' => $indieGenre,
+                'genre_ids' => json_encode(array_map('intval', $genreIds)),
+                'primary_genre_id' => (int) $primaryGenreId,
                 'release_date' => $releaseDate,
                 'is_tba' => $isTba,
+                'platforms' => $platforms,
             ]);
 
-            $this->syncGameToYearlyIndies($list, $game, $pivotData, true, $indieGenre, $releaseDate, $isTba);
+            $this->syncGameToYearlyIndies($list, $game, $pivotData, true, $genreIds, $primaryGenreId, $releaseDate, $isTba, $platforms);
         } else {
             $list->games()->updateExistingPivot($game->id, [
                 'is_indie' => false,
-                'indie_genre' => null,
             ]);
 
             $this->syncGameToYearlyIndies($list, $game, $pivotData, false);
@@ -618,7 +674,7 @@ class AdminListController extends Controller
     /**
      * Sync a game to/from the yearly indie list based on indie status.
      */
-    protected function syncGameToYearlyIndies(GameList $sourceList, Game $game, $pivotData, bool $isIndie, ?string $indieGenre = null, mixed $releaseDate = null, bool $isTba = false): void
+    protected function syncGameToYearlyIndies(GameList $sourceList, Game $game, $pivotData, bool $isIndie, ?array $genreIds = null, ?int $primaryGenreId = null, mixed $releaseDate = null, bool $isTba = false, mixed $platforms = null): void
     {
         $year = $sourceList->start_at?->year ?? now()->year;
         $startOfYear = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
@@ -635,7 +691,10 @@ class AdminListController extends Controller
 
         if ($isIndie) {
             if (! $indieList->games()->where('games.id', $game->id)->exists()) {
-                $platforms = $pivotData->platforms;
+                // Use passed platforms or fallback to pivot data
+                if ($platforms === null) {
+                    $platforms = $pivotData->platforms;
+                }
                 if (is_string($platforms)) {
                     $platforms = json_decode($platforms, true) ?? [];
                 }
@@ -655,7 +714,8 @@ class AdminListController extends Controller
                     'release_date' => $releaseDate ?? $pivotData->release_date,
                     'platforms' => json_encode($platforms),
                     'is_tba' => $isTba,
-                    'indie_genre' => $indieGenre,
+                    'genre_ids' => json_encode($genreIds ?? []),
+                    'primary_genre_id' => $primaryGenreId,
                 ]);
             }
         } else {
@@ -665,7 +725,7 @@ class AdminListController extends Controller
     }
 
     /**
-     * Get game genres for the indie toggle modal.
+     * Get game genres for the genre selection modal.
      */
     public function getGameGenres(string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
     {
@@ -675,11 +735,11 @@ class AdminListController extends Controller
             return response()->json(['error' => 'Game not found in this list.'], 404);
         }
 
-        $game->load('genres');
-        $genres = $game->genres->map(fn ($genre) => [
+        $game->load(['genres', 'platforms']);
+        $igdbGenres = $game->genres->map(fn ($genre) => [
             'id' => $genre->id,
             'name' => $genre->name,
-            'slug' => str()->slug($genre->name),
+            'slug' => $genre->slug ?? str()->slug($genre->name),
         ])->toArray();
 
         $pivotData = $list->games()->where('games.id', $game->id)->first()?->pivot;
@@ -691,19 +751,129 @@ class AdminListController extends Controller
             $releaseDate = \Carbon\Carbon::parse($releaseDate)->format('Y-m-d');
         }
 
+        $genreIds = $pivotData->genre_ids ?? null;
+        if (is_string($genreIds)) {
+            $genreIds = json_decode($genreIds, true) ?? [];
+        }
+
+        // Get game's own platforms from IGDB (filtered to active platforms)
+        $gamePlatforms = $game->platforms
+            ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+            ->map(fn ($p) => $p->igdb_id)
+            ->values()
+            ->toArray();
+
         return response()->json([
-            'genres' => $genres,
-            'current_indie_genre' => $pivotData->indie_genre ?? null,
+            'igdb_genres' => $igdbGenres,
+            'genre_ids' => $genreIds ?? [],
+            'primary_genre_id' => $pivotData->primary_genre_id ?? null,
             'is_indie' => (bool) ($pivotData->is_indie ?? false),
             'release_date' => $releaseDate,
             'is_tba' => (bool) ($pivotData->is_tba ?? false),
+            'platforms' => $gamePlatforms,
+            'game_name' => $game->name,
+            'cover_url' => $game->getCoverUrl('cover_big'),
         ]);
+    }
+
+    /**
+     * Update pivot data for a game in a system list (without toggling highlight/indie).
+     */
+    public function updateGamePivotData(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    {
+        $list = $this->getSystemListByTypeAndSlug($type, $slug);
+
+        if (! $list->games()->where('games.id', $game->id)->exists()) {
+            return response()->json(['error' => 'Game not found in this list.'], 404);
+        }
+
+        $genreIds = $request->input('genre_ids');
+        if (is_string($genreIds)) {
+            $request->merge(['genre_ids' => json_decode($genreIds, true) ?? []]);
+        }
+
+        $request->validate([
+            'release_date' => ['nullable', 'date'],
+            'platforms' => ['nullable', 'array'],
+            'is_tba' => ['nullable', 'boolean'],
+            'genre_ids' => ['nullable', 'array', 'max:3'],
+            'genre_ids.*' => ['exists:genres,id'],
+            'primary_genre_id' => ['nullable', 'exists:genres,id'],
+        ]);
+
+        $isTba = $request->boolean('is_tba', false);
+        $releaseDate = $isTba ? null : $request->input('release_date');
+
+        $pivotUpdate = [
+            'release_date' => $releaseDate,
+            'is_tba' => $isTba,
+        ];
+
+        $platforms = $request->input('platforms');
+        if (is_array($platforms)) {
+            $pivotUpdate['platforms'] = json_encode(array_map('intval', $platforms));
+        }
+
+        $genreIds = $request->input('genre_ids');
+        if (is_array($genreIds)) {
+            $pivotUpdate['genre_ids'] = json_encode(array_map('intval', $genreIds));
+        }
+
+        if ($request->has('primary_genre_id')) {
+            $pivotUpdate['primary_genre_id'] = $request->input('primary_genre_id') ? (int) $request->input('primary_genre_id') : null;
+        }
+
+        $list->games()->updateExistingPivot($game->id, $pivotUpdate);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Game data updated successfully.',
+        ]);
+    }
+
+    /**
+     * Update game genres in a system list.
+     */
+    public function updateGameGenres(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse|RedirectResponse
+    {
+        $list = $this->getSystemListByTypeAndSlug($type, $slug);
+
+        if (! $list->games()->where('games.id', $game->id)->exists()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Game not found in this list.'], 404);
+            }
+
+            return redirect()->back()->with('error', 'Game not found in this list.');
+        }
+
+        $validated = $request->validate([
+            'genre_ids' => ['nullable', 'array', 'max:3'],
+            'genre_ids.*' => ['exists:genres,id'],
+            'primary_genre_id' => ['nullable', 'exists:genres,id'],
+        ]);
+
+        $genreIds = $validated['genre_ids'] ?? [];
+        $primaryGenreId = $validated['primary_genre_id'] ?? null;
+
+        $list->games()->updateExistingPivot($game->id, [
+            'genre_ids' => json_encode(array_map('intval', $genreIds)),
+            'primary_genre_id' => $primaryGenreId ? (int) $primaryGenreId : null,
+        ]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Game genres updated successfully.',
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Game genres updated.');
     }
 
     /**
      * Sync a game to/from the yearly highlights list based on highlight status.
      */
-    protected function syncGameToYearlyHighlights(GameList $sourceList, Game $game, $pivotData, bool $isHighlight, mixed $releaseDate = null, bool $isTba = false): void
+    protected function syncGameToYearlyHighlights(GameList $sourceList, Game $game, $pivotData, bool $isHighlight, ?array $genreIds = null, ?int $primaryGenreId = null, mixed $releaseDate = null, bool $isTba = false, mixed $platforms = null): void
     {
         $year = $sourceList->start_at?->year ?? now()->year;
         $startOfYear = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
@@ -721,7 +891,10 @@ class AdminListController extends Controller
         if ($isHighlight) {
             // Add to highlights list if not already there
             if (! $highlightsList->games()->where('games.id', $game->id)->exists()) {
-                $platforms = $pivotData->platforms;
+                // Use passed platforms or fallback to pivot data
+                if ($platforms === null) {
+                    $platforms = $pivotData->platforms;
+                }
                 if (is_string($platforms)) {
                     $platforms = json_decode($platforms, true) ?? [];
                 }
@@ -744,6 +917,8 @@ class AdminListController extends Controller
                     'platforms' => json_encode($platforms),
                     'platform_group' => $platformGroup->value,
                     'is_highlight' => false,
+                    'genre_ids' => $genreIds ? json_encode(array_map('intval', $genreIds)) : null,
+                    'primary_genre_id' => $primaryGenreId,
                     'is_tba' => $isTba,
                 ]);
             }

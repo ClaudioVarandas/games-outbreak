@@ -21,7 +21,7 @@
                     @endif
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="flex flex-wrap items-center gap-4">
                     <!-- Year Dropdown -->
                     @if($availableYears->count() > 1)
                         <select
@@ -35,6 +35,18 @@
                             @endforeach
                         </select>
                     @endif
+
+                    <!-- Genre Multi-Select Filter -->
+                    <div x-data="genreFilter()" x-init="init()" class="relative min-w-[200px]">
+                        <select x-ref="genreSelect" multiple>
+                            @foreach($genres as $genre)
+                                <option value="{{ $genre->id }}">{{ $genre->name }}</option>
+                            @endforeach
+                            @if($otherGenre)
+                                <option value="other">Other</option>
+                            @endif
+                        </select>
+                    </div>
 
                     <!-- Search Box -->
                     <div x-data="{ searchQuery: '' }" class="relative">
@@ -52,187 +64,72 @@
                 </div>
             </div>
 
-            @if(count($gamesByGenre) > 0)
-                <!-- Genre Tabs -->
-                <div class="mb-8" x-data="{
-                    activeGenre: '{{ $defaultGenre }}',
+            @if(count($gamesByMonth) > 0)
+                <!-- Main Content Area -->
+                <main x-data="{
                     searchQuery: '',
-                    validGenres: @js(array_merge($configuredGenres, ['other'])),
-                    init() {
-                        const hash = window.location.hash.substring(1);
-                        if (hash && (this.validGenres.includes(hash) || hash === 'other')) {
-                            this.activeGenre = hash;
-                        } else if (this.activeGenre) {
-                            window.location.hash = this.activeGenre;
-                        }
-                        this.$watch('activeGenre', (value) => {
-                            window.location.hash = value;
-                        });
+                    selectedGenres: [],
+                    matchesFilters(gameName, primaryGenreId) {
+                        const matchesSearch = this.searchQuery === '' || gameName.includes(this.searchQuery);
+                        const matchesGenre = this.selectedGenres.length === 0 ||
+                            this.selectedGenres.includes(primaryGenreId) ||
+                            (primaryGenreId === null && this.selectedGenres.includes('other'));
+                        return matchesSearch && matchesGenre;
                     }
-                }" @indie-search.window="searchQuery = $event.detail.query.toLowerCase()">
-                    <!-- Tab Navigation -->
-                    <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">
-                        @foreach($configuredGenres as $genre)
-                            @if(isset($gamesByGenre[$genre]))
-                                <button
-                                    @click="activeGenre = '{{ $genre }}'"
-                                    :class="activeGenre === '{{ $genre }}'
-                                        ? 'bg-orange-500 text-white'
-                                        : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500'"
-                                    class="px-4 py-2 rounded-lg font-medium transition-colors capitalize"
-                                >
-                                    {{ ucfirst($genre) }}
-                                    <span class="ml-1 text-sm opacity-80">({{ $genreCounts[$genre] ?? 0 }})</span>
-                                </button>
-                            @endif
-                        @endforeach
-                        @if(isset($gamesByGenre['other']))
-                            <button
-                                @click="activeGenre = 'other'"
-                                :class="activeGenre === 'other'
-                                    ? 'bg-orange-500 text-white'
-                                    : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500'"
-                                class="px-4 py-2 rounded-lg font-medium transition-colors"
-                            >
-                                Other
-                                <span class="ml-1 text-sm opacity-80">({{ $genreCounts['other'] ?? 0 }})</span>
-                            </button>
-                        @endif
-                    </div>
+                }"
+                @indie-search.window="searchQuery = $event.detail.query.toLowerCase()"
+                @genre-filter-change.window="selectedGenres = $event.detail.genres">
 
-                    <!-- Games Grid for Each Genre -->
-                    @foreach($configuredGenres as $genre)
-                        @if(isset($gamesByGenre[$genre]))
-                            <div x-show="activeGenre === '{{ $genre }}'" x-cloak>
-                                <!-- Genre Header -->
-                                <div class="flex items-center gap-3 mb-6">
-                                    <span class="px-3 py-1 rounded text-white font-medium bg-amber-500 capitalize">
-                                        {{ ucfirst($genre) }}
-                                    </span>
-                                    <span class="text-gray-600 dark:text-gray-400">
-                                        {{ $genreCounts[$genre] ?? 0 }} {{ Str::plural('game', $genreCounts[$genre] ?? 0) }}
+                    <!-- Games by Month -->
+                    @foreach($gamesByMonth as $monthKey => $monthData)
+                        <div class="pt-10 first:pt-0">
+                            <!-- Month Header -->
+                            <div class="flex items-center justify-center gap-4 mb-8">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                </div>
+                                <div class="text-center px-4">
+                                    <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">
+                                        {{ $monthKey === 'tba' ? 'To Be Announced' : $monthData['label'] }}
+                                    </h3>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                                        {{ count($monthData['games']) }} {{ Str::plural('game', count($monthData['games'])) }}
                                     </span>
                                 </div>
-
-                                <!-- Games by Month -->
-                                <div>
-                                    @foreach($gamesByGenre[$genre] as $monthKey => $monthData)
-                                        <div class="pt-10">
-                                            <!-- Month Header -->
-                                            <div class="flex items-center justify-center gap-4 mb-8">
-                                                <div class="flex items-center gap-1.5">
-                                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                                                </div>
-                                                <div class="text-center px-4">
-                                                    <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">
-                                                        {{ $monthKey === 'tba' ? 'To Be Announced' : $monthData['label'] }}
-                                                    </h3>
-                                                    <span class="text-sm text-gray-500 dark:text-gray-400">
-                                                        {{ count($monthData['games']) }} {{ Str::plural('game', count($monthData['games'])) }}
-                                                    </span>
-                                                </div>
-                                                <div class="flex items-center gap-1.5">
-                                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                                                </div>
-                                            </div>
-
-                                            <!-- Games Grid for this Month -->
-                                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-                                                @foreach($monthData['games'] as $game)
-                                                    @php
-                                                        $pivotReleaseDate = $game->pivot->release_date ?? null;
-                                                        if ($pivotReleaseDate && is_string($pivotReleaseDate)) {
-                                                            $pivotReleaseDate = \Carbon\Carbon::parse($pivotReleaseDate);
-                                                        }
-                                                        $displayDate = $pivotReleaseDate ?? $game->first_release_date;
-                                                    @endphp
-                                                    <div x-show="searchQuery === '' || '{{ strtolower($game->name) }}'.includes(searchQuery)">
-                                                        <x-game-card
-                                                            :game="$game"
-                                                            :displayReleaseDate="$displayDate"
-                                                            variant="glassmorphism"
-                                                            layout="overlay"
-                                                            aspectRatio="3/4"
-                                                            :platformEnums="$platformEnums" />
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    @endforeach
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
                                 </div>
                             </div>
-                        @endif
-                    @endforeach
 
-                    @if(isset($gamesByGenre['other']))
-                        <div x-show="activeGenre === 'other'" x-cloak>
-                            <!-- Genre Header -->
-                            <div class="flex items-center gap-3 mb-6">
-                                <span class="px-3 py-1 rounded text-white font-medium bg-gray-500">
-                                    Other
-                                </span>
-                                <span class="text-gray-600 dark:text-gray-400">
-                                    {{ $genreCounts['other'] ?? 0 }} {{ Str::plural('game', $genreCounts['other'] ?? 0) }}
-                                </span>
-                            </div>
-
-                            <!-- Games by Month -->
-                            <div>
-                                @foreach($gamesByGenre['other'] as $monthKey => $monthData)
-                                    <div class="pt-10">
-                                        <!-- Month Header -->
-                                        <div class="flex items-center justify-center gap-4 mb-8">
-                                            <div class="flex items-center gap-1.5">
-                                                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                                                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                                                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                                            </div>
-                                            <div class="text-center px-4">
-                                                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">
-                                                    {{ $monthKey === 'tba' ? 'To Be Announced' : $monthData['label'] }}
-                                                </h3>
-                                                <span class="text-sm text-gray-500 dark:text-gray-400">
-                                                    {{ count($monthData['games']) }} {{ Str::plural('game', count($monthData['games'])) }}
-                                                </span>
-                                            </div>
-                                            <div class="flex items-center gap-1.5">
-                                                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                                                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                                                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Games Grid for this Month -->
-                                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-                                            @foreach($monthData['games'] as $game)
-                                                @php
-                                                    $pivotReleaseDate = $game->pivot->release_date ?? null;
-                                                    if ($pivotReleaseDate && is_string($pivotReleaseDate)) {
-                                                        $pivotReleaseDate = \Carbon\Carbon::parse($pivotReleaseDate);
-                                                    }
-                                                    $displayDate = $pivotReleaseDate ?? $game->first_release_date;
-                                                @endphp
-                                                <div x-show="searchQuery === '' || '{{ strtolower($game->name) }}'.includes(searchQuery)">
-                                                    <x-game-card
-                                                        :game="$game"
-                                                        :displayReleaseDate="$displayDate"
-                                                        variant="glassmorphism"
-                                                        layout="overlay"
-                                                        aspectRatio="3/4"
-                                                        :platformEnums="$platformEnums" />
-                                                </div>
-                                            @endforeach
-                                        </div>
+                            <!-- Games Grid for this Month -->
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
+                                @foreach($monthData['games'] as $game)
+                                    @php
+                                        $pivotReleaseDate = $game->pivot->release_date ?? null;
+                                        if ($pivotReleaseDate && is_string($pivotReleaseDate)) {
+                                            $pivotReleaseDate = \Carbon\Carbon::parse($pivotReleaseDate);
+                                        }
+                                        $displayDate = $pivotReleaseDate ?? $game->first_release_date;
+                                        $primaryGenreId = $game->pivot->primary_genre_id;
+                                    @endphp
+                                    <div x-show="matchesFilters(@js(strtolower($game->name)), {{ $primaryGenreId ? $primaryGenreId : 'null' }})">
+                                        <x-game-card
+                                            :game="$game"
+                                            :displayReleaseDate="$displayDate"
+                                            variant="glassmorphism"
+                                            layout="overlay"
+                                            aspectRatio="3/4"
+                                            :platformEnums="$platformEnums" />
                                     </div>
                                 @endforeach
                             </div>
                         </div>
-                    @endif
-                </div>
+                    @endforeach
+                </main>
             @else
                 <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
                     <p class="text-xl text-gray-600 dark:text-gray-400">
@@ -264,4 +161,30 @@
             </div>
         @endif
     </div>
+
+    @push('scripts')
+    <script>
+        function genreFilter() {
+            return {
+                selectedGenres: [],
+                init() {
+                    if (typeof TomSelect === 'undefined') {
+                        console.error('TomSelect is not loaded');
+                        return;
+                    }
+
+                    new TomSelect(this.$refs.genreSelect, {
+                        plugins: ['remove_button'],
+                        placeholder: 'Filter by genre...',
+                        allowEmptyOption: true,
+                        onChange: (values) => {
+                            this.selectedGenres = values.map(v => v === 'other' ? 'other' : parseInt(v));
+                            this.$dispatch('genre-filter-change', { genres: this.selectedGenres });
+                        }
+                    });
+                }
+            };
+        }
+    </script>
+    @endpush
 @endsection

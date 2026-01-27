@@ -4,6 +4,7 @@ use App\Enums\ListTypeEnum;
 use App\Enums\PlatformGroupEnum;
 use App\Models\Game;
 use App\Models\GameList;
+use App\Models\Genre;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -236,6 +237,7 @@ describe('Toggle Game Highlight', function () {
             'end_at' => '2026-01-31',
         ]);
 
+        $genre = Genre::factory()->create(['name' => 'Action']);
         $game = Game::factory()->create(['name' => 'Test Game']);
         $list->games()->attach($game->id, [
             'order' => 1,
@@ -247,7 +249,9 @@ describe('Toggle Game Highlight', function () {
                 'type' => 'monthly',
                 'slug' => $list->slug,
                 'game' => $game->id,
-            ]));
+            ]), [
+                'primary_genre_id' => $genre->id,
+            ]);
 
         $response->assertJson([
             'success' => true,
@@ -256,6 +260,7 @@ describe('Toggle Game Highlight', function () {
 
         $pivotRecord = $list->games()->where('game_id', $game->id)->first();
         expect($pivotRecord->pivot->is_highlight)->toBe(1);
+        expect($pivotRecord->pivot->primary_genre_id)->toBe($genre->id);
     });
 
     it('toggles is_highlight off when already highlighted', function () {
@@ -327,6 +332,7 @@ describe('Toggle Game Highlight', function () {
             'end_at' => '2026-01-31',
         ]);
 
+        $genre = Genre::factory()->create(['name' => 'Action']);
         $game = Game::factory()->create(['name' => 'Test Game']);
         $monthlyList->games()->attach($game->id, [
             'order' => 1,
@@ -339,7 +345,9 @@ describe('Toggle Game Highlight', function () {
                 'type' => 'monthly',
                 'slug' => $monthlyList->slug,
                 'game' => $game->id,
-            ]));
+            ]), [
+                'primary_genre_id' => $genre->id,
+            ]);
 
         // Game should now be in the highlights list
         $this->assertDatabaseHas('game_list_game', [

@@ -1,3 +1,73 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* TomSelect dark mode overrides */
+.dark .ts-wrapper.multi .ts-control,
+.dark .ts-wrapper.single .ts-control {
+    background-color: rgb(55 65 81); /* gray-700 */
+    border-color: rgb(75 85 99); /* gray-600 */
+    color: rgb(243 244 246); /* gray-100 */
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem; /* match py-2 px-4 of search input */
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.dark .ts-wrapper.multi.has-items .ts-control {
+    padding: 0.35rem 1rem; /* slightly less when chips are present, keeps height close */
+}
+
+.dark .ts-control input {
+    color: rgb(243 244 246); /* gray-100 */
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.dark .ts-control input::placeholder {
+    color: rgb(156 163 175); /* gray-400 */
+}
+
+.dark .ts-wrapper.focus .ts-control {
+    border-color: rgb(245 158 11); /* amber-500 */
+    box-shadow: 0 0 0 3px rgb(245 158 11 / 0.25);
+}
+
+.dark .ts-control .item {
+    background-color: rgb(245 158 11 / 0.2); /* amber-500/20 */
+    color: rgb(252 211 77); /* amber-300 */
+    border: 1px solid rgb(245 158 11 / 0.4); /* amber-500/40 */
+    border-radius: 0.375rem;
+}
+
+.dark .ts-control .item .remove {
+    color: rgb(252 211 77); /* amber-300 */
+    border-left-color: rgb(245 158 11 / 0.4);
+}
+
+.dark .ts-control .item .remove:hover {
+    color: rgb(255 255 255);
+    background-color: rgb(245 158 11 / 0.3);
+}
+
+.dark .ts-dropdown {
+    background-color: rgb(31 41 55); /* gray-800 */
+    border-color: rgb(75 85 99); /* gray-600 */
+    color: rgb(229 231 235); /* gray-200 */
+    border-radius: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.dark .ts-dropdown .option {
+    color: rgb(229 231 235); /* gray-200 */
+}
+
+.dark .ts-dropdown .option:hover,
+.dark .ts-dropdown .option.active {
+    background-color: rgb(245 158 11 / 0.2); /* amber-500/20 */
+    color: rgb(252 211 77); /* amber-300 */
+}
+
+.dark .ts-dropdown .no-results {
+    color: rgb(156 163 175); /* gray-400 */
+}

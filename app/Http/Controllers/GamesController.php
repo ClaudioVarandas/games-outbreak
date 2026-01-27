@@ -440,9 +440,11 @@ class GamesController extends Controller
                 $gameTypeEnum = \App\Enums\GameTypeEnum::fromValue($gameType) ?? \App\Enums\GameTypeEnum::MAIN;
                 $gameTypeLabel = $gameTypeEnum->label();
 
+                // Filter platform IDs to only include active platforms
+                $activePlatforms = PlatformEnum::getActivePlatforms();
                 $platformIds = collect($game['platforms'] ?? [])
                     ->map(fn ($p) => $p['id'] ?? null)
-                    ->filter()
+                    ->filter(fn ($id) => $id && $activePlatforms->has($id))
                     ->values()
                     ->toArray();
 
