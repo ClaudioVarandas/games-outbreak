@@ -3,6 +3,8 @@
 @section('title', 'Upcoming Games')
 
 @section('content')
+    <x-releases-nav active="upcoming" />
+
     <div class="container mx-auto px-4 py-8">
         <div class="flex items-center justify-between mb-6">
             <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100">

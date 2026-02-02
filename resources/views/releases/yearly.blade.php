@@ -167,7 +167,7 @@
                             </div>
 
                             <!-- Games Grid -->
-                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8" data-month="{{ $monthKey }}">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8" data-month="{{ $monthKey }}">
                                 @foreach($monthData['games'] as $game)
                                     @php
                                         $pivotReleaseDate = $game->pivot->release_date ?? null;
