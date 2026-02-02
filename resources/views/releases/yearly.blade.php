@@ -112,6 +112,24 @@
                             Hide TBA
                         </label>
                     @endif
+
+                    <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 hidden sm:block"></div>
+
+                    <!-- View Toggle -->
+                    <div class="flex items-center gap-1">
+                        <button @click="viewMode = 'grid'" :class="viewMode === 'grid' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'"
+                                class="p-2 rounded-lg transition hover:opacity-90" title="Grid view">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                            </svg>
+                        </button>
+                        <button @click="viewMode = 'list'" :class="viewMode === 'list' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'"
+                                class="p-2 rounded-lg transition hover:opacity-90" title="List view">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 @if(!$month)
@@ -166,30 +184,49 @@
                                 </div>
                             </div>
 
+                            @php
+                                $monthGames = collect($monthData['games'])->map(function ($game) {
+                                    $pivotReleaseDate = $game->pivot->release_date ?? null;
+                                    if ($pivotReleaseDate && is_string($pivotReleaseDate)) {
+                                        $pivotReleaseDate = \Carbon\Carbon::parse($pivotReleaseDate);
+                                    }
+                                    return [
+                                        'game' => $game,
+                                        'displayDate' => $pivotReleaseDate ?? $game->first_release_date,
+                                        'primaryGenreId' => $game->pivot->primary_genre_id,
+                                        'genreIds' => is_string($game->pivot->genre_ids) ? json_decode($game->pivot->genre_ids, true) ?? [] : ($game->pivot->genre_ids ?? []),
+                                        'isHighlight' => (bool) $game->pivot->is_highlight,
+                                        'isIndie' => (bool) $game->pivot->is_indie,
+                                        'platformGroup' => $game->pivot->platform_group ?? '',
+                                    ];
+                                });
+                            @endphp
+
                             <!-- Games Grid -->
-                            <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8" data-month="{{ $monthKey }}">
-                                @foreach($monthData['games'] as $game)
-                                    @php
-                                        $pivotReleaseDate = $game->pivot->release_date ?? null;
-                                        if ($pivotReleaseDate && is_string($pivotReleaseDate)) {
-                                            $pivotReleaseDate = \Carbon\Carbon::parse($pivotReleaseDate);
-                                        }
-                                        $displayDate = $pivotReleaseDate ?? $game->first_release_date;
-                                        $primaryGenreId = $game->pivot->primary_genre_id;
-                                        $rawGenreIds = $game->pivot->genre_ids;
-                                        $genreIds = is_string($rawGenreIds) ? json_decode($rawGenreIds, true) ?? [] : ($rawGenreIds ?? []);
-                                        $isHighlight = (bool) $game->pivot->is_highlight;
-                                        $isIndie = (bool) $game->pivot->is_indie;
-                                        $platformGroup = $game->pivot->platform_group ?? '';
-                                    @endphp
-                                    <div x-show="matchesFilters(@js(strtolower($game->name)), {{ $primaryGenreId ? $primaryGenreId : 'null' }}, @js(array_map('intval', $genreIds)), {{ $isHighlight ? 'true' : 'false' }}, {{ $isIndie ? 'true' : 'false' }}, @js($platformGroup))"
+                            <div x-show="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8" data-month="{{ $monthKey }}">
+                                @foreach($monthGames as $entry)
+                                    <div x-show="matchesFilters(@js(strtolower($entry['game']->name)), {{ $entry['primaryGenreId'] ? $entry['primaryGenreId'] : 'null' }}, @js(array_map('intval', $entry['genreIds'])), {{ $entry['isHighlight'] ? 'true' : 'false' }}, {{ $entry['isIndie'] ? 'true' : 'false' }}, @js($entry['platformGroup']))"
                                          data-game-card>
                                         <x-game-card
-                                            :game="$game"
-                                            :displayReleaseDate="$displayDate"
+                                            :game="$entry['game']"
+                                            :displayReleaseDate="$entry['displayDate']"
                                             variant="default"
                                             layout="overlay"
                                             aspectRatio="3/4"
+                                            :platformEnums="$platformEnums" />
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <!-- Games List -->
+                            <div x-show="viewMode === 'list'" class="space-y-2" data-month="{{ $monthKey }}">
+                                @foreach($monthGames as $entry)
+                                    <div x-show="matchesFilters(@js(strtolower($entry['game']->name)), {{ $entry['primaryGenreId'] ? $entry['primaryGenreId'] : 'null' }}, @js(array_map('intval', $entry['genreIds'])), {{ $entry['isHighlight'] ? 'true' : 'false' }}, {{ $entry['isIndie'] ? 'true' : 'false' }}, @js($entry['platformGroup']))"
+                                         data-game-card>
+                                        <x-game-card
+                                            :game="$entry['game']"
+                                            :displayReleaseDate="$entry['displayDate']"
+                                            variant="table-row"
                                             :platformEnums="$platformEnums" />
                                     </div>
                                 @endforeach
@@ -242,8 +279,13 @@
                 searchQuery: '',
                 selectedGenres: [],
                 hideTba: false,
+                viewMode: localStorage.getItem('releases_view_mode') || 'grid',
 
                 init() {
+                    this.$watch('viewMode', (value) => {
+                        localStorage.setItem('releases_view_mode', value);
+                    });
+
                     if (typeof TomSelect !== 'undefined') {
                         new TomSelect(this.$refs.genreSelect, {
                             plugins: ['remove_button'],
