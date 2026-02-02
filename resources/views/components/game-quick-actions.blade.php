@@ -8,7 +8,7 @@
         $gameUuid = $game->uuid;
     @endphp
 
-    <div class="absolute inset-0 flex flex-col items-center justify-center z-20 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300"
+    <div class="absolute inset-0 flex flex-col items-center justify-center z-20 opacity-0 group-hover/card:opacity-100 pointer-events-none group-hover/card:pointer-events-auto transition-opacity duration-300"
          id="{{ $componentId }}"
          x-data="{
              gameUuid: '{{ $gameUuid }}',
@@ -174,7 +174,7 @@
 @endauth
 
 @guest
-    <div class="absolute inset-0 flex flex-col items-center justify-center z-20 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300"
+    <div class="absolute inset-0 flex flex-col items-center justify-center z-20 opacity-0 group-hover/card:opacity-100 pointer-events-none group-hover/card:pointer-events-auto transition-opacity duration-300"
          x-data="{}"
          @click.stop>
         <!-- Backdrop -->

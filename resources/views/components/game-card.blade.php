@@ -99,7 +99,7 @@
 
 {{-- TABLE ROW VARIANT --}}
 @if($variant === 'table-row')
-<div class="flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-gray-200 dark:border-gray-700">
+<div class="relative flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-gray-200 dark:border-gray-700">
     {{-- Small Cover Thumbnail --}}
     <a href="{{ $linkUrl }}" class="flex-shrink-0">
         <div class="w-12 h-16 rounded overflow-hidden bg-gray-200 dark:bg-gray-700">
