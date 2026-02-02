@@ -9,7 +9,6 @@ use App\Http\Requests\StoreGameListRequest;
 use App\Http\Requests\UpdateGameListRequest;
 use App\Models\Game;
 use App\Models\GameList;
-use App\Models\User;
 use App\Services\IgdbService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,81 +17,58 @@ use Illuminate\View\View;
 
 class AdminListController extends Controller
 {
-    /**
-     * Redirect to unified user lists page.
-     */
     public function myLists(): RedirectResponse
     {
         return redirect()->route('user.lists.lists', ['user' => auth()->user()->username], 301);
     }
 
-    /**
-     * Display all system lists (grouped by monthly/indie/seasoned).
-     */
     public function systemLists(Request $request): View
     {
-        // Get all monthly lists (ignore is_active/is_public), group by year
-        $monthlyLists = GameList::where('is_system', true)
-            ->where('list_type', ListTypeEnum::MONTHLY)
-            ->with('games')
+        // Get yearly lists ordered by start_at desc
+        $yearlyLists = GameList::where('is_system', true)
+            ->where('list_type', ListTypeEnum::YEARLY)
+            ->withCount('games')
             ->orderByDesc('start_at')
             ->get()
-            ->groupBy(function ($list) {
-                return $list->start_at ? $list->start_at->year : 'Unknown';
+            ->map(function ($list) {
+                $list->highlights_count = $list->games()
+                    ->wherePivot('is_highlight', true)
+                    ->count();
+                $list->indie_count = $list->games()
+                    ->wherePivot('is_indie', true)
+                    ->count();
+
+                return $list;
             });
 
-        // Get all indie games lists (ignore is_active/is_public), group by year
-        $indieGamesList = GameList::where('is_system', true)
-            ->where('list_type', ListTypeEnum::INDIE_GAMES)
-            ->with('games')
-            ->orderByDesc('start_at')
-            ->get()
-            ->groupBy(function ($list) {
-                return $list->start_at ? $list->start_at->year : 'Unknown';
-            });
-
-        // Get only active seasoned lists (no grouping)
+        // Get only active seasoned lists
         $seasonedLists = GameList::where('is_system', true)
             ->where('list_type', ListTypeEnum::SEASONED)
             ->where('is_active', true)
-            ->with('games')
+            ->withCount('games')
             ->orderBy('name')
             ->get();
 
-        // Get all events lists (flat list, ordered by created_at desc)
+        // Get all events lists
         $eventsLists = GameList::where('is_system', true)
             ->where('list_type', ListTypeEnum::EVENTS)
-            ->with('games')
-            ->orderByDesc('created_at')
-            ->get();
-
-        // Get all highlights lists (similar to seasoned - only active, no grouping)
-        $highlightsLists = GameList::where('is_system', true)
-            ->where('list_type', ListTypeEnum::HIGHLIGHTS)
-            ->where('is_active', true)
-            ->with('games')
+            ->withCount('games')
             ->orderByDesc('created_at')
             ->get();
 
         return view('admin.system-lists.index', compact(
-            'monthlyLists',
-            'indieGamesList',
+            'yearlyLists',
             'seasonedLists',
-            'eventsLists',
-            'highlightsLists'
+            'eventsLists'
         ));
     }
 
-    /**
-     * Display all users' lists (sorted by username).
-     */
     public function userLists(Request $request): View
     {
         $query = GameList::with(['user', 'games'])
             ->whereNotNull('user_id')
             ->where('is_system', false);
 
-        // Apply filters
         if ($request->filled('username')) {
             $query->whereHas('user', function ($q) use ($request) {
                 $q->where('username', 'like', '%'.$request->username.'%');
@@ -118,7 +94,6 @@ class AdminListController extends Controller
             $query->where('created_at', '<=', $request->date_to);
         }
 
-        // Order by username, then list type
         $lists = $query->get()
             ->sortBy(function ($list) {
                 return $list->user->username ?? '';
@@ -130,17 +105,11 @@ class AdminListController extends Controller
         return view('admin.user-lists', compact('lists'));
     }
 
-    /**
-     * Show the form for creating a new system list.
-     */
     public function createSystemList(): View
     {
         return view('admin.system-lists.create');
     }
 
-    /**
-     * Store a newly created system list.
-     */
     public function storeSystemList(StoreGameListRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -149,20 +118,16 @@ class AdminListController extends Controller
         $data['is_active'] = $request->has('is_active') ? (bool) $request->input('is_active') : false;
         $data['is_public'] = $request->has('is_public') ? (bool) $request->input('is_public') : false;
 
-        // Validate list_type for system lists
         if (! in_array($data['list_type'], [
-            ListTypeEnum::MONTHLY->value,
-            ListTypeEnum::INDIE_GAMES->value,
+            ListTypeEnum::YEARLY->value,
             ListTypeEnum::SEASONED->value,
             ListTypeEnum::EVENTS->value,
-            ListTypeEnum::HIGHLIGHTS->value,
         ])) {
             return redirect()->back()
                 ->withErrors(['list_type' => 'Invalid list type for system lists.'])
                 ->withInput();
         }
 
-        // Generate unique slug
         if (empty($data['slug'])) {
             $data['slug'] = $this->generateUniqueSlug($data['name'], $data['list_type']);
         } else {
@@ -178,9 +143,6 @@ class AdminListController extends Controller
             ->with('success', 'System list created successfully.');
     }
 
-    /**
-     * Show the form for editing a system list.
-     */
     public function editSystemList(string $type, string $slug): View
     {
         $listType = ListTypeEnum::fromSlug($type);
@@ -201,9 +163,6 @@ class AdminListController extends Controller
         return view('admin.system-lists.edit', compact('list', 'viewMode'));
     }
 
-    /**
-     * Update a system list.
-     */
     public function updateSystemList(UpdateGameListRequest $request, string $type, string $slug): RedirectResponse
     {
         $listType = ListTypeEnum::fromSlug($type);
@@ -220,20 +179,16 @@ class AdminListController extends Controller
         $data['is_active'] = $request->has('is_active') ? (bool) $request->input('is_active') : false;
         $data['is_public'] = $request->has('is_public') ? (bool) $request->input('is_public') : false;
 
-        // Handle slug changes
         if (isset($data['slug']) && $data['slug'] !== $list->slug) {
             $data['slug'] = Str::slug($data['slug']);
             $data['slug'] = $this->ensureUniqueSlug($data['slug'], $list->list_type->value, $list->id);
         }
 
-        // Allow changing list_type for system lists
         if (isset($data['list_type']) && $data['list_type'] !== $list->list_type->value) {
             if (! in_array($data['list_type'], [
-                ListTypeEnum::MONTHLY->value,
-                ListTypeEnum::INDIE_GAMES->value,
+                ListTypeEnum::YEARLY->value,
                 ListTypeEnum::SEASONED->value,
                 ListTypeEnum::EVENTS->value,
-                ListTypeEnum::HIGHLIGHTS->value,
             ])) {
                 return redirect()->back()
                     ->withErrors(['list_type' => 'Invalid list type for system lists.'])
@@ -260,7 +215,6 @@ class AdminListController extends Controller
 
         $list->update($data);
 
-        // Redirect to new type/slug if changed
         $newType = isset($data['list_type']) ? ListTypeEnum::from($data['list_type']) : $list->fresh()->list_type;
         $newSlug = $data['slug'] ?? $list->fresh()->slug;
 
@@ -268,9 +222,6 @@ class AdminListController extends Controller
             ->with('success', 'System list updated successfully.');
     }
 
-    /**
-     * Toggle active status of a system list.
-     */
     public function toggleSystemListActive(string $type, string $slug): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $listType = ListTypeEnum::fromSlug($type);
@@ -297,9 +248,6 @@ class AdminListController extends Controller
             ->with('success', 'List status updated successfully.');
     }
 
-    /**
-     * Delete a system list (admin only).
-     */
     public function destroySystemList(string $type, string $slug): RedirectResponse
     {
         $listType = ListTypeEnum::fromSlug($type);
@@ -319,9 +267,6 @@ class AdminListController extends Controller
             ->with('success', "System list '{$listName}' deleted successfully.");
     }
 
-    /**
-     * Helper: Generate unique slug.
-     */
     protected function generateUniqueSlug(string $name, string $listType, ?int $excludeId = null): string
     {
         $slug = Str::slug($name);
@@ -329,9 +274,6 @@ class AdminListController extends Controller
         return $this->ensureUniqueSlug($slug, $listType, $excludeId);
     }
 
-    /**
-     * Helper: Ensure slug is unique within list type.
-     */
     protected function ensureUniqueSlug(string $slug, string $listType, ?int $excludeId = null): string
     {
         $originalSlug = $slug;
@@ -354,9 +296,6 @@ class AdminListController extends Controller
         return $slug;
     }
 
-    /**
-     * Add a game to a system list.
-     */
     public function addGame(Request $request, string $type, string $slug): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
@@ -426,20 +365,18 @@ class AdminListController extends Controller
                 ->toArray();
         }
 
-        // Handle platform_group for highlights lists
+        // Auto-set platform_group for yearly lists
         $platformGroup = $request->input('platform_group');
-        if ($list->list_type === ListTypeEnum::HIGHLIGHTS && ! $platformGroup) {
+        if ($list->isYearly() && ! $platformGroup) {
             $platformGroup = PlatformGroupEnum::suggestFromPlatforms($platformIds)->value;
         }
 
-        // Handle genre data
         $genreIds = $request->input('genre_ids', []);
         if (is_string($genreIds)) {
             $genreIds = json_decode($genreIds, true) ?? [];
         }
         $primaryGenreId = $request->input('primary_genre_id');
 
-        // Handle TBA flag
         $isTba = $request->boolean('is_tba', false);
         if ($isTba) {
             $releaseDate = null;
@@ -465,9 +402,6 @@ class AdminListController extends Controller
         return redirect()->back()->with('success', 'Game added to list.');
     }
 
-    /**
-     * Remove a game from a system list.
-     */
     public function removeGame(string $type, string $slug, Game $game): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
@@ -484,9 +418,6 @@ class AdminListController extends Controller
         return redirect()->back()->with('success', 'Game removed from list.');
     }
 
-    /**
-     * Reorder games in a system list.
-     */
     public function reorderGames(Request $request, string $type, string $slug): \Illuminate\Http\JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
@@ -508,15 +439,12 @@ class AdminListController extends Controller
         ]);
     }
 
-    /**
-     * Update platform group for a game in a highlights list.
-     */
     public function updateGamePlatformGroup(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
-        if ($list->list_type !== ListTypeEnum::HIGHLIGHTS) {
-            return response()->json(['error' => 'Platform group is only available for highlights lists.'], 400);
+        if (! $list->isYearly()) {
+            return response()->json(['error' => 'Platform group is only available for yearly lists.'], 400);
         }
 
         $request->validate([
@@ -543,17 +471,12 @@ class AdminListController extends Controller
         ]);
     }
 
-    /**
-     * Toggle highlight status for a game in a monthly/indie list.
-     * When toggled on, also adds the game to the yearly highlights list.
-     * When toggled off, removes the game from the yearly highlights list.
-     */
     public function toggleGameHighlight(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
         if (! $list->canHaveHighlights()) {
-            return response()->json(['error' => 'Highlight toggle is only available for monthly and indie lists.'], 400);
+            return response()->json(['error' => 'Highlight toggle is only available for yearly lists.'], 400);
         }
 
         $pivotData = $list->games()->where('games.id', $game->id)->first()?->pivot;
@@ -590,14 +513,10 @@ class AdminListController extends Controller
                 'is_tba' => $isTba,
                 'platforms' => $platforms,
             ]);
-
-            $this->syncGameToYearlyHighlights($list, $game, $pivotData, true, $genreIds, $primaryGenreId, $releaseDate, $isTba, $platforms);
         } else {
             $list->games()->updateExistingPivot($game->id, [
                 'is_highlight' => false,
             ]);
-
-            $this->syncGameToYearlyHighlights($list, $game, $pivotData, false);
         }
 
         return response()->json([
@@ -607,16 +526,12 @@ class AdminListController extends Controller
         ]);
     }
 
-    /**
-     * Toggle indie status for a game in a monthly/seasoned list.
-     * When toggled on, also adds the game to the yearly indie list.
-     */
     public function toggleGameIndie(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
         if (! $list->canMarkAsIndie()) {
-            return response()->json(['error' => 'Indie toggle is only available for monthly and seasoned lists.'], 400);
+            return response()->json(['error' => 'Indie toggle is only available for yearly and seasoned lists.'], 400);
         }
 
         $pivotData = $list->games()->where('games.id', $game->id)->first()?->pivot;
@@ -655,13 +570,18 @@ class AdminListController extends Controller
                 'platforms' => $platforms,
             ]);
 
-            $this->syncGameToYearlyIndies($list, $game, $pivotData, true, $genreIds, $primaryGenreId, $releaseDate, $isTba, $platforms);
+            // If toggling on a seasoned list, sync to the yearly list for that year
+            if ($list->isSeasoned()) {
+                $this->syncIndieToYearlyList($list, $game, $pivotData, true, $genreIds, $primaryGenreId, $releaseDate, $isTba, $platforms);
+            }
         } else {
             $list->games()->updateExistingPivot($game->id, [
                 'is_indie' => false,
             ]);
 
-            $this->syncGameToYearlyIndies($list, $game, $pivotData, false);
+            if ($list->isSeasoned()) {
+                $this->syncIndieToYearlyList($list, $game, $pivotData, false);
+            }
         }
 
         return response()->json([
@@ -672,26 +592,25 @@ class AdminListController extends Controller
     }
 
     /**
-     * Sync a game to/from the yearly indie list based on indie status.
+     * Sync indie status from a seasoned list to the matching yearly list.
      */
-    protected function syncGameToYearlyIndies(GameList $sourceList, Game $game, $pivotData, bool $isIndie, ?array $genreIds = null, ?int $primaryGenreId = null, mixed $releaseDate = null, bool $isTba = false, mixed $platforms = null): void
+    protected function syncIndieToYearlyList(GameList $sourceList, Game $game, $pivotData, bool $isIndie, ?array $genreIds = null, ?int $primaryGenreId = null, mixed $releaseDate = null, bool $isTba = false, mixed $platforms = null): void
     {
         $year = $sourceList->start_at?->year ?? now()->year;
-        $startOfYear = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
-        $endOfYear = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
 
-        $indieList = GameList::where('list_type', ListTypeEnum::INDIE_GAMES->value)
+        $yearlyList = GameList::yearly()
             ->where('is_system', true)
-            ->whereBetween('start_at', [$startOfYear, $endOfYear])
+            ->whereYear('start_at', $year)
             ->first();
 
-        if (! $indieList) {
+        if (! $yearlyList) {
             return;
         }
 
         if ($isIndie) {
-            if (! $indieList->games()->where('games.id', $game->id)->exists()) {
-                // Use passed platforms or fallback to pivot data
+            if ($yearlyList->games()->where('games.id', $game->id)->exists()) {
+                $yearlyList->games()->updateExistingPivot($game->id, ['is_indie' => true]);
+            } else {
                 if ($platforms === null) {
                     $platforms = $pivotData->platforms;
                 }
@@ -707,26 +626,27 @@ class AdminListController extends Controller
                         ->toArray();
                 }
 
-                $maxOrder = $indieList->games()->max('order') ?? 0;
+                $platformGroup = PlatformGroupEnum::suggestFromPlatforms(is_array($platforms) ? $platforms : [])->value;
+                $maxOrder = $yearlyList->games()->max('order') ?? 0;
 
-                $indieList->games()->attach($game->id, [
+                $yearlyList->games()->attach($game->id, [
                     'order' => $maxOrder + 1,
                     'release_date' => $releaseDate ?? $pivotData->release_date,
-                    'platforms' => json_encode($platforms),
+                    'platforms' => is_string($platforms) ? $platforms : json_encode($platforms),
+                    'platform_group' => $platformGroup,
                     'is_tba' => $isTba,
+                    'is_indie' => true,
                     'genre_ids' => json_encode($genreIds ?? []),
                     'primary_genre_id' => $primaryGenreId,
                 ]);
             }
         } else {
-            // Remove from indie list
-            $indieList->games()->detach($game->id);
+            if ($yearlyList->games()->where('games.id', $game->id)->exists()) {
+                $yearlyList->games()->updateExistingPivot($game->id, ['is_indie' => false]);
+            }
         }
     }
 
-    /**
-     * Get game genres for the genre selection modal.
-     */
     public function getGameGenres(string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
@@ -756,7 +676,6 @@ class AdminListController extends Controller
             $genreIds = json_decode($genreIds, true) ?? [];
         }
 
-        // Get game's own platforms from IGDB (filtered to active platforms)
         $gamePlatforms = $game->platforms
             ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
             ->map(fn ($p) => $p->igdb_id)
@@ -776,9 +695,6 @@ class AdminListController extends Controller
         ]);
     }
 
-    /**
-     * Update pivot data for a game in a system list (without toggling highlight/indie).
-     */
     public function updateGamePivotData(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
@@ -831,9 +747,6 @@ class AdminListController extends Controller
         ]);
     }
 
-    /**
-     * Update game genres in a system list.
-     */
     public function updateGameGenres(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse|RedirectResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
@@ -870,67 +783,6 @@ class AdminListController extends Controller
         return redirect()->back()->with('success', 'Game genres updated.');
     }
 
-    /**
-     * Sync a game to/from the yearly highlights list based on highlight status.
-     */
-    protected function syncGameToYearlyHighlights(GameList $sourceList, Game $game, $pivotData, bool $isHighlight, ?array $genreIds = null, ?int $primaryGenreId = null, mixed $releaseDate = null, bool $isTba = false, mixed $platforms = null): void
-    {
-        $year = $sourceList->start_at?->year ?? now()->year;
-        $startOfYear = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
-        $endOfYear = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
-
-        $highlightsList = GameList::where('list_type', ListTypeEnum::HIGHLIGHTS->value)
-            ->where('is_system', true)
-            ->whereBetween('start_at', [$startOfYear, $endOfYear])
-            ->first();
-
-        if (! $highlightsList) {
-            return;
-        }
-
-        if ($isHighlight) {
-            // Add to highlights list if not already there
-            if (! $highlightsList->games()->where('games.id', $game->id)->exists()) {
-                // Use passed platforms or fallback to pivot data
-                if ($platforms === null) {
-                    $platforms = $pivotData->platforms;
-                }
-                if (is_string($platforms)) {
-                    $platforms = json_decode($platforms, true) ?? [];
-                }
-                if (! is_array($platforms) || empty($platforms)) {
-                    // Fallback to game's own platforms
-                    $game->load('platforms');
-                    $platforms = $game->platforms
-                        ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
-                        ->map(fn ($p) => $p->igdb_id)
-                        ->values()
-                        ->toArray();
-                }
-
-                $platformGroup = PlatformGroupEnum::suggestFromPlatforms($platforms);
-                $maxOrder = $highlightsList->games()->max('order') ?? 0;
-
-                $highlightsList->games()->attach($game->id, [
-                    'order' => $maxOrder + 1,
-                    'release_date' => $releaseDate ?? $pivotData->release_date,
-                    'platforms' => json_encode($platforms),
-                    'platform_group' => $platformGroup->value,
-                    'is_highlight' => false,
-                    'genre_ids' => $genreIds ? json_encode(array_map('intval', $genreIds)) : null,
-                    'primary_genre_id' => $primaryGenreId,
-                    'is_tba' => $isTba,
-                ]);
-            }
-        } else {
-            // Remove from highlights list
-            $highlightsList->games()->detach($game->id);
-        }
-    }
-
-    /**
-     * Helper: Get system list by type and slug.
-     */
     protected function getSystemListByTypeAndSlug(string $type, string $slug): GameList
     {
         $listType = ListTypeEnum::fromSlug($type);

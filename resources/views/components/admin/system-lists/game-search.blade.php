@@ -1,7 +1,7 @@
 @props(['list'])
 
 @php
-    $showGenreSelection = $list && ($list->isIndieGames() || $list->isMonthly());
+    $showGenreSelection = $list && $list->isYearly();
     $genres = $showGenreSelection
         ? \App\Models\Genre::visible()->where('is_pending_review', false)->ordered()->get(['id', 'name', 'slug'])
         : collect();

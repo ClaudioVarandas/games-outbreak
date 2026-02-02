@@ -1,7 +1,7 @@
 @props(['games', 'list', 'viewMode' => 'grid'])
 
 @php
-    $isHighlights = $list->list_type === \App\Enums\ListTypeEnum::HIGHLIGHTS;
+    $isYearly = $list->list_type === \App\Enums\ListTypeEnum::YEARLY;
     $canHighlight = $list->canHaveHighlights();
     $canIndie = $list->canMarkAsIndie();
     $platformGroups = \App\Enums\PlatformGroupEnum::orderedCases();
@@ -96,7 +96,7 @@
                         </div>
                     </div>
 
-                    @if($isHighlights && $game->pivot->platform_group)
+                    @if($isYearly && $game->pivot->platform_group)
                         @php
                             $pgEnum = \App\Enums\PlatformGroupEnum::tryFrom($game->pivot->platform_group);
                         @endphp
@@ -163,7 +163,7 @@
                         </div>
                     </a>
 
-                    @if($isHighlights)
+                    @if($isYearly)
                         <!-- Platform Group Selector -->
                         <select
                             @change="updatePlatformGroup({{ $game->id }}, $event.target.value)"
@@ -308,7 +308,7 @@
                 }
             },
 
-            @if($isHighlights)
+            @if($isYearly)
             async updatePlatformGroup(gameId, platformGroup) {
                 try {
                     const response = await fetch('{{ route("admin.system-lists.games.platform-group", [$list->list_type->toSlug(), $list->slug, "__GAME_ID__"]) }}'.replace('__GAME_ID__', gameId), {

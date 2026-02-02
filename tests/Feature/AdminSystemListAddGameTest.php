@@ -19,7 +19,7 @@ it('adds existing game to system list by igdb_id', function () {
     ]);
 
     $admin = User::factory()->create(['is_admin' => true]);
-    $list = GameList::factory()->monthly()->system()->create([
+    $list = GameList::factory()->yearly()->system()->create([
         'user_id' => $admin->id,
         'slug' => 'february-2026',
     ]);
@@ -31,7 +31,7 @@ it('adds existing game to system list by igdb_id', function () {
             'X-Requested-With' => 'XMLHttpRequest',
             'Accept' => 'application/json',
         ])
-        ->post('/admin/system-lists/monthly/february-2026/games', [
+        ->post('/admin/system-lists/yearly/february-2026/games', [
             'game_id' => 348166,
         ]);
 
@@ -68,7 +68,7 @@ it('fetches game from IGDB if not found locally', function () {
     ]);
 
     $admin = User::factory()->create(['is_admin' => true]);
-    $list = GameList::factory()->monthly()->system()->create([
+    $list = GameList::factory()->yearly()->system()->create([
         'user_id' => $admin->id,
         'slug' => 'february-2026',
     ]);
@@ -80,7 +80,7 @@ it('fetches game from IGDB if not found locally', function () {
             'X-Requested-With' => 'XMLHttpRequest',
             'Accept' => 'application/json',
         ])
-        ->post('/admin/system-lists/monthly/february-2026/games', [
+        ->post('/admin/system-lists/yearly/february-2026/games', [
             'game_id' => $igdbId,
         ]);
 
@@ -103,7 +103,7 @@ it('returns 404 when game not found locally or on IGDB', function () {
     ]);
 
     $admin = User::factory()->create(['is_admin' => true]);
-    $list = GameList::factory()->monthly()->system()->create([
+    $list = GameList::factory()->yearly()->system()->create([
         'user_id' => $admin->id,
         'slug' => 'february-2026',
     ]);
@@ -113,7 +113,7 @@ it('returns 404 when game not found locally or on IGDB', function () {
             'X-Requested-With' => 'XMLHttpRequest',
             'Accept' => 'application/json',
         ])
-        ->post('/admin/system-lists/monthly/february-2026/games', [
+        ->post('/admin/system-lists/yearly/february-2026/games', [
             'game_id' => $igdbId,
         ]);
 
@@ -127,7 +127,7 @@ it('prevents adding duplicate game to system list', function () {
     ]);
 
     $admin = User::factory()->create(['is_admin' => true]);
-    $list = GameList::factory()->monthly()->system()->create([
+    $list = GameList::factory()->yearly()->system()->create([
         'user_id' => $admin->id,
         'slug' => 'february-2026',
     ]);
@@ -140,7 +140,7 @@ it('prevents adding duplicate game to system list', function () {
             'X-Requested-With' => 'XMLHttpRequest',
             'Accept' => 'application/json',
         ])
-        ->post('/admin/system-lists/monthly/february-2026/games', [
+        ->post('/admin/system-lists/yearly/february-2026/games', [
             'game_id' => 348166,
         ]);
 
@@ -154,7 +154,7 @@ it('adds game with custom release date and platforms', function () {
     ]);
 
     $admin = User::factory()->create(['is_admin' => true]);
-    $list = GameList::factory()->monthly()->system()->create([
+    $list = GameList::factory()->yearly()->system()->create([
         'user_id' => $admin->id,
         'slug' => 'february-2026',
     ]);
@@ -166,7 +166,7 @@ it('adds game with custom release date and platforms', function () {
             'X-Requested-With' => 'XMLHttpRequest',
             'Accept' => 'application/json',
         ])
-        ->post('/admin/system-lists/monthly/february-2026/games', [
+        ->post('/admin/system-lists/yearly/february-2026/games', [
             'game_id' => 348166,
             'release_date' => '2026-02-15',
             'platforms' => json_encode([6, 167]),

@@ -215,7 +215,7 @@ test('system list parses comma-separated platform filters', function () {
     $game->platforms()->attach([$this->pcPlatform->id, $this->ps5Platform->id]);
     $this->systemList->games()->attach($game->id);
 
-    $response = $this->get('/list/events/test-event-list?platform=' . $this->pcPlatform->id . ',' . $this->ps5Platform->id);
+    $response = $this->get('/list/events/test-event-list?platform='.$this->pcPlatform->id.','.$this->ps5Platform->id);
 
     $response->assertStatus(200);
     $response->assertViewHas('initialFilters', function ($filters) {
@@ -230,7 +230,7 @@ test('system list parses comma-separated genre filters', function () {
     $game->genres()->attach([$this->actionGenre->id, $this->rpgGenre->id]);
     $this->systemList->games()->attach($game->id);
 
-    $response = $this->get('/list/events/test-event-list?genre=' . $this->actionGenre->id . ',' . $this->rpgGenre->id);
+    $response = $this->get('/list/events/test-event-list?genre='.$this->actionGenre->id.','.$this->rpgGenre->id);
 
     $response->assertStatus(200);
     $response->assertViewHas('initialFilters', function ($filters) {
@@ -302,19 +302,10 @@ test('games data includes release date formatted', function () {
 });
 
 test('different list types are accessible via slug route', function () {
-    $monthlyList = GameList::factory()->create([
-        'name' => 'Monthly Test',
-        'slug' => 'monthly-test',
-        'list_type' => ListTypeEnum::MONTHLY,
-        'is_system' => true,
-        'is_public' => true,
-        'is_active' => true,
-    ]);
-
-    $indieList = GameList::factory()->create([
-        'name' => 'Indie Test',
-        'slug' => 'indie-test',
-        'list_type' => ListTypeEnum::INDIE_GAMES,
+    $yearlyList = GameList::factory()->create([
+        'name' => 'Yearly Test',
+        'slug' => 'yearly-test',
+        'list_type' => ListTypeEnum::YEARLY,
         'is_system' => true,
         'is_public' => true,
         'is_active' => true,
@@ -329,8 +320,7 @@ test('different list types are accessible via slug route', function () {
         'is_active' => true,
     ]);
 
-    $this->get('/list/monthly/monthly-test')->assertStatus(200);
-    $this->get('/list/indie/indie-test')->assertStatus(200); // INDIE_GAMES uses 'indie' as slug
+    $this->get('/list/yearly/yearly-test')->assertStatus(200);
     $this->get('/list/seasoned/seasoned-test')->assertStatus(200);
 });
 

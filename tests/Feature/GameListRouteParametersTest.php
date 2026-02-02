@@ -6,7 +6,6 @@ use App\Enums\ListTypeEnum;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -78,7 +77,7 @@ class GameListRouteParametersTest extends TestCase
         app()->instance('request', $request);
 
         $this->actingAs($user);
-        $controller = new \App\Http\Controllers\UserListController();
+        $controller = new \App\Http\Controllers\UserListController;
         $response = $controller->removeGame($user, 'backlog', $game);
 
         $this->assertEquals(['success' => true, 'message' => 'Game removed from list.'], $response->getData(true));
@@ -107,7 +106,7 @@ class GameListRouteParametersTest extends TestCase
         app()->instance('request', $request);
 
         $this->actingAs($user);
-        $controller = new \App\Http\Controllers\UserListController();
+        $controller = new \App\Http\Controllers\UserListController;
         $response = $controller->removeGame($user, 'wishlist', $game);
 
         $this->assertEquals(['success' => true, 'message' => 'Game removed from list.'], $response->getData(true));
@@ -132,10 +131,10 @@ class GameListRouteParametersTest extends TestCase
     /**
      * Test that the remove game route works for system lists (admin only)
      */
-    public function test_remove_game_route_works_for_monthly_system_list(): void
+    public function test_remove_game_route_works_for_yearly_system_list(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
-        $list = GameList::factory()->monthly()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'user_id' => $admin->id,
             'slug' => 'january-2024',
             'is_active' => true,
@@ -149,7 +148,7 @@ class GameListRouteParametersTest extends TestCase
                 'X-Requested-With' => 'XMLHttpRequest',
                 'Accept' => 'application/json',
             ])
-            ->delete("/admin/system-lists/monthly/january-2024/games/{$game->id}");
+            ->delete("/admin/system-lists/yearly/january-2024/games/{$game->id}");
 
         $response->assertJson(['success' => true]);
         $this->assertFalse($list->fresh()->games->contains('id', $game->id));
@@ -200,7 +199,7 @@ class GameListRouteParametersTest extends TestCase
                 'X-Requested-With' => 'XMLHttpRequest',
                 'Accept' => 'application/json',
             ])
-            ->post("/u/testuser/my-games/games", [
+            ->post('/u/testuser/my-games/games', [
                 'game_id' => $game->igdb_id,
             ]);
 
@@ -218,7 +217,7 @@ class GameListRouteParametersTest extends TestCase
         $url = route('user.lists.games.add', ['user' => 'testuser', 'type' => 'backlog']);
 
         $this->assertEquals(
-            url("/u/testuser/backlog/games"),
+            url('/u/testuser/backlog/games'),
             $url
         );
     }
@@ -233,7 +232,7 @@ class GameListRouteParametersTest extends TestCase
         $url = route('user.lists.games.add', ['user' => 'testuser', 'type' => 'my-list']);
 
         $this->assertEquals(
-            url("/u/testuser/my-list/games"),
+            url('/u/testuser/my-list/games'),
             $url
         );
     }
@@ -271,8 +270,8 @@ class GameListRouteParametersTest extends TestCase
         );
 
         // Should render without errors and contain the new route URLs
-        $view->assertSee('/u/testuser/backlog/games/' . $game->id, false);
-        $view->assertSee('/u/testuser/wishlist/games/' . $game->id, false);
+        $view->assertSee('/u/testuser/backlog/games/'.$game->id, false);
+        $view->assertSee('/u/testuser/wishlist/games/'.$game->id, false);
     }
 
     /**
@@ -292,7 +291,7 @@ class GameListRouteParametersTest extends TestCase
         $list->games()->attach($game->id);
 
         // User lists now use /u/{username}/lists/{slug}
-        $response = $this->actingAs($user)->get("/u/testuser/lists/test-list");
+        $response = $this->actingAs($user)->get('/u/testuser/lists/test-list');
 
         $response->assertStatus(200);
     }
@@ -312,7 +311,7 @@ class GameListRouteParametersTest extends TestCase
         $list->games()->attach($game->id);
 
         // Dual-mode route (no separate edit): /u/{username}/lists/{slug}
-        $response = $this->actingAs($user)->get("/u/testuser/lists/test-list");
+        $response = $this->actingAs($user)->get('/u/testuser/lists/test-list');
 
         $response->assertStatus(200);
     }
@@ -340,7 +339,7 @@ class GameListRouteParametersTest extends TestCase
         app()->instance('request', $request);
 
         $this->actingAs($user);
-        $controller = new \App\Http\Controllers\UserListController();
+        $controller = new \App\Http\Controllers\UserListController;
         $response = $controller->removeGame($user, 'backlog', $game);
 
         $this->assertEquals(200, $response->getStatusCode());
@@ -362,7 +361,7 @@ class GameListRouteParametersTest extends TestCase
 
         // Call controller method directly to avoid transaction isolation issues
         $request = \Illuminate\Http\Request::create(
-            "/u/testuser/wishlist/games",
+            '/u/testuser/wishlist/games',
             'POST',
             ['game_id' => $game->igdb_id]
         );
@@ -373,7 +372,7 @@ class GameListRouteParametersTest extends TestCase
         app()->instance('request', $request);
 
         $this->actingAs($user);
-        $controller = new \App\Http\Controllers\UserListController();
+        $controller = new \App\Http\Controllers\UserListController;
         $response = $controller->addGame($request, $user, 'wishlist');
 
         $this->assertEquals(200, $response->getStatusCode());

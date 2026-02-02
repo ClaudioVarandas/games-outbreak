@@ -17,7 +17,7 @@ describe('Edit Pivot Data', function () {
     it('can update release_date via pivot edit endpoint', function () {
         $list = GameList::factory()->create([
             'name' => 'January 2026',
-            'list_type' => ListTypeEnum::MONTHLY,
+            'list_type' => ListTypeEnum::YEARLY,
             'is_system' => true,
         ]);
 
@@ -29,7 +29,7 @@ describe('Edit Pivot Data', function () {
 
         $response = $this->actingAs($this->admin)
             ->patchJson(route('admin.system-lists.games.update-pivot', [
-                'type' => 'monthly',
+                'type' => 'yearly',
                 'slug' => $list->slug,
                 'game' => $game->id,
             ]), [
@@ -45,7 +45,7 @@ describe('Edit Pivot Data', function () {
     it('can update platforms via pivot edit endpoint', function () {
         $list = GameList::factory()->create([
             'name' => 'January 2026',
-            'list_type' => ListTypeEnum::MONTHLY,
+            'list_type' => ListTypeEnum::YEARLY,
             'is_system' => true,
         ]);
 
@@ -57,7 +57,7 @@ describe('Edit Pivot Data', function () {
 
         $response = $this->actingAs($this->admin)
             ->patchJson(route('admin.system-lists.games.update-pivot', [
-                'type' => 'monthly',
+                'type' => 'yearly',
                 'slug' => $list->slug,
                 'game' => $game->id,
             ]), [
@@ -74,7 +74,7 @@ describe('Edit Pivot Data', function () {
     it('can update is_tba via pivot edit endpoint', function () {
         $list = GameList::factory()->create([
             'name' => 'January 2026',
-            'list_type' => ListTypeEnum::MONTHLY,
+            'list_type' => ListTypeEnum::YEARLY,
             'is_system' => true,
         ]);
 
@@ -87,7 +87,7 @@ describe('Edit Pivot Data', function () {
 
         $response = $this->actingAs($this->admin)
             ->patchJson(route('admin.system-lists.games.update-pivot', [
-                'type' => 'monthly',
+                'type' => 'yearly',
                 'slug' => $list->slug,
                 'game' => $game->id,
             ]), [
@@ -104,7 +104,7 @@ describe('Edit Pivot Data', function () {
     it('can update genre_ids and primary_genre_id via pivot edit endpoint', function () {
         $list = GameList::factory()->create([
             'name' => 'January 2026',
-            'list_type' => ListTypeEnum::MONTHLY,
+            'list_type' => ListTypeEnum::YEARLY,
             'is_system' => true,
         ]);
 
@@ -118,7 +118,7 @@ describe('Edit Pivot Data', function () {
 
         $response = $this->actingAs($this->admin)
             ->patchJson(route('admin.system-lists.games.update-pivot', [
-                'type' => 'monthly',
+                'type' => 'yearly',
                 'slug' => $list->slug,
                 'game' => $game->id,
             ]), [
@@ -137,7 +137,7 @@ describe('Edit Pivot Data', function () {
     it('does not change is_highlight or is_indie when editing pivot data', function () {
         $list = GameList::factory()->create([
             'name' => 'January 2026',
-            'list_type' => ListTypeEnum::MONTHLY,
+            'list_type' => ListTypeEnum::YEARLY,
             'is_system' => true,
         ]);
 
@@ -151,7 +151,7 @@ describe('Edit Pivot Data', function () {
 
         $response = $this->actingAs($this->admin)
             ->patchJson(route('admin.system-lists.games.update-pivot', [
-                'type' => 'monthly',
+                'type' => 'yearly',
                 'slug' => $list->slug,
                 'game' => $game->id,
             ]), [
@@ -169,7 +169,7 @@ describe('Edit Pivot Data', function () {
     it('returns 404 for game not in list', function () {
         $list = GameList::factory()->create([
             'name' => 'January 2026',
-            'list_type' => ListTypeEnum::MONTHLY,
+            'list_type' => ListTypeEnum::YEARLY,
             'is_system' => true,
         ]);
 
@@ -177,7 +177,7 @@ describe('Edit Pivot Data', function () {
 
         $response = $this->actingAs($this->admin)
             ->patchJson(route('admin.system-lists.games.update-pivot', [
-                'type' => 'monthly',
+                'type' => 'yearly',
                 'slug' => $list->slug,
                 'game' => $game->id,
             ]), [
@@ -191,7 +191,7 @@ describe('Edit Pivot Data', function () {
     it('requires authentication and admin middleware', function () {
         $list = GameList::factory()->create([
             'name' => 'January 2026',
-            'list_type' => ListTypeEnum::MONTHLY,
+            'list_type' => ListTypeEnum::YEARLY,
             'is_system' => true,
         ]);
 
@@ -200,7 +200,7 @@ describe('Edit Pivot Data', function () {
 
         // Unauthenticated
         $this->patchJson(route('admin.system-lists.games.update-pivot', [
-            'type' => 'monthly',
+            'type' => 'yearly',
             'slug' => $list->slug,
             'game' => $game->id,
         ]), ['release_date' => '2026-03-01'])
@@ -210,7 +210,7 @@ describe('Edit Pivot Data', function () {
         $regularUser = User::factory()->create(['is_admin' => false]);
         $this->actingAs($regularUser)
             ->patchJson(route('admin.system-lists.games.update-pivot', [
-                'type' => 'monthly',
+                'type' => 'yearly',
                 'slug' => $list->slug,
                 'game' => $game->id,
             ]), ['release_date' => '2026-03-01'])
@@ -245,17 +245,15 @@ describe('Edit Pivot Data', function () {
         $pivot = $list->games()->where('game_id', $game->id)->first()->pivot;
         expect($pivot->release_date)->toContain('2026-06-15');
     })->with([
-        'monthly' => ['monthly', ListTypeEnum::MONTHLY->value],
-        'indie-games' => ['indie', ListTypeEnum::INDIE_GAMES->value],
+        'yearly' => ['yearly', ListTypeEnum::YEARLY->value],
         'seasoned' => ['seasoned', ListTypeEnum::SEASONED->value],
         'events' => ['events', ListTypeEnum::EVENTS->value],
-        'highlights' => ['highlights', ListTypeEnum::HIGHLIGHTS->value],
     ]);
 
     it('validates genre_ids max of 3', function () {
         $list = GameList::factory()->create([
             'name' => 'January 2026',
-            'list_type' => ListTypeEnum::MONTHLY,
+            'list_type' => ListTypeEnum::YEARLY,
             'is_system' => true,
         ]);
 
@@ -265,7 +263,7 @@ describe('Edit Pivot Data', function () {
 
         $response = $this->actingAs($this->admin)
             ->patchJson(route('admin.system-lists.games.update-pivot', [
-                'type' => 'monthly',
+                'type' => 'yearly',
                 'slug' => $list->slug,
                 'game' => $game->id,
             ]), [

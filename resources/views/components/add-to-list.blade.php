@@ -16,11 +16,9 @@
             $systemListsByType = \App\Models\GameList::where('is_system', true)
                 ->where('is_active', true)
                 ->whereIn('list_type', [
-                    \App\Enums\ListTypeEnum::MONTHLY->value,
+                    \App\Enums\ListTypeEnum::YEARLY->value,
                     \App\Enums\ListTypeEnum::SEASONED->value,
-                    \App\Enums\ListTypeEnum::INDIE_GAMES->value,
                     \App\Enums\ListTypeEnum::EVENTS->value,
-                    \App\Enums\ListTypeEnum::HIGHLIGHTS->value,
                 ])
                 ->with('games')
                 ->orderBy('name')

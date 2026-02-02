@@ -13,19 +13,6 @@ use Illuminate\View\View;
 class HomepageController extends Controller
 {
     /**
-     * Get the active monthly system list for the current month.
-     */
-    private function getActiveMonthlyList(): ?GameList
-    {
-        return GameList::monthly()
-            ->where('is_active', true)
-            ->where('start_at', '<=', now())
-            ->where('end_at', '>=', now())
-            ->with('games')
-            ->first();
-    }
-
-    /**
      * Get all active seasoned system lists.
      */
     private function getSeasonedLists(): \Illuminate\Database\Eloquent\Collection
@@ -34,6 +21,33 @@ class HomepageController extends Controller
             ->where('is_active', true)
             ->where('is_public', true)
             ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    /**
+     * Get games releasing this week from the yearly list.
+     */
+    private function getThisWeekGames(): \Illuminate\Support\Collection
+    {
+        $today = Carbon::today();
+        $endOfWeek = $today->copy()->addDays(7);
+
+        $yearlyList = GameList::yearly()
+            ->where('is_system', true)
+            ->where('is_active', true)
+            ->whereYear('start_at', now()->year)
+            ->first();
+
+        if (! $yearlyList) {
+            return collect();
+        }
+
+        return $yearlyList->games()
+            ->with('platforms')
+            ->reorder()
+            ->wherePivotBetween('release_date', [$today->toDateString(), $endOfWeek->toDateString()])
+            ->limit(12)
+            ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
             ->get();
     }
 
@@ -81,106 +95,46 @@ class HomepageController extends Controller
      */
     public function index(): View
     {
-        $activeList = $this->getActiveMonthlyList();
         $seasonedLists = $this->getSeasonedLists();
-        $featuredGames = collect();
+        $thisWeekGames = $this->getThisWeekGames();
         $weeklyUpcomingGames = $this->getWeeklyUpcomingGames();
         $platformEnums = PlatformEnum::getActivePlatforms();
         $eventBanners = $this->getEventBanners();
 
-        if ($activeList) {
-            // Get all games from the active list (no date filtering)
-            // Order by pivot release_date, fallback to game's first_release_date if null
-            // Note: We need to override the default orderByPivot('order') from the relationship
-            $featuredGames = $activeList->games()
-                ->with('platforms')
-                ->reorder() // Clear default ordering
-                ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
-                ->get();
-        }
+        $currentYear = now()->year;
+        $currentMonth = now()->month;
 
-        return view('homepage.index', compact('activeList', 'seasonedLists', 'featuredGames', 'weeklyUpcomingGames', 'platformEnums', 'eventBanners'));
+        return view('homepage.index', compact(
+            'seasonedLists',
+            'thisWeekGames',
+            'weeklyUpcomingGames',
+            'platformEnums',
+            'eventBanners',
+            'currentYear',
+            'currentMonth'
+        ));
     }
 
     /**
-     * Display monthly game releases.
-     */
-    public function monthlyReleases(): View
-    {
-        $activeList = $this->getActiveMonthlyList();
-        $monthGames = collect();
-        $platformEnums = PlatformEnum::getActivePlatforms();
-
-        if ($activeList) {
-            // Order by pivot release_date, fallback to game's first_release_date if null
-            $monthGames = $activeList->games()
-                ->with('platforms')
-                ->reorder() // Clear default ordering
-                ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
-                ->get();
-        }
-
-        return view('homepage.monthly-releases', compact('activeList', 'monthGames', 'platformEnums'));
-    }
-
-    /**
-     * Display indie games lists.
-     */
-    public function indieGames(): View
-    {
-        // Get all active indie games system lists
-        $indieGamesLists = GameList::indieGames()
-            ->where('is_active', true)
-            ->where('is_public', true)
-            ->with('games.platforms')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        $platformEnums = PlatformEnum::getActivePlatforms();
-
-        return view('homepage.indie-games', compact('indieGamesLists', 'platformEnums'));
-    }
-
-    /**
-     * Display unified releases page for different list types.
+     * Display unified releases page for seasoned type.
      */
     public function releases(string $type, Request $request): View
     {
-        // Get year/month from query params (for monthly type)
-        $year = $request->query('year', now()->year);
-        $month = $request->query('month', now()->month);
+        if ($type !== 'seasoned') {
+            abort(404);
+        }
 
-        // Determine list type enum
-        $listTypeEnum = match ($type) {
-            'monthly' => ListTypeEnum::MONTHLY,
-            'indie-games' => ListTypeEnum::INDIE_GAMES,
-            'seasoned' => ListTypeEnum::SEASONED,
-            default => abort(404)
-        };
-
-        // Get lists based on type
-        $lists = GameList::where('list_type', $listTypeEnum->value)
+        $lists = GameList::where('list_type', ListTypeEnum::SEASONED->value)
             ->where('is_active', true)
             ->where('is_public', true)
             ->with('games.platforms')
             ->get();
 
-        // For monthly and indie-games: filter by year/month based on start_at
-        if (in_array($type, ['monthly', 'indie-games'])) {
-            $lists = $lists->filter(function ($list) use ($year, $month) {
-                return $list->start_at &&
-                    $list->start_at->year == $year &&
-                    $list->start_at->month == $month;
-            });
-        }
-
-        // Get the selected list (first active one or from query param)
         $selectedListId = $request->query('list');
         $selectedList = $selectedListId
             ? $lists->firstWhere('id', $selectedListId)
             : $lists->first();
 
-        // Load games with proper ordering if list exists
         if ($selectedList) {
             $selectedList->load(['games' => function ($query) {
                 $query->reorder()
@@ -194,9 +148,7 @@ class HomepageController extends Controller
             'type',
             'lists',
             'selectedList',
-            'platformEnums',
-            'year',
-            'month'
+            'platformEnums'
         ));
     }
 }

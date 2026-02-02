@@ -109,13 +109,13 @@ class GameListControllerTest extends TestCase
     public function test_show_displays_list(): void
     {
         $user = User::factory()->create();
-        $list = GameList::factory()->monthly()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'slug' => 'test-system-list',
             'is_public' => true,
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($user)->get('/list/monthly/test-system-list');
+        $response = $this->actingAs($user)->get('/list/yearly/test-system-list');
 
         $response->assertStatus(200);
         $response->assertViewIs('lists.show');
@@ -126,7 +126,7 @@ class GameListControllerTest extends TestCase
     {
         $list = GameList::factory()->create(['is_public' => false]);
 
-        $response = $this->get('/list/' . $list->list_type->toSlug() . '/' . $list->slug);
+        $response = $this->get('/list/'.$list->list_type->toSlug().'/'.$list->slug);
 
         $response->assertStatus(404); // Private lists return 404 for non-owners
     }
@@ -163,7 +163,7 @@ class GameListControllerTest extends TestCase
                 'X-Requested-With' => 'XMLHttpRequest',
                 'Accept' => 'application/json',
             ])
-            ->delete('/u/testuser/test-list/games/' . $game->id);
+            ->delete('/u/testuser/test-list/games/'.$game->id);
 
         $response->assertJson(['success' => true]);
         $this->assertFalse($list->fresh()->games->contains($game));
@@ -189,12 +189,12 @@ class GameListControllerTest extends TestCase
 
     public function test_public_system_list_is_accessible_without_auth(): void
     {
-        $list = GameList::factory()->monthly()->system()->public()->create([
+        $list = GameList::factory()->yearly()->system()->public()->create([
             'slug' => 'test-list',
             'is_active' => true,
         ]);
 
-        $response = $this->get('/list/monthly/test-list');
+        $response = $this->get('/list/yearly/test-list');
 
         $response->assertViewHas('gameList', $list);
     }
@@ -275,26 +275,26 @@ class GameListControllerTest extends TestCase
 
     public function test_show_by_slug_returns_404_for_inactive_list(): void
     {
-        $list = GameList::factory()->system()->public()->create([
+        $list = GameList::factory()->yearly()->system()->public()->create([
             'slug' => 'inactive-list',
             'is_active' => false,
         ]);
 
-        $response = $this->get('/list/monthly/inactive-list');
+        $response = $this->get('/list/yearly/inactive-list');
 
         $response->assertStatus(404);
     }
 
     public function test_show_by_slug_shows_active_list_regardless_of_date_range(): void
     {
-        $list = GameList::factory()->monthly()->system()->public()->create([
+        $list = GameList::factory()->yearly()->system()->public()->create([
             'slug' => 'expired-list',
             'is_active' => true, // Active lists are visible regardless of date range
             'start_at' => now()->subDays(10),
             'end_at' => now()->subDays(1), // Expired yesterday, but still visible if is_active = true
         ]);
 
-        $response = $this->get('/list/monthly/expired-list');
+        $response = $this->get('/list/yearly/expired-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -302,14 +302,14 @@ class GameListControllerTest extends TestCase
 
     public function test_show_by_slug_shows_list_within_date_range(): void
     {
-        $list = GameList::factory()->monthly()->system()->public()->create([
+        $list = GameList::factory()->yearly()->system()->public()->create([
             'slug' => 'active-list',
             'is_active' => true,
             'start_at' => now()->subDays(5),
             'end_at' => now()->addDays(5),
         ]);
 
-        $response = $this->get('/list/monthly/active-list');
+        $response = $this->get('/list/yearly/active-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -377,7 +377,7 @@ class GameListControllerTest extends TestCase
             'name' => 'System List',
             'is_public' => true,
             'is_system' => true,
-            'list_type' => 'indie-games',
+            'list_type' => 'yearly',
             'slug' => 'my-games', // Same slug, different list_type
             'is_active' => true,
         ]);
@@ -385,10 +385,9 @@ class GameListControllerTest extends TestCase
         $response->assertRedirect();
         $this->assertDatabaseHas('game_lists', [
             'slug' => 'my-games',
-            'list_type' => 'indie-games',
+            'list_type' => 'yearly',
         ]);
     }
-
 
     public function test_update_maintains_slug_when_list_becomes_private(): void
     {
@@ -412,11 +411,10 @@ class GameListControllerTest extends TestCase
         $this->assertEquals('my-test-list', $list->slug);
     }
 
-
     public function test_owner_can_access_inactive_system_list(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
-        $list = GameList::factory()->monthly()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'user_id' => $admin->id,
             'slug' => 'inactive-system-list',
             'is_active' => false,
@@ -424,7 +422,7 @@ class GameListControllerTest extends TestCase
         ]);
 
         // Owner can access even if inactive and private
-        $response = $this->actingAs($admin)->get('/list/monthly/inactive-system-list');
+        $response = $this->actingAs($admin)->get('/list/yearly/inactive-system-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList');
@@ -460,23 +458,23 @@ class GameListControllerTest extends TestCase
 
         // But CAN use a slug that exists in a different list_type
         $admin = User::factory()->create(['is_admin' => true]);
-        $indieList = GameList::factory()->indieGames()->system()->create([
-            'slug' => 'unique-indie-slug',
+        $yearlyList = GameList::factory()->yearly()->system()->create([
+            'slug' => 'unique-yearly-slug',
         ]);
 
-        // Update indie list to use a slug that exists in regular lists
-        $response = $this->actingAs($admin)->patch('/admin/system-lists/indie/unique-indie-slug', [
-            'name' => $indieList->name,
+        // Update yearly list to use a slug that exists in regular lists
+        $response = $this->actingAs($admin)->patch('/admin/system-lists/yearly/unique-yearly-slug', [
+            'name' => $yearlyList->name,
             'is_public' => true,
             'is_system' => true,
-            'list_type' => 'indie-games',
-            'slug' => 'taken-slug', // Exists in regular, but OK for indie-games
+            'list_type' => 'yearly',
+            'slug' => 'taken-slug', // Exists in regular, but OK for yearly
             'is_active' => true,
         ]);
 
         $response->assertRedirect();
-        $indieList->refresh();
-        $this->assertEquals('taken-slug', $indieList->slug);
+        $yearlyList->refresh();
+        $this->assertEquals('taken-slug', $yearlyList->slug);
     }
 
     // === Admin Access Tests ===
@@ -502,14 +500,14 @@ class GameListControllerTest extends TestCase
     public function test_admin_can_access_inactive_public_system_list(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
-        $list = GameList::factory()->monthly()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'slug' => 'inactive-public-list',
             'is_public' => true,
             'is_active' => false,
         ]);
 
         // Admin can access system lists even if inactive
-        $response = $this->actingAs($admin)->get('/list/monthly/inactive-public-list');
+        $response = $this->actingAs($admin)->get('/list/yearly/inactive-public-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList', $list);
@@ -536,14 +534,14 @@ class GameListControllerTest extends TestCase
     public function test_non_admin_cannot_access_inactive_public_list(): void
     {
         $user = User::factory()->create(['is_admin' => false]);
-        $list = GameList::factory()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'slug' => 'inactive-public-list-non-admin',
             'is_public' => true,
             'is_active' => false,
         ]);
 
         // Non-admin cannot access inactive list
-        $response = $this->actingAs($user)->get('/list/monthly/inactive-public-list-non-admin');
+        $response = $this->actingAs($user)->get('/list/yearly/inactive-public-list-non-admin');
 
         $response->assertStatus(404);
     }
@@ -567,14 +565,14 @@ class GameListControllerTest extends TestCase
 
     public function test_guest_cannot_access_inactive_public_list(): void
     {
-        $list = GameList::factory()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'slug' => 'inactive-public-list-guest',
             'is_public' => true,
             'is_active' => false,
         ]);
 
         // Guest cannot access inactive list
-        $response = $this->get('/list/monthly/inactive-public-list-guest');
+        $response = $this->get('/list/yearly/inactive-public-list-guest');
 
         $response->assertStatus(404);
     }
@@ -598,14 +596,14 @@ class GameListControllerTest extends TestCase
     public function test_authenticated_user_can_access_public_active_list(): void
     {
         $user = User::factory()->create();
-        $list = GameList::factory()->monthly()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'slug' => 'public-active-list',
             'is_public' => true,
             'is_active' => true,
         ]);
 
         // Authenticated user can access public active list
-        $response = $this->actingAs($user)->get('/list/monthly/public-active-list');
+        $response = $this->actingAs($user)->get('/list/yearly/public-active-list');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList');
@@ -613,54 +611,54 @@ class GameListControllerTest extends TestCase
 
     public function test_guest_can_access_public_active_list(): void
     {
-        $list = GameList::factory()->monthly()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'slug' => 'public-active-list-guest',
             'is_public' => true,
             'is_active' => true,
         ]);
 
         // Guest can access public active list
-        $response = $this->get('/list/monthly/public-active-list-guest');
+        $response = $this->get('/list/yearly/public-active-list-guest');
 
         $response->assertStatus(200);
         $response->assertViewHas('gameList');
     }
 
-    public function test_indie_games_lists_dont_appear_in_regular_lists_index(): void
+    public function test_system_lists_dont_appear_in_regular_lists_index(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
         $regularList = GameList::factory()->create([
             'user_id' => $user->id,
             'list_type' => ListTypeEnum::REGULAR,
         ]);
-        $indieGamesList = GameList::factory()->indieGames()->system()->create([
+        $systemList = GameList::factory()->yearly()->system()->create([
             'is_public' => true,
             'is_active' => true,
         ]);
 
         $response = $this->actingAs($user)->get('/u/testuser/lists');
 
-        $response->assertViewHas('regularLists', function ($lists) use ($regularList, $indieGamesList) {
+        $response->assertViewHas('regularLists', function ($lists) use ($regularList, $systemList) {
             return $lists->contains('id', $regularList->id) &&
-                   !$lists->contains('id', $indieGamesList->id);
+                   ! $lists->contains('id', $systemList->id);
         });
     }
 
     public function test_admin_can_update_system_list_with_list_type_field(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
-        $list = GameList::factory()->indieGames()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'name' => 'Original Name',
             'description' => 'Original Description',
         ]);
 
         // Update the list - including list_type field (which should be allowed as long as it doesn't change)
-        $response = $this->actingAs($admin)->patch('/admin/system-lists/indie/' . $list->slug, [
+        $response = $this->actingAs($admin)->patch('/admin/system-lists/yearly/'.$list->slug, [
             'name' => 'Updated Name',
             'description' => 'Updated Description',
             'is_public' => true,
             'is_system' => true,
-            'list_type' => 'indie-games', // Same as current value
+            'list_type' => 'yearly', // Same as current value
             'is_active' => true,
         ]);
 
@@ -669,23 +667,23 @@ class GameListControllerTest extends TestCase
             'id' => $list->id,
             'name' => 'Updated Name',
             'description' => 'Updated Description',
-            'list_type' => 'indie-games', // Unchanged
+            'list_type' => 'yearly', // Unchanged
         ]);
     }
 
     public function test_cannot_change_list_type_when_updating(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
-        $list = GameList::factory()->indieGames()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'name' => 'Test List',
         ]);
 
-        // Attempt to change list_type from indie-games to monthly
-        $response = $this->actingAs($admin)->patch('/admin/system-lists/indie/' . $list->slug, [
+        // Attempt to change list_type from yearly to seasoned
+        $response = $this->actingAs($admin)->patch('/admin/system-lists/yearly/'.$list->slug, [
             'name' => 'Test List',
             'is_public' => true,
             'is_system' => true,
-            'list_type' => 'monthly', // Trying to change type
+            'list_type' => 'seasoned', // Trying to change type
             'is_active' => true,
         ]);
 
@@ -693,6 +691,6 @@ class GameListControllerTest extends TestCase
 
         // Verify list_type didn't change
         $list->refresh();
-        $this->assertEquals('indie-games', $list->list_type->value);
+        $this->assertEquals('yearly', $list->list_type->value);
     }
 }

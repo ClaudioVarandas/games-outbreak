@@ -7,40 +7,40 @@ use PHPUnit\Framework\TestCase;
 
 class ListTypeEnumTest extends TestCase
 {
-    public function test_indie_games_label_returns_correct_value(): void
+    public function test_yearly_label_returns_correct_value(): void
     {
-        $this->assertEquals('Indies', ListTypeEnum::INDIE_GAMES->label());
+        $this->assertEquals('Yearly', ListTypeEnum::YEARLY->label());
     }
 
-    public function test_indie_games_is_not_unique_per_user(): void
+    public function test_yearly_is_not_unique_per_user(): void
     {
-        $this->assertFalse(ListTypeEnum::INDIE_GAMES->isUniquePerUser());
+        $this->assertFalse(ListTypeEnum::YEARLY->isUniquePerUser());
     }
 
-    public function test_indie_games_is_system_list_type(): void
+    public function test_yearly_is_system_list_type(): void
     {
-        $this->assertTrue(ListTypeEnum::INDIE_GAMES->isSystemListType());
+        $this->assertTrue(ListTypeEnum::YEARLY->isSystemListType());
     }
 
-    public function test_from_value_returns_indie_games(): void
+    public function test_from_value_returns_yearly(): void
     {
-        $result = ListTypeEnum::fromValue('indie-games');
+        $result = ListTypeEnum::fromValue('yearly');
 
         $this->assertNotNull($result);
-        $this->assertEquals(ListTypeEnum::INDIE_GAMES, $result);
+        $this->assertEquals(ListTypeEnum::YEARLY, $result);
     }
 
-    public function test_indie_games_value_is_correct(): void
+    public function test_yearly_value_is_correct(): void
     {
-        $this->assertEquals('indie-games', ListTypeEnum::INDIE_GAMES->value);
+        $this->assertEquals('yearly', ListTypeEnum::YEARLY->value);
     }
 
     public function test_all_system_list_types_return_true(): void
     {
         $systemTypes = [
-            ListTypeEnum::MONTHLY,
+            ListTypeEnum::YEARLY,
             ListTypeEnum::SEASONED,
-            ListTypeEnum::INDIE_GAMES,
+            ListTypeEnum::EVENTS,
         ];
 
         foreach ($systemTypes as $type) {

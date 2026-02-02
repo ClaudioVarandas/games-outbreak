@@ -9,11 +9,9 @@ enum ListTypeEnum: string
     case REGULAR = 'regular';
     case BACKLOG = 'backlog';
     case WISHLIST = 'wishlist';
-    case MONTHLY = 'monthly';
+    case YEARLY = 'yearly';
     case SEASONED = 'seasoned';
-    case INDIE_GAMES = 'indie-games';
     case EVENTS = 'events';
-    case HIGHLIGHTS = 'highlights';
 
     public function label(): string
     {
@@ -21,11 +19,9 @@ enum ListTypeEnum: string
             self::REGULAR => 'Regular',
             self::BACKLOG => 'Backlog',
             self::WISHLIST => 'Wishlist',
-            self::MONTHLY => 'Monthly',
+            self::YEARLY => 'Yearly',
             self::SEASONED => 'Seasoned',
-            self::INDIE_GAMES => 'Indies',
             self::EVENTS => 'Events',
-            self::HIGHLIGHTS => 'Highlights',
         };
     }
 
@@ -35,11 +31,9 @@ enum ListTypeEnum: string
             self::REGULAR => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
             self::BACKLOG => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
             self::WISHLIST => 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
-            self::MONTHLY => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+            self::YEARLY => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
             self::SEASONED => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-            self::INDIE_GAMES => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
             self::EVENTS => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
-            self::HIGHLIGHTS => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
         };
     }
 
@@ -49,22 +43,18 @@ enum ListTypeEnum: string
             self::REGULAR => false,
             self::BACKLOG => true,
             self::WISHLIST => true,
-            self::MONTHLY => false,
+            self::YEARLY => false,
             self::SEASONED => false,
-            self::INDIE_GAMES => false,
             self::EVENTS => false,
-            self::HIGHLIGHTS => false,
         };
     }
 
     public function isSystemListType(): bool
     {
         return match ($this) {
-            self::MONTHLY => true,
+            self::YEARLY => true,
             self::SEASONED => true,
-            self::INDIE_GAMES => true,
             self::EVENTS => true,
-            self::HIGHLIGHTS => true,
             default => false,
         };
     }
@@ -75,11 +65,9 @@ enum ListTypeEnum: string
             'regular' => self::REGULAR,
             'backlog' => self::BACKLOG,
             'wishlist' => self::WISHLIST,
-            'monthly' => self::MONTHLY,
+            'yearly' => self::YEARLY,
             'seasoned' => self::SEASONED,
-            'indie-games' => self::INDIE_GAMES,
             'events' => self::EVENTS,
-            'highlights' => self::HIGHLIGHTS,
             default => null,
         };
     }
@@ -90,11 +78,9 @@ enum ListTypeEnum: string
             self::REGULAR => 'regular',
             self::BACKLOG => 'backlog',
             self::WISHLIST => 'wishlist',
-            self::MONTHLY => 'monthly',
+            self::YEARLY => 'yearly',
             self::SEASONED => 'seasoned',
-            self::INDIE_GAMES => 'indie',
             self::EVENTS => 'events',
-            self::HIGHLIGHTS => 'highlights',
         };
     }
 
@@ -104,11 +90,9 @@ enum ListTypeEnum: string
             'regular' => self::REGULAR,
             'backlog' => self::BACKLOG,
             'wishlist' => self::WISHLIST,
-            'monthly' => self::MONTHLY,
+            'yearly' => self::YEARLY,
             'seasoned' => self::SEASONED,
-            'indie' => self::INDIE_GAMES,
             'events' => self::EVENTS,
-            'highlights' => self::HIGHLIGHTS,
             default => null,
         };
     }

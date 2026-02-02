@@ -94,9 +94,9 @@ class GameList extends Model
         return $query->where('list_type', ListTypeEnum::WISHLIST->value);
     }
 
-    public function scopeMonthly(Builder $query): Builder
+    public function scopeYearly(Builder $query): Builder
     {
-        return $query->where('list_type', ListTypeEnum::MONTHLY->value);
+        return $query->where('list_type', ListTypeEnum::YEARLY->value);
     }
 
     public function scopeSeasoned(Builder $query): Builder
@@ -104,19 +104,9 @@ class GameList extends Model
         return $query->where('list_type', ListTypeEnum::SEASONED->value);
     }
 
-    public function scopeIndieGames(Builder $query): Builder
-    {
-        return $query->where('list_type', ListTypeEnum::INDIE_GAMES->value);
-    }
-
     public function scopeEvents(Builder $query): Builder
     {
         return $query->where('list_type', ListTypeEnum::EVENTS->value);
-    }
-
-    public function scopeHighlights(Builder $query): Builder
-    {
-        return $query->where('list_type', ListTypeEnum::HIGHLIGHTS->value);
     }
 
     public function scopeActive(Builder $query): Builder
@@ -153,9 +143,9 @@ class GameList extends Model
         return $this->list_type === ListTypeEnum::WISHLIST;
     }
 
-    public function isMonthly(): bool
+    public function isYearly(): bool
     {
-        return $this->list_type === ListTypeEnum::MONTHLY;
+        return $this->list_type === ListTypeEnum::YEARLY;
     }
 
     public function isSeasoned(): bool
@@ -163,29 +153,19 @@ class GameList extends Model
         return $this->list_type === ListTypeEnum::SEASONED;
     }
 
-    public function isIndieGames(): bool
-    {
-        return $this->list_type === ListTypeEnum::INDIE_GAMES;
-    }
-
     public function isEvents(): bool
     {
         return $this->list_type === ListTypeEnum::EVENTS;
     }
 
-    public function isHighlights(): bool
-    {
-        return $this->list_type === ListTypeEnum::HIGHLIGHTS;
-    }
-
     public function canHaveHighlights(): bool
     {
-        return $this->isMonthly() || $this->isIndieGames();
+        return $this->isYearly();
     }
 
     public function canMarkAsIndie(): bool
     {
-        return $this->isMonthly() || $this->isSeasoned();
+        return $this->isYearly() || $this->isSeasoned();
     }
 
     public function isSpecialList(): bool
@@ -555,10 +535,16 @@ class GameList extends Model
                     ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M j, Y')
                     : $game->first_release_date?->format('M j, Y') ?? 'TBA',
                 'platforms' => $platforms->sortBy('priority')->values()->toArray(),
+                'platform_group' => $game->pivot->platform_group ?? null,
+                'is_highlight' => (bool) ($game->pivot->is_highlight ?? false),
+                'is_indie' => (bool) ($game->pivot->is_indie ?? false),
+                'is_tba' => (bool) ($game->pivot->is_tba ?? false),
                 'genres' => $game->genres->map(fn ($g) => [
                     'id' => $g->id,
                     'name' => $g->name,
                 ])->toArray(),
+                'genre_ids' => json_decode($game->pivot->genre_ids ?? '[]', true) ?: [],
+                'primary_genre_id' => $game->pivot->primary_genre_id ?? null,
                 'game_type' => [
                     'id' => $game->getGameTypeEnum()->value,
                     'name' => $game->getGameTypeEnum()->label(),

@@ -10,9 +10,9 @@ use Illuminate\Support\Str;
 
 class CreateSystemList extends Command
 {
-    protected $signature = 'system-list:create {type : Type of list (indie, highlights)} {year : Year to create the list for}';
+    protected $signature = 'system-list:create {type : Type of list (yearly, seasoned, events)} {year : Year to create the list for}';
 
-    protected $description = 'Create a yearly system list (indie or highlights). Only one list per type is allowed per year.';
+    protected $description = 'Create a yearly system list. Only one yearly list is allowed per year.';
 
     public function handle(): int
     {
@@ -26,82 +26,41 @@ class CreateSystemList extends Command
         }
 
         return match ($type) {
-            'indie' => $this->createIndieList($year),
-            'highlights' => $this->createHighlightsList($year),
+            'yearly' => $this->createYearlyList($year),
             default => $this->invalidType($type),
         };
     }
 
-    private function createIndieList(int $year): int
+    private function createYearlyList(int $year): int
     {
-        $this->info("Creating indie list for year: {$year}");
+        $this->info("Creating yearly list for year: {$year}");
 
         $startOfYear = Carbon::create($year, 1, 1)->startOfDay();
         $endOfYear = Carbon::create($year, 12, 31)->endOfDay();
 
-        $existingList = GameList::where('list_type', ListTypeEnum::INDIE_GAMES->value)
+        $existingList = GameList::where('list_type', ListTypeEnum::YEARLY->value)
             ->where('is_system', true)
             ->whereBetween('start_at', [$startOfYear, $endOfYear])
             ->first();
 
         if ($existingList) {
-            $this->error("An indie list already exists for {$year}: '{$existingList->name}' (ID: {$existingList->id})");
+            $this->error("A yearly list already exists for {$year}: '{$existingList->name}' (ID: {$existingList->id})");
 
             return Command::FAILURE;
         }
 
-        $listName = "Indies {$year}";
-        $slug = $this->generateUniqueSlug($listName, ListTypeEnum::INDIE_GAMES);
+        $listName = "Game Releases {$year}";
+        $slug = $this->generateUniqueSlug($listName, ListTypeEnum::YEARLY);
 
         $gameList = GameList::create([
             'user_id' => 1,
             'name' => $listName,
-            'description' => "Indie game picks from {$year}",
+            'description' => "Curated game releases for {$year}",
             'slug' => $slug,
             'is_public' => true,
             'is_system' => true,
             'is_active' => true,
-            'list_type' => ListTypeEnum::INDIE_GAMES->value,
-            'start_at' => $startOfYear,
-            'end_at' => $endOfYear,
-        ]);
-
-        $this->info("Created: {$listName} (ID: {$gameList->id}, Slug: {$slug})");
-        $this->line("  Start: {$startOfYear->format('Y-m-d')} | End: {$endOfYear->format('Y-m-d')}");
-
-        return Command::SUCCESS;
-    }
-
-    private function createHighlightsList(int $year): int
-    {
-        $this->info("Creating highlights list for year: {$year}");
-
-        $startOfYear = Carbon::create($year, 1, 1)->startOfDay();
-        $endOfYear = Carbon::create($year, 12, 31)->endOfDay();
-
-        $existingList = GameList::where('list_type', ListTypeEnum::HIGHLIGHTS->value)
-            ->where('is_system', true)
-            ->whereBetween('start_at', [$startOfYear, $endOfYear])
-            ->first();
-
-        if ($existingList) {
-            $this->error("A highlights list already exists for {$year}: '{$existingList->name}' (ID: {$existingList->id})");
-
-            return Command::FAILURE;
-        }
-
-        $listName = "Highlights {$year}";
-        $slug = $this->generateUniqueSlug($listName, ListTypeEnum::HIGHLIGHTS);
-
-        $gameList = GameList::create([
-            'user_id' => 1,
-            'name' => $listName,
-            'description' => "Top game picks from {$year}",
-            'slug' => $slug,
-            'is_public' => true,
-            'is_system' => true,
-            'is_active' => true,
-            'list_type' => ListTypeEnum::HIGHLIGHTS->value,
+            'list_type' => ListTypeEnum::YEARLY->value,
             'start_at' => $startOfYear,
             'end_at' => $endOfYear,
         ]);
@@ -114,7 +73,7 @@ class CreateSystemList extends Command
 
     private function invalidType(string $type): int
     {
-        $this->error("Invalid type '{$type}'. Valid types are: indie, highlights");
+        $this->error("Invalid type '{$type}'. Valid types are: yearly");
 
         return Command::FAILURE;
     }

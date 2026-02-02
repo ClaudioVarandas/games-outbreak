@@ -68,7 +68,7 @@
             </div>
         </h1>
 
-        <!-- Featured Games Section -->
+        <!-- This Week's Releases Section -->
         <section class="mb-12">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-xl md:text-3xl font-bold flex items-center text-gray-800 dark:text-gray-100">
@@ -76,41 +76,35 @@
                         <path
                             d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                     </svg>
-                    @if($activeList && $activeList->start_at)
-                        {{ $activeList->start_at->format('F Y') }} 
-                    @else
-                        Featured Games
-                    @endif
+                    This Week's Releases
                 </h2>
-                @if($activeList)
-                    <a href="{{ route('releases', 'monthly') }}"
-                       class="text-sm md:text-base text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition whitespace-nowrap">
-                        See all ->
-                    </a>
-                @endif
+                <a href="{{ route('releases.year.month', [$currentYear, $currentMonth]) }}"
+                   class="text-sm md:text-base text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition whitespace-nowrap">
+                    View all releases ->
+                </a>
             </div>
 
-            @if($activeList && $featuredGames->count() > 0)
-                <x-featured-games-glassmorphism
-                    :games="$featuredGames"
-                    :platformEnums="$platformEnums"
-                    emptyMessage="No featured games available."
-                />
-            @elseif($activeList && $featuredGames->count() === 0)
-                <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
-                    <p class="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                        No featured games available.
-                    </p>
-                    <a href="{{ route('releases', 'monthly') }}"
-                       class="inline-block text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition">
-                        See all ->
-                    </a>
+            @if($thisWeekGames->count() > 0)
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                    @foreach($thisWeekGames as $game)
+                        <x-game-card
+                            :game="$game"
+                            :displayReleaseDate="$game->pivot->release_date ? \Carbon\Carbon::parse($game->pivot->release_date) : $game->first_release_date"
+                            variant="default"
+                            layout="overlay"
+                            aspectRatio="3/4"
+                            :platformEnums="$platformEnums" />
+                    @endforeach
                 </div>
             @else
-                <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
-                    <p class="text-lg text-gray-600 dark:text-gray-400">
-                        No active monthly list found.
+                <div class="text-center py-8 bg-white dark:bg-gray-800 rounded-lg">
+                    <p class="text-gray-600 dark:text-gray-400">
+                        No curated releases this week.
                     </p>
+                    <a href="{{ route('releases.year', $currentYear) }}"
+                       class="inline-block mt-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition">
+                        Browse all {{ $currentYear }} releases ->
+                    </a>
                 </div>
             @endif
         </section>
@@ -140,4 +134,3 @@
         </section>
     </div>
 @endsection
-

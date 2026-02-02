@@ -21,13 +21,13 @@ beforeEach(function () {
     // Create a game
     $this->game = Game::factory()->create();
 
-    // Create an indie games list
-    $this->indieList = GameList::factory()->create([
-        'list_type' => ListTypeEnum::INDIE_GAMES->value,
+    // Create a yearly list
+    $this->yearlyList = GameList::factory()->create([
+        'list_type' => ListTypeEnum::YEARLY->value,
         'is_system' => true,
         'is_active' => true,
         'is_public' => true,
-        'slug' => 'indie-games-2026',
+        'slug' => 'yearly-2026',
         'start_at' => now()->startOfYear(),
     ]);
 });
@@ -38,8 +38,8 @@ describe('Multi-Genre Assignment via addGame', function () {
 
         $response = $this->actingAs($this->admin)
             ->postJson(route('admin.system-lists.games.add', [
-                'type' => 'indie',
-                'slug' => $this->indieList->slug,
+                'type' => 'yearly',
+                'slug' => $this->yearlyList->slug,
             ]), [
                 'game_id' => $this->game->igdb_id,
                 'genre_ids' => $genreIds,
@@ -48,7 +48,7 @@ describe('Multi-Genre Assignment via addGame', function () {
 
         $response->assertSuccessful();
 
-        $pivot = $this->indieList->games()->where('games.id', $this->game->id)->first()->pivot;
+        $pivot = $this->yearlyList->games()->where('games.id', $this->game->id)->first()->pivot;
         $storedGenreIds = json_decode($pivot->genre_ids, true);
 
         expect($storedGenreIds)->toHaveCount(3);
@@ -58,8 +58,8 @@ describe('Multi-Genre Assignment via addGame', function () {
     it('stores primary genre id correctly', function () {
         $response = $this->actingAs($this->admin)
             ->postJson(route('admin.system-lists.games.add', [
-                'type' => 'indie',
-                'slug' => $this->indieList->slug,
+                'type' => 'yearly',
+                'slug' => $this->yearlyList->slug,
             ]), [
                 'game_id' => $this->game->igdb_id,
                 'genre_ids' => [$this->primaryGenre->id],
@@ -68,7 +68,7 @@ describe('Multi-Genre Assignment via addGame', function () {
 
         $response->assertSuccessful();
 
-        $pivot = $this->indieList->games()->where('games.id', $this->game->id)->first()->pivot;
+        $pivot = $this->yearlyList->games()->where('games.id', $this->game->id)->first()->pivot;
 
         expect($pivot->primary_genre_id)->toBe($this->primaryGenre->id);
     });
@@ -78,8 +78,8 @@ describe('Multi-Genre Assignment via addGame', function () {
 
         $response = $this->actingAs($this->admin)
             ->postJson(route('admin.system-lists.games.add', [
-                'type' => 'indie',
-                'slug' => $this->indieList->slug,
+                'type' => 'yearly',
+                'slug' => $this->yearlyList->slug,
             ]), [
                 'game_id' => $this->game->igdb_id,
                 'genre_ids' => $genreIds,
@@ -93,8 +93,8 @@ describe('Multi-Genre Assignment via addGame', function () {
     it('validates genre ids exist', function () {
         $response = $this->actingAs($this->admin)
             ->postJson(route('admin.system-lists.games.add', [
-                'type' => 'indie',
-                'slug' => $this->indieList->slug,
+                'type' => 'yearly',
+                'slug' => $this->yearlyList->slug,
             ]), [
                 'game_id' => $this->game->igdb_id,
                 'genre_ids' => [99999, 99998],
@@ -108,7 +108,7 @@ describe('Multi-Genre Assignment via addGame', function () {
 describe('Update Game Genres', function () {
     beforeEach(function () {
         // Add game to list first
-        $this->indieList->games()->attach($this->game->id, [
+        $this->yearlyList->games()->attach($this->game->id, [
             'order' => 1,
             'genre_ids' => json_encode([$this->primaryGenre->id]),
             'primary_genre_id' => $this->primaryGenre->id,
@@ -121,8 +121,8 @@ describe('Update Game Genres', function () {
 
         $response = $this->actingAs($this->admin)
             ->patchJson(route('admin.system-lists.games.update-genres', [
-                'type' => 'indie',
-                'slug' => $this->indieList->slug,
+                'type' => 'yearly',
+                'slug' => $this->yearlyList->slug,
                 'game' => $this->game->id,
             ]), [
                 'genre_ids' => $newGenreIds,
@@ -131,7 +131,7 @@ describe('Update Game Genres', function () {
 
         $response->assertSuccessful();
 
-        $pivot = $this->indieList->games()->where('games.id', $this->game->id)->first()->pivot;
+        $pivot = $this->yearlyList->games()->where('games.id', $this->game->id)->first()->pivot;
         $storedGenreIds = json_decode($pivot->genre_ids, true);
 
         expect($storedGenreIds)->toEqual($newGenreIds);
@@ -141,8 +141,8 @@ describe('Update Game Genres', function () {
     it('allows clearing all genres', function () {
         $response = $this->actingAs($this->admin)
             ->patchJson(route('admin.system-lists.games.update-genres', [
-                'type' => 'indie',
-                'slug' => $this->indieList->slug,
+                'type' => 'yearly',
+                'slug' => $this->yearlyList->slug,
                 'game' => $this->game->id,
             ]), [
                 'genre_ids' => [],
@@ -151,7 +151,7 @@ describe('Update Game Genres', function () {
 
         $response->assertSuccessful();
 
-        $pivot = $this->indieList->games()->where('games.id', $this->game->id)->first()->pivot;
+        $pivot = $this->yearlyList->games()->where('games.id', $this->game->id)->first()->pivot;
 
         expect(json_decode($pivot->genre_ids, true))->toEqual([]);
         expect($pivot->primary_genre_id)->toBeNull();
@@ -162,8 +162,8 @@ describe('Update Game Genres', function () {
 
         $response = $this->actingAs($this->admin)
             ->patchJson(route('admin.system-lists.games.update-genres', [
-                'type' => 'indie',
-                'slug' => $this->indieList->slug,
+                'type' => 'yearly',
+                'slug' => $this->yearlyList->slug,
                 'game' => $otherGame->id,
             ]), [
                 'genre_ids' => [$this->primaryGenre->id],
@@ -176,7 +176,7 @@ describe('Update Game Genres', function () {
 
 describe('Get Game Genres Endpoint', function () {
     beforeEach(function () {
-        $this->indieList->games()->attach($this->game->id, [
+        $this->yearlyList->games()->attach($this->game->id, [
             'order' => 1,
             'genre_ids' => json_encode([$this->primaryGenre->id, $this->genres[1]->id]),
             'primary_genre_id' => $this->primaryGenre->id,
@@ -188,8 +188,8 @@ describe('Get Game Genres Endpoint', function () {
     it('returns game genres data', function () {
         $response = $this->actingAs($this->admin)
             ->getJson(route('admin.system-lists.games.genres', [
-                'type' => 'indie',
-                'slug' => $this->indieList->slug,
+                'type' => 'yearly',
+                'slug' => $this->yearlyList->slug,
                 'game' => $this->game->id,
             ]));
 
@@ -212,8 +212,8 @@ describe('TBA Flag Support', function () {
     it('stores TBA flag when adding game', function () {
         $response = $this->actingAs($this->admin)
             ->postJson(route('admin.system-lists.games.add', [
-                'type' => 'indie',
-                'slug' => $this->indieList->slug,
+                'type' => 'yearly',
+                'slug' => $this->yearlyList->slug,
             ]), [
                 'game_id' => $this->game->igdb_id,
                 'is_tba' => true,
@@ -223,7 +223,7 @@ describe('TBA Flag Support', function () {
 
         $response->assertSuccessful();
 
-        $pivot = $this->indieList->games()->where('games.id', $this->game->id)->first()->pivot;
+        $pivot = $this->yearlyList->games()->where('games.id', $this->game->id)->first()->pivot;
 
         expect((bool) $pivot->is_tba)->toBeTrue();
         expect($pivot->release_date)->toBeNull();
@@ -235,7 +235,7 @@ describe('Bulk Genre Operations', function () {
         // Add multiple games with genres
         $this->games = Game::factory()->count(3)->create();
         foreach ($this->games as $index => $game) {
-            $this->indieList->games()->attach($game->id, [
+            $this->yearlyList->games()->attach($game->id, [
                 'order' => $index + 1,
                 'genre_ids' => json_encode([$this->primaryGenre->id]),
                 'primary_genre_id' => $this->primaryGenre->id,
@@ -247,7 +247,7 @@ describe('Bulk Genre Operations', function () {
         $response = $this->actingAs($this->admin)
             ->post(route('admin.genres.bulk-remove'), [
                 'genre_id' => $this->primaryGenre->id,
-                'list_id' => $this->indieList->id,
+                'list_id' => $this->yearlyList->id,
             ]);
 
         $response->assertRedirect();
@@ -255,7 +255,7 @@ describe('Bulk Genre Operations', function () {
 
         // Check that genre was removed from all games
         foreach ($this->games as $game) {
-            $pivot = $this->indieList->games()->where('games.id', $game->id)->first()->pivot;
+            $pivot = $this->yearlyList->games()->where('games.id', $game->id)->first()->pivot;
             $genreIds = json_decode($pivot->genre_ids, true);
 
             expect($genreIds)->not->toContain($this->primaryGenre->id);
@@ -270,7 +270,7 @@ describe('Bulk Genre Operations', function () {
             ->post(route('admin.genres.bulk-replace'), [
                 'source_genre_id' => $this->primaryGenre->id,
                 'target_genre_id' => $targetGenre->id,
-                'list_id' => $this->indieList->id,
+                'list_id' => $this->yearlyList->id,
             ]);
 
         $response->assertRedirect();
@@ -278,7 +278,7 @@ describe('Bulk Genre Operations', function () {
 
         // Check that genre was replaced in all games
         foreach ($this->games as $game) {
-            $pivot = $this->indieList->games()->where('games.id', $game->id)->first()->pivot;
+            $pivot = $this->yearlyList->games()->where('games.id', $game->id)->first()->pivot;
             $genreIds = json_decode($pivot->genre_ids, true);
 
             expect($genreIds)->toContain($targetGenre->id);
@@ -293,7 +293,7 @@ describe('Bulk Genre Operations', function () {
         $response = $this->actingAs($this->admin)
             ->post(route('admin.genres.assign-games', $newGenre), [
                 'game_ids' => $this->games->pluck('id')->toArray(),
-                'list_id' => $this->indieList->id,
+                'list_id' => $this->yearlyList->id,
             ]);
 
         $response->assertRedirect();
@@ -301,7 +301,7 @@ describe('Bulk Genre Operations', function () {
 
         // Check that genre was added to all games
         foreach ($this->games as $game) {
-            $pivot = $this->indieList->games()->where('games.id', $game->id)->first()->pivot;
+            $pivot = $this->yearlyList->games()->where('games.id', $game->id)->first()->pivot;
             $genreIds = json_decode($pivot->genre_ids, true);
 
             expect($genreIds)->toContain($newGenre->id);
@@ -310,7 +310,7 @@ describe('Bulk Genre Operations', function () {
 });
 
 describe('Frontend Display Logic', function () {
-    it('groups games by primary genre in indie games controller', function () {
+    it('groups games by primary genre in releases controller', function () {
         // Add games with different primary genres
         $genre1 = $this->genres[0];
         $genre2 = $this->genres[1];
@@ -318,21 +318,21 @@ describe('Frontend Display Logic', function () {
         $game1 = Game::factory()->create();
         $game2 = Game::factory()->create();
 
-        $this->indieList->games()->attach($game1->id, [
+        $this->yearlyList->games()->attach($game1->id, [
             'order' => 1,
             'genre_ids' => json_encode([$genre1->id]),
             'primary_genre_id' => $genre1->id,
             'release_date' => now()->addMonth(),
         ]);
 
-        $this->indieList->games()->attach($game2->id, [
+        $this->yearlyList->games()->attach($game2->id, [
             'order' => 2,
             'genre_ids' => json_encode([$genre2->id]),
             'primary_genre_id' => $genre2->id,
             'release_date' => now()->addMonth(),
         ]);
 
-        $response = $this->get(route('indie-games'));
+        $response = $this->get(route('releases.year', now()->year));
 
         $response->assertSuccessful();
     });
@@ -340,14 +340,14 @@ describe('Frontend Display Logic', function () {
     it('shows games without primary genre in Other tab', function () {
         $game = Game::factory()->create();
 
-        $this->indieList->games()->attach($game->id, [
+        $this->yearlyList->games()->attach($game->id, [
             'order' => 1,
             'genre_ids' => json_encode([]),
             'primary_genre_id' => null,
             'release_date' => now()->addMonth(),
         ]);
 
-        $response = $this->get(route('indie-games', ['genre' => 'other']));
+        $response = $this->get(route('releases.year', ['year' => now()->year, 'genre' => 'other']));
 
         $response->assertSuccessful();
     });

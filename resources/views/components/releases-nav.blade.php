@@ -9,19 +9,11 @@
                     News
                 </a>
             @endif
-            <a href="{{ route('highlights') }}"
-               class="{{ $active === 'highlights' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
-                Highlights
+            <a href="{{ route('releases.year', now()->year) }}"
+               class="{{ $active === 'releases' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
+                Releases
             </a>
-            <a href="{{ route('releases', 'monthly') }}"
-               class="{{ $active === 'monthly' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
-                Monthly Releases
-            </a>
-            <a href="{{ route('indie-games') }}"
-               class="{{ $active === 'indie-games' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
-                Indie Games
-            </a>
-            <a href="{{ route('releases', 'seasoned') }}"
+            <a href="{{ route('releases.seasoned') }}"
                class="{{ $active === 'seasoned' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
                 Seasoned Lists
             </a>

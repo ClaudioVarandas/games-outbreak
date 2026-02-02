@@ -5,11 +5,10 @@ use App\Http\Controllers\AdminListController;
 use App\Http\Controllers\AdminNewsController;
 use App\Http\Controllers\GameListController;
 use App\Http\Controllers\GamesController;
-use App\Http\Controllers\HighlightsController;
 use App\Http\Controllers\HomepageController;
-use App\Http\Controllers\IndieGamesController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReleasesController;
 use App\Http\Controllers\UserListController;
 use App\Http\Middleware\EnsureAdminUser;
 use App\Http\Middleware\EnsureNewsFeatureEnabled;
@@ -17,12 +16,27 @@ use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomepageController::class, 'index'])->name('homepage');
-Route::get('/releases/{type}', [HomepageController::class, 'releases'])->name('releases')
-    ->where('type', 'monthly|seasoned');
-Route::get('/indie-games', [IndieGamesController::class, 'index'])->name('indie-games');
-Route::get('/highlights', [HighlightsController::class, 'index'])->name('highlights');
-Route::redirect('/monthly-releases', '/releases/monthly', 301);
-Route::redirect('/releases/indie-games', '/indie-games', 301);
+
+// Releases routes - seasoned must come before {year} to avoid conflict
+Route::get('/releases/seasoned', [HomepageController::class, 'releases'])->name('releases.seasoned')
+    ->defaults('type', 'seasoned');
+Route::get('/releases', function () {
+    return redirect()->route('releases.year', now()->year);
+})->name('releases');
+Route::get('/releases/{year}', [ReleasesController::class, 'index'])
+    ->where('year', '[0-9]{4}')
+    ->name('releases.year');
+Route::get('/releases/{year}/{month}', [ReleasesController::class, 'index'])
+    ->where(['year' => '[0-9]{4}', 'month' => '[0-9]{1,2}'])
+    ->name('releases.year.month');
+
+// Legacy redirects for old routes
+Route::redirect('/monthly-releases', '/releases', 301);
+Route::redirect('/releases/monthly', '/releases', 301);
+Route::redirect('/releases/indie-games', '/releases', 301);
+Route::redirect('/indie-games', '/releases', 301);
+Route::redirect('/highlights', '/releases', 301);
+
 Route::get('/upcoming', [GamesController::class, 'upcoming'])->name('upcoming');
 Route::get('/most-wanted', [GamesController::class, 'mostWanted'])->name('most-wanted');
 Route::get('/game/{game:slug}', [GamesController::class, 'show'])->name('game.show');

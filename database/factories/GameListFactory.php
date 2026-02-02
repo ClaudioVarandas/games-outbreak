@@ -85,12 +85,12 @@ class GameListFactory extends Factory
     }
 
     /**
-     * Indicate that the list is a monthly system list.
+     * Indicate that the list is a yearly system list.
      */
-    public function monthly(): static
+    public function yearly(): static
     {
         return $this->state(fn (array $attributes) => [
-            'list_type' => ListTypeEnum::MONTHLY,
+            'list_type' => ListTypeEnum::YEARLY,
         ]);
     }
 
@@ -101,16 +101,6 @@ class GameListFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'list_type' => ListTypeEnum::SEASONED,
-        ]);
-    }
-
-    /**
-     * Indicate that the list is an indie games system list.
-     */
-    public function indieGames(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'list_type' => ListTypeEnum::INDIE_GAMES,
         ]);
     }
 

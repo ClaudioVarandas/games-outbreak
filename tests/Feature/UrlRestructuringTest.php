@@ -23,31 +23,15 @@ class UrlRestructuringTest extends TestCase
     // 1. System Lists (Public Routes)
     // ============================================================================
 
-    public function test_monthly_system_lists_are_accessible_via_list_monthly_slug(): void
+    public function test_yearly_system_lists_are_accessible_via_list_yearly_slug(): void
     {
-        $list = GameList::factory()->monthly()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'slug' => 'january-2026',
             'is_public' => true,
             'is_active' => true,
         ]);
 
-        $response = $this->get('/list/monthly/january-2026');
-
-        $response->assertStatus(200);
-        $response->assertViewIs('lists.show');
-        $response->assertViewHas('gameList');
-        $response->assertViewHas('readOnly', true);
-    }
-
-    public function test_indie_system_lists_are_accessible_via_list_indie_slug(): void
-    {
-        $list = GameList::factory()->indieGames()->system()->create([
-            'slug' => 'best-indie-2026',
-            'is_public' => true,
-            'is_active' => true,
-        ]);
-
-        $response = $this->get('/list/indie/best-indie-2026');
+        $response = $this->get('/list/yearly/january-2026');
 
         $response->assertStatus(200);
         $response->assertViewIs('lists.show');
@@ -462,7 +446,7 @@ class UrlRestructuringTest extends TestCase
         $response = $this->actingAs($user)->get('/backlog');
 
         $response->assertStatus(301);
-        $response->assertRedirect("/u/testuser/backlog");
+        $response->assertRedirect('/u/testuser/backlog');
     }
 
     public function test_old_wishlist_redirects_to_user_wishlist_after_auth(): void
@@ -472,7 +456,7 @@ class UrlRestructuringTest extends TestCase
         $response = $this->actingAs($user)->get('/wishlist');
 
         $response->assertStatus(301);
-        $response->assertRedirect("/u/testuser/wishlist");
+        $response->assertRedirect('/u/testuser/wishlist');
     }
 
     public function test_old_lists_redirects_to_user_lists_after_auth(): void
@@ -482,7 +466,7 @@ class UrlRestructuringTest extends TestCase
         $response = $this->actingAs($user)->get('/lists');
 
         $response->assertStatus(301);
-        $response->assertRedirect("/u/testuser/lists");
+        $response->assertRedirect('/u/testuser/lists');
     }
 
     // ============================================================================
@@ -612,22 +596,13 @@ class UrlRestructuringTest extends TestCase
 
     public function test_system_list_type_slugs_are_correct(): void
     {
-        // Monthly uses 'monthly'
-        $monthly = GameList::factory()->monthly()->system()->create([
+        // Yearly uses 'yearly'
+        $yearly = GameList::factory()->yearly()->system()->create([
             'slug' => 'jan-2026',
             'is_public' => true,
             'is_active' => true,
         ]);
-        $response = $this->get('/list/monthly/jan-2026');
-        $response->assertStatus(200);
-
-        // Indie uses 'indie' (not 'indie-games')
-        $indie = GameList::factory()->indieGames()->system()->create([
-            'slug' => 'best-2026',
-            'is_public' => true,
-            'is_active' => true,
-        ]);
-        $response = $this->get('/list/indie/best-2026');
+        $response = $this->get('/list/yearly/jan-2026');
         $response->assertStatus(200);
 
         // Seasoned uses 'seasoned'
@@ -646,13 +621,13 @@ class UrlRestructuringTest extends TestCase
 
     public function test_game_list_controller_passes_game_list_variable(): void
     {
-        $list = GameList::factory()->monthly()->system()->create([
+        $list = GameList::factory()->yearly()->system()->create([
             'slug' => 'test',
             'is_public' => true,
             'is_active' => true,
         ]);
 
-        $response = $this->get('/list/monthly/test');
+        $response = $this->get('/list/yearly/test');
 
         $response->assertViewHas('gameList');
         $response->assertViewHas('readOnly', true);

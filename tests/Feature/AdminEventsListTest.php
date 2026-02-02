@@ -176,7 +176,7 @@ it('events list type is recognized as system list type', function () {
 
 it('events list scope works correctly', function () {
     GameList::factory()->events()->system()->create(['name' => 'Event List']);
-    GameList::factory()->monthly()->system()->create(['name' => 'Monthly List']);
+    GameList::factory()->yearly()->system()->create(['name' => 'Yearly List']);
 
     $eventsLists = GameList::events()->get();
 
@@ -186,10 +186,10 @@ it('events list scope works correctly', function () {
 
 it('isEvents helper method works correctly', function () {
     $eventsList = GameList::factory()->events()->system()->create();
-    $monthlyList = GameList::factory()->monthly()->system()->create();
+    $yearlyList = GameList::factory()->yearly()->system()->create();
 
     expect($eventsList->isEvents())->toBeTrue();
-    expect($monthlyList->isEvents())->toBeFalse();
+    expect($yearlyList->isEvents())->toBeFalse();
 });
 
 it('prevents non-admin from creating events list', function () {
@@ -532,13 +532,13 @@ it('admin edit page shows event detail fields for events list', function () {
 it('admin edit page does not show event fields for non-events list', function () {
     $admin = User::factory()->create(['is_admin' => true]);
 
-    $list = GameList::factory()->monthly()->system()->create([
-        'name' => 'Monthly List',
-        'slug' => 'monthly-list',
+    $list = GameList::factory()->yearly()->system()->create([
+        'name' => 'Yearly List',
+        'slug' => 'yearly-list',
         'start_at' => now(),
     ]);
 
-    $response = $this->actingAs($admin)->get('/admin/system-lists/monthly/monthly-list/edit');
+    $response = $this->actingAs($admin)->get('/admin/system-lists/yearly/yearly-list/edit');
 
     $response->assertStatus(200);
     $response->assertDontSee('Event Details');

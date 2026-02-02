@@ -92,7 +92,7 @@ class GameListController extends Controller
     public function showBySlug(Request $request, string $type, string $slug): View
     {
         // Only allow system list types for this public route
-        $allowedTypes = ['monthly', 'indie', 'seasoned', 'events'];
+        $allowedTypes = ['yearly', 'seasoned', 'events'];
 
         if (! in_array($type, $allowedTypes)) {
             abort(404, 'List type not found. User lists are available at /u/{username}/lists/{slug}');
