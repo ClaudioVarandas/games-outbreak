@@ -428,7 +428,9 @@
                                                     variant="default"
                                                     layout="overlay"
                                                     aspectRatio="3/4"
-                                                    :platformEnums="$platformEnums" />
+                                                    :platformEnums="$platformEnums"
+                                                    :isTba="$isTba"
+                                                />
                                             </div>
                                         @endforeach
                                     </div>
@@ -451,7 +453,9 @@
                                                     :displayReleaseDate="$displayDate"
                                                     :displayPlatforms="$pivotPlatforms"
                                                     variant="table-row"
-                                                    :platformEnums="$platformEnums" />
+                                                    :platformEnums="$platformEnums"
+                                                    :isTba="$isTba"
+                                                />
                                             </div>
                                         @endforeach
                                     </div>

@@ -16,6 +16,7 @@
     'displayReleaseDate' => null, // Optional: overrides game->first_release_date
     'displayPlatforms' => null, // Optional: JSON array of platform IDs to display (from pivot)
     'displayReleaseDateFormatted' => null, // Optional: pre-formatted release date string
+    'isTba' => false, // If true, shows "TBA" regardless of any date
 ])
 
 @php
@@ -77,10 +78,10 @@
     $sortedPlatforms = $filteredPlatforms->sortBy(function($platform) {
         return \App\Enums\PlatformEnum::getPriority($platform->igdb_id);
     })->values();
-    
+
     // Aspect ratio class
     $aspectClass = $aspectRatio === 'video' ? 'aspect-video' : 'aspect-[3/4]';
-    
+
     // Variant-specific classes
     $blurIntensity = $carousel ? 'backdrop-blur-sm' : 'backdrop-blur-md';
     $containerClasses = match($variant) {
@@ -90,7 +91,7 @@
         'simple' => ($wantedScore !== null ? 'bg-gray-800 rounded-lg' : 'bg-white dark:bg-gray-800') . ' rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300' . ($wantedScore !== null ? ' cursor-pointer group' : ''),
         default => 'bg-gray-800 dark:bg-gray-800 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all',
     };
-    
+
     $imageContainerClasses = match($variant) {
         'glassmorphism' => 'relative ' . $aspectClass . ' rounded-xl overflow-hidden',
         'carousel' => $aspectClass . ' relative overflow-hidden',
@@ -98,7 +99,7 @@
         'simple' => 'relative ' . $aspectClass . ' bg-gray-200 dark:bg-gray-700',
         default => 'relative ' . $aspectClass . ' bg-gray-200 dark:bg-gray-700 overflow-hidden',
     };
-    
+
     $imageClasses = match($variant) {
         'glassmorphism' => 'w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100',
         'carousel' => 'w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500',
@@ -106,7 +107,7 @@
         'simple' => 'w-full h-full object-cover',
         default => 'w-full h-full object-cover group-hover:scale-110 transition-transform duration-500',
     };
-    
+
     $platformBadgeClasses = match($variant) {
         'glassmorphism' => 'px-2 py-1 text-xs font-bold text-white rounded shadow-lg backdrop-blur-sm bg-black/40 border border-white/20',
         default => 'px-2 py-1 text-xs font-bold text-white rounded shadow-lg',
@@ -166,7 +167,11 @@
     {{-- Release Date --}}
     <div class="flex-shrink-0 text-right hidden xs:block">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-            {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+            @if($isTba)
+                {{ 'TBA' }}
+            @else
+                {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+            @endif
         </span>
     </div>
 
@@ -195,14 +200,14 @@
             @else
                 <x-game-cover-placeholder :gameName="$game->name" class="w-full h-full" />
             @endif
-            
+
             <!-- Rank Badge (Most Wanted) -->
             @if($showRank && $rank !== null)
                 <div class="absolute top-0 left-0 {{ $rankColor ?? 'bg-orange-500' }} text-gray-900 text-sm font-black px-3 py-1 rounded-br-lg z-20 shadow-lg">
                     #{{ $rank }}
                 </div>
             @endif
-            
+
             <!-- Platform Badges -->
             @if($sortedPlatforms->count() > 0)
                 <div class="absolute top-2 left-2 flex flex-wrap gap-1 z-10">
@@ -221,7 +226,7 @@
                     @endforeach
                 </div>
             @endif
-            
+
             <!-- Quick Actions (Desktop Only) -->
             <div class="hidden md:block">
                 <x-game-quick-actions
@@ -232,8 +237,8 @@
 
             <!-- Remove Button (Lists Show) -->
             @if($showRemoveButton && $removeRoute)
-                <form action="{{ $removeRoute }}" 
-                      method="POST" 
+                <form action="{{ $removeRoute }}"
+                      method="POST"
                       class="absolute top-2 right-2 z-20"
                       onsubmit="return confirm('Remove this game from the list?');">
                     @csrf
@@ -245,17 +250,17 @@
                     </button>
                 </form>
             @endif
-            
+
             <!-- Overlay for glassmorphism variant -->
             @if($variant === 'glassmorphism')
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
             @endif
-            
+
             <!-- Overlay for carousel variant -->
             @if($variant === 'carousel')
                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
             @endif
-            
+
             <!-- Info Overlay (for overlay layout) -->
             @if($layout === 'overlay' && $variant !== 'glassmorphism')
                 <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent px-4 pt-20 pb-4 opacity-100 translate-y-0 transition-all duration-400 ease-out">
@@ -267,7 +272,11 @@
                             {{ $game->getGameTypeEnum()->label() }}
                         </span>
                         <p class="text-sm font-semibold text-cyan-300 dark:text-cyan-400">
-                            {{ $releaseDate?->format('d/m/Y') ?? 'TBA' }}
+                            @if($isTba)
+                                {{ 'TBA' }}
+                            @else
+                                {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+                            @endif
                         </p>
                     </div>
 
@@ -278,7 +287,7 @@
                         :wishlistList="$wishlistList" />
                 </div>
             @endif
-            
+
             <!-- Info Overlay for glassmorphism variant -->
             @if($variant === 'glassmorphism')
                 <div class="absolute bottom-0 left-0 right-0 p-4 z-10 backdrop-blur-sm bg-black/30 border-t border-white/20">
@@ -298,7 +307,11 @@
                             {{ $game->getGameTypeEnum()->label() }}
                         </span>
                         <p class="text-sm text-gray-200">
-                            {{ $releaseDate?->format('d/m/Y') ?? 'TBA' }}
+                            @if($isTba)
+                                {{ 'TBA' }}
+                            @else
+                                {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+                            @endif
                         </p>
                     </div>
 
@@ -330,7 +343,11 @@
                         {{ $game->getGameTypeEnum()->label() }}
                     </span>
                     <p class="text-sm {{ $variant === 'carousel' ? 'text-gray-400' : ($variant === 'simple' ? ($wantedScore !== null ? 'text-gray-400' : 'text-gray-600 dark:text-gray-400') : 'text-gray-400') }}">
-                        {{ $releaseDate?->format('d/m/Y') ?? 'TBA' }}
+                        @if($isTba)
+                            {{ 'TBA' }}
+                        @else
+                            {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+                        @endif
                     </p>
                 </div>
 
