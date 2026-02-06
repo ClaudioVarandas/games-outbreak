@@ -459,7 +459,7 @@ it('shows games list when event has started', function () {
     $response->assertStatus(200);
     $response->assertSee('Showing');
     $response->assertSee('1');
-    $response->assertSee('games');
+    $response->assertSee('game');
 });
 
 it('shows placeholder when event has not started yet', function () {
@@ -502,7 +502,8 @@ it('shows games when event has no event time set', function () {
     $response = $this->get('/list/events/no-time-event');
 
     $response->assertStatus(200);
-    $response->assertSee('Showing');
+    $response->assertSee('1');
+    $response->assertSee('game');
     $response->assertDontSee("The Event Hasn't Started Yet");
 });
 

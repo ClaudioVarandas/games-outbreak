@@ -45,12 +45,28 @@
     // Platform badges logic
     $validPlatformIds = $platformEnums->keys()->toArray();
 
-    // If displayPlatforms is provided (from pivot), decode and filter by those IDs
+    // If displayPlatforms is provided (from pivot), use those platform IDs directly
     if ($displayPlatforms) {
         $decodedPlatformIds = is_string($displayPlatforms) ? json_decode($displayPlatforms, true) : $displayPlatforms;
-        $filteredPlatforms = $game->platforms
-            ? $game->platforms->filter(fn($p) => in_array($p->igdb_id, $decodedPlatformIds) && in_array($p->igdb_id, $validPlatformIds))
-            : collect();
+        // Filter to only valid/active platform IDs
+        $filteredPlatformIds = array_filter($decodedPlatformIds ?? [], fn($id) => in_array($id, $validPlatformIds));
+        // Create a collection of platform objects (either from game platforms or synthesized from enum)
+        $filteredPlatforms = collect($filteredPlatformIds)->map(function($igdbId) use ($game, $platformEnums) {
+            // Try to find in game's platforms first
+            $gamePlatform = $game->platforms?->first(fn($p) => $p->igdb_id === $igdbId);
+            if ($gamePlatform) {
+                return $gamePlatform;
+            }
+            // Otherwise create a simple object with the enum data
+            $enum = $platformEnums[$igdbId] ?? null;
+            if ($enum) {
+                return (object) [
+                    'igdb_id' => $igdbId,
+                    'name' => $enum->label(),
+                ];
+            }
+            return null;
+        })->filter();
     } else {
         // Default: use all game platforms
         $filteredPlatforms = $game->platforms

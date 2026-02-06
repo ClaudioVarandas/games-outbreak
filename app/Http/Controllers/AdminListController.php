@@ -143,24 +143,39 @@ class AdminListController extends Controller
             ->with('success', 'System list created successfully.');
     }
 
-    public function editSystemList(string $type, string $slug): View
+    public function editSystemList(Request $request, string $type, string $slug): View
     {
         $listType = ListTypeEnum::fromSlug($type);
         if ($listType === null) {
             abort(404, 'Invalid list type');
         }
 
+        $sortBy = $request->query('sort', 'release_date');
+
         $list = GameList::where('slug', $slug)
             ->where('list_type', $listType->value)
             ->where('is_system', true)
-            ->with(['games' => function ($query) {
-                $query->orderByPivot('order');
-            }])
             ->firstOrFail();
+
+        // Load games with proper sorting (reorder() clears the default orderByPivot('order') from the relationship)
+        if ($sortBy === 'release_date') {
+            // TBA first, then by release date ascending
+            $games = $list->games()
+                ->reorder()
+                ->orderByRaw('CASE WHEN game_list_game.is_tba = 1 THEN 0 ELSE 1 END')
+                ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
+                ->orderBy('games.id', 'ASC')
+                ->get();
+        } else {
+            // Manual order (use the default relationship order)
+            $games = $list->games()->get();
+        }
+
+        $list->setRelation('games', $games);
 
         $viewMode = session('game_view_mode', 'grid');
 
-        return view('admin.system-lists.edit', compact('list', 'viewMode'));
+        return view('admin.system-lists.edit', compact('list', 'viewMode', 'sortBy'));
     }
 
     public function updateSystemList(UpdateGameListRequest $request, string $type, string $slug): RedirectResponse
@@ -676,11 +691,20 @@ class AdminListController extends Controller
             $genreIds = json_decode($genreIds, true) ?? [];
         }
 
-        $gamePlatforms = $game->platforms
-            ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
-            ->map(fn ($p) => $p->igdb_id)
-            ->values()
-            ->toArray();
+        // Get platforms from pivot data (the list-specific platforms)
+        $pivotPlatforms = $pivotData->platforms ?? null;
+        if (is_string($pivotPlatforms)) {
+            $pivotPlatforms = json_decode($pivotPlatforms, true) ?? [];
+        }
+
+        // If pivot has no platforms, fall back to game's active platforms
+        if (empty($pivotPlatforms)) {
+            $pivotPlatforms = $game->platforms
+                ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+                ->map(fn ($p) => $p->igdb_id)
+                ->values()
+                ->toArray();
+        }
 
         return response()->json([
             'igdb_genres' => $igdbGenres,
@@ -689,7 +713,7 @@ class AdminListController extends Controller
             'is_indie' => (bool) ($pivotData->is_indie ?? false),
             'release_date' => $releaseDate,
             'is_tba' => (bool) ($pivotData->is_tba ?? false),
-            'platforms' => $gamePlatforms,
+            'platforms' => $pivotPlatforms,
             'game_name' => $game->name,
             'cover_url' => $game->getCoverUrl('cover_big'),
         ]);

@@ -294,6 +294,56 @@ Alpine.data('listFilter', (initialGames, initialFilters, filterOptions, quickAct
         },
 
         /**
+         * Check if a specific game matches current filters
+         * Used for static Blade-rendered cards with x-show
+         */
+        gameMatchesFilters(gameId) {
+            const game = this.games.find(g => g.id === gameId);
+            if (!game) return false;
+
+            // Platform filter (OR logic)
+            if (this.filters.platforms.length > 0) {
+                const gamePlatformIds = game.platforms.map(p => p.id);
+                if (!this.filters.platforms.some(id => gamePlatformIds.includes(id))) {
+                    return false;
+                }
+            }
+
+            // Genre filter (OR logic)
+            if (this.filters.genres.length > 0) {
+                const gameGenreIds = game.genres.map(g => g.id);
+                if (!this.filters.genres.some(id => gameGenreIds.includes(id))) {
+                    return false;
+                }
+            }
+
+            // Game type filter (OR logic)
+            if (this.filters.gameTypes.length > 0) {
+                if (!this.filters.gameTypes.includes(game.game_type.id)) {
+                    return false;
+                }
+            }
+
+            // Mode filter (OR logic)
+            if (this.filters.modes.length > 0) {
+                const gameModeIds = game.modes.map(m => m.id);
+                if (!this.filters.modes.some(id => gameModeIds.includes(id))) {
+                    return false;
+                }
+            }
+
+            // Perspective filter (OR logic)
+            if (this.filters.perspectives.length > 0) {
+                const gamePerspectiveIds = game.perspectives.map(p => p.id);
+                if (!this.filters.perspectives.some(id => gamePerspectiveIds.includes(id))) {
+                    return false;
+                }
+            }
+
+            return true;
+        },
+
+        /**
          * Get filtered count for a specific filter option
          * Shows how many games would match if this filter is applied
          */

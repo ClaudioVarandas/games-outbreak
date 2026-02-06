@@ -4,32 +4,11 @@
 
 @section('content')
     <div class="container mx-auto px-4 py-8">
-        <!-- Header with View Toggle -->
-        <div class="mb-8 flex items-center justify-between">
+        <!-- Header -->
+        <div class="mb-8">
             <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100">
                 Edit {{ $list->name }}
             </h1>
-
-            <div class="flex items-center gap-2">
-                <button
-                    onclick="toggleViewMode('grid')"
-                    class="px-4 py-2 rounded-lg transition {{ $viewMode === 'grid' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
-                >
-                    <svg class="w-5 h-5 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-                    </svg>
-                    Grid
-                </button>
-                <button
-                    onclick="toggleViewMode('list')"
-                    class="px-4 py-2 rounded-lg transition {{ $viewMode === 'list' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
-                >
-                    <svg class="w-5 h-5 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                    </svg>
-                    List
-                </button>
-            </div>
         </div>
 
         {{-- List Settings Header --}}
@@ -288,9 +267,43 @@
 
             <!-- Games in List -->
             <div class="mt-6">
-                <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
-                    Games ({{ $list->games->count() }})
-                </h2>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                        Games ({{ $list->games->count() }})
+                    </h2>
+
+                    <div class="flex items-center gap-6">
+                        {{-- Sort Toggle --}}
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Sort:</span>
+                            <a href="{{ route('admin.system-lists.edit', [$list->list_type->toSlug(), $list->slug, 'sort' => 'order']) }}"
+                               class="px-3 py-1.5 rounded-lg transition text-sm {{ ($sortBy ?? 'order') === 'order' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}">
+                                Manual
+                            </a>
+                            <a href="{{ route('admin.system-lists.edit', [$list->list_type->toSlug(), $list->slug, 'sort' => 'release_date']) }}"
+                               class="px-3 py-1.5 rounded-lg transition text-sm {{ ($sortBy ?? 'order') === 'release_date' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}">
+                                Release Date
+                            </a>
+                        </div>
+
+                        {{-- View Toggle --}}
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">View:</span>
+                            <button
+                                onclick="toggleViewMode('grid')"
+                                class="px-3 py-1.5 rounded-lg transition text-sm {{ $viewMode === 'grid' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
+                            >
+                                Grid
+                            </button>
+                            <button
+                                onclick="toggleViewMode('list')"
+                                class="px-3 py-1.5 rounded-lg transition text-sm {{ $viewMode === 'list' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
+                            >
+                                List
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 @if($list->games->count() > 0)
                     <x-admin.system-lists.game-grid :games="$list->games" :list="$list" :viewMode="$viewMode" />
