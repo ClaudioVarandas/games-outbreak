@@ -94,7 +94,7 @@ php artisan test
 #### 6. Collection Settings
 1. Click the gear icon on your My Games banner
 2. Change the collection name and description
-3. Upload a cover image
+3. Upload a cover imagecvarandas's Games
 4. Toggle privacy settings (e.g., uncheck "Playing")
 5. Save and verify changes appear on the My Games page
 6. Visit your games page as a logged-out user and verify private sections return 403

@@ -22,6 +22,7 @@ class HomepageControllerTest extends TestCase
     public function test_homepage_displays_this_week_games(): void
     {
         $currentYear = now()->year;
+        $startOfWeek = \Carbon\Carbon::today()->startOfWeek(\Carbon\Carbon::MONDAY);
 
         $yearlyList = GameList::factory()->system()->yearly()->active()->create([
             'start_at' => \Carbon\Carbon::create($currentYear, 1, 1),
@@ -30,7 +31,7 @@ class HomepageControllerTest extends TestCase
 
         $game = Game::factory()->create();
         $yearlyList->games()->attach($game->id, [
-            'release_date' => now()->addDays(3)->toDateString(),
+            'release_date' => $startOfWeek->copy()->addDays(2)->toDateString(),
         ]);
 
         $response = $this->get('/');

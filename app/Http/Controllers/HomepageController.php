@@ -29,8 +29,8 @@ class HomepageController extends Controller
      */
     private function getThisWeekGames(): \Illuminate\Support\Collection
     {
-        $today = Carbon::today();
-        $endOfWeek = $today->copy()->addDays(7);
+        $startOfWeek = Carbon::today()->startOfWeek(Carbon::MONDAY);
+        $endOfWeek = $startOfWeek->copy()->endOfWeek(Carbon::SUNDAY);
 
         $yearlyList = GameList::yearly()
             ->where('is_system', true)
@@ -45,7 +45,7 @@ class HomepageController extends Controller
         return $yearlyList->games()
             ->with('platforms')
             ->reorder()
-            ->wherePivotBetween('release_date', [$today->toDateString(), $endOfWeek->toDateString()])
+            ->wherePivotBetween('release_date', [$startOfWeek->toDateString(), $endOfWeek->toDateString()])
             ->limit(12)
             ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
             ->get();
