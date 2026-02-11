@@ -175,4 +175,44 @@ class HomepageControllerTest extends TestCase
             return count($banners) === 0;
         });
     }
+
+    public function test_homepage_displays_latest_added_games(): void
+    {
+        $olderGame = Game::factory()->create(['created_at' => now()->subDays(2)]);
+        $newerGame = Game::factory()->create(['created_at' => now()->subDay()]);
+        $newestGame = Game::factory()->create(['created_at' => now()]);
+
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('latestAddedGames', function ($games) use ($newestGame, $olderGame) {
+            return $games->count() === 3
+                && $games->first()->id === $newestGame->id
+                && $games->last()->id === $olderGame->id;
+        });
+    }
+
+    public function test_homepage_latest_added_games_limits_to_twelve(): void
+    {
+        Game::factory()->count(15)->create();
+
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('latestAddedGames', function ($games) {
+            return $games->count() === 12;
+        });
+    }
+
+    public function test_homepage_latest_added_games_eager_loads_platforms(): void
+    {
+        Game::factory()->create();
+
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('latestAddedGames', function ($games) {
+            return $games->first()->relationLoaded('platforms');
+        });
+    }
 }

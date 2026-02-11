@@ -26,9 +26,14 @@
                 </p>
             </div>
         </div>--}}
-        <div class="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-400">
-            <p>&copy; {{ date('Y') }} Games Outbreak. All rights reserved. Made with <span class="text-red-500">❤️</span> by
+        <div class="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-400 space-y-1">
+            <p>&copy; {{ date('Y') }} Games Outbreak. All rights reserved.</p>
+            <p>Powered by : <a href="https://www.igdb.com" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:underline transition">IGDB</a> -
+                <a href="https://steamspy.com/" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:underline transition">steamspy</a>
+            </p>
+            <p>Made with <span class="text-red-500">❤️</span> by
                 <span class="text-orange-400 hover:underline transition">Cláudio Varandas</span>
+                using open source technologies.
             </p>
         </div>
     </div>

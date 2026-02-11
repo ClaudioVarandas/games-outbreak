@@ -90,6 +90,14 @@ class HomepageController extends Controller
             ->toArray();
     }
 
+    private function getLatestAddedGames(): \Illuminate\Support\Collection
+    {
+        return Game::with('platforms')
+            ->orderBy('created_at', 'desc')
+            ->limit(12)
+            ->get();
+    }
+
     /**
      * Display the homepage with featured game releases.
      */
@@ -98,6 +106,7 @@ class HomepageController extends Controller
         $seasonedLists = $this->getSeasonedLists();
         $thisWeekGames = $this->getThisWeekGames();
         $weeklyUpcomingGames = $this->getWeeklyUpcomingGames();
+        $latestAddedGames = $this->getLatestAddedGames();
         $platformEnums = PlatformEnum::getActivePlatforms();
         $eventBanners = $this->getEventBanners();
 
@@ -108,6 +117,7 @@ class HomepageController extends Controller
             'seasonedLists',
             'thisWeekGames',
             'weeklyUpcomingGames',
+            'latestAddedGames',
             'platformEnums',
             'eventBanners',
             'currentYear',

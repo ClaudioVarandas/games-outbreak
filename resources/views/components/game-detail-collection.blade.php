@@ -82,12 +82,12 @@
 @endauth
 
 @guest
-    <div class="bg-gray-800 p-6 rounded-xl">
+    <div class="bg-gray-800 p-6 rounded-xl" x-data="{}">
         <h3 class="text-xl font-bold mb-4">My Collection</h3>
         <p class="text-gray-400 text-sm mb-4">Track your games by adding them to your collection.</p>
         <div class="flex items-center justify-center gap-3">
             @foreach(['Playing', 'Played', 'Backlog', 'Wishlist'] as $label)
-                <button onclick="document.dispatchEvent(new CustomEvent('open-modal', { detail: 'login-modal' }))"
+                <button @click.prevent="$dispatch('open-modal', 'login-modal')"
                         class="w-14 h-14 rounded-full bg-gray-700 hover:bg-gray-600 text-white transition-all duration-200 flex items-center justify-center"
                         title="Login to add to {{ $label }}">
                     @if($label === 'Playing')

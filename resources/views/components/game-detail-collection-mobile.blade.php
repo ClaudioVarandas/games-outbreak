@@ -73,10 +73,10 @@
 @endauth
 
 @guest
-    <div class="fixed bottom-0 inset-x-0 z-50 md:hidden bg-gray-900/95 backdrop-blur-md border-t border-gray-700 px-4 py-3 safe-bottom">
+    <div class="fixed bottom-0 inset-x-0 z-50 md:hidden bg-gray-900/95 backdrop-blur-md border-t border-gray-700 px-4 py-3 safe-bottom" x-data="{}">
         <div class="flex items-center justify-center gap-4">
             @foreach(['Playing', 'Played', 'Backlog', 'Wishlist'] as $label)
-                <button onclick="document.dispatchEvent(new CustomEvent('open-modal', { detail: 'login-modal' }))"
+                <button @click.prevent="$dispatch('open-modal', 'login-modal')"
                         class="flex flex-col items-center gap-1 text-gray-400"
                         title="Login to add to {{ $label }}">
                     <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">

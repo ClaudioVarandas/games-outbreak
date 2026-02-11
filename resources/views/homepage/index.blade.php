@@ -29,37 +29,6 @@
                 <div class="w-2 h-2 rounded-full bg-orange-500"></div>
                 <div class="w-2 h-2 rounded-full bg-orange-400"></div>
             </div>
-            Seasoned lists
-            <div class="hidden sm:flex gap-2">
-                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
-                <div class="w-2 h-2 rounded-full bg-orange-500"></div>
-                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
-            </div>
-        </h1>
-
-
-        <!-- Seasonal Events Section -->
-        <section class="mb-12">
-            <x-seasonal-banners :banners="[
-                [
-                    'image' => '/images/best_of_2025.png',
-                    'link' => route('lists.show', ['seasoned', 'best-games-of-2025']),
-                    'alt' => 'best games of 2025 banner'
-                ],
-                [
-                    'image' => '/images/most_wanted_2026.png',
-                    'link' => route('lists.show', ['seasoned', 'most-wanted-2026']),
-                    'alt' => 'Most Wanted Games 2026 banner'
-                ]
-            ]"/>
-        </section>
-
-        <h1 class="text-2xl md:text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-2 md:gap-4">
-            <div class="hidden sm:flex gap-2">
-                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
-                <div class="w-2 h-2 rounded-full bg-orange-500"></div>
-                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
-            </div>
             Game Releases
             <div class="hidden sm:flex gap-2">
                 <div class="w-2 h-2 rounded-full bg-orange-400"></div>
@@ -132,5 +101,51 @@
                 emptyMessage="No games releasing this week."
             />
         </section>
+
+        <h1 class="text-2xl md:text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-2 md:gap-4">
+            <div class="hidden sm:flex gap-2">
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+            </div>
+            Seasoned lists
+            <div class="hidden sm:flex gap-2">
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+            </div>
+        </h1>
+
+        <!-- Seasonal Events Section -->
+        <section class="mb-12">
+            <x-seasonal-banners :banners="[
+                [
+                    'image' => '/images/best_of_2025.png',
+                    'link' => route('lists.show', ['seasoned', 'best-games-of-2025']),
+                    'alt' => 'best games of 2025 banner'
+                ],
+                [
+                    'image' => '/images/most_wanted_2026.png',
+                    'link' => route('lists.show', ['seasoned', 'most-wanted-2026']),
+                    'alt' => 'Most Wanted Games 2026 banner'
+                ]
+            ]"/>
+        </section>
+
+        <h1 class="text-2xl md:text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-2 md:gap-4">
+            <div class="hidden sm:flex gap-2">
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+            </div>
+            Latest Added Games
+            <div class="hidden sm:flex gap-2">
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+            </div>
+        </h1>
+
+        <x-latest-added-games :games="$latestAddedGames" :platformEnums="$platformEnums" />
     </div>
 @endsection
