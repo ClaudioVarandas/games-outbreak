@@ -42,7 +42,7 @@ Schedule::command('igdb:sync-sources')
     ->onOneServer();
 
 // SteamSpy data sync for games with Steam links - Daily at 5 AM
-Schedule::command('steamspycla:sync --limit=100 --threshold=50')
+Schedule::command('steamspy:sync --limit=100 --threshold=50')
     ->dailyAt('5:00')
     ->name('steamspy-sync')
     ->withoutOverlapping()

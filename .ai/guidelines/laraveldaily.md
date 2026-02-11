@@ -31,6 +31,18 @@
 - Controllers: Single-method Controllers should use `__invoke()`; multi-method RESTful controllers should use `Route::resource()->only([])`
 - Don't create Controllers with just one method which just returns `view()`. Instead, use `Route::view()` with Blade file directly.
 
+### When writing views
+
+- Don't put any logic in Blade files other than **presentation logic**
+- Use class-based components for views that contains complex **presentation logic**
+- It's mandatory to write tests for class-based components
+- Don't use properties to set classes on components
+- Don't use inline styles in Blade files
+- Instead, use `$attributes->class('')` to apply classes.
+- When classes have to be applied conditionally, use an array of classes:
+  ```blade
+    $attributes->class(['class1' => $condition1, 'class2' => $condition2])
+  ```
 ---
 
 ## Testing instructions
