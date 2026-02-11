@@ -146,7 +146,6 @@ it('prevents duplicate game in system list', function () {
 
 it('returns system lists for admin user in component data', function () {
     $admin = User::factory()->create(['is_admin' => true]);
-    $admin->ensureSpecialLists();
 
     GameList::factory()->yearly()->system()->create([
         'slug' => 'january-2026',

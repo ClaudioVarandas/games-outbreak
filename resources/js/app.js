@@ -2,6 +2,7 @@ import './bootstrap';
 import {createApp, defineAsyncComponent, h} from 'vue';
 import GlobalSearch from './components/GlobalSearch.vue';
 import AddGameToList from './components/AddGameToList.vue';
+import UserGameSearch from './components/UserGameSearch.vue';
 import './components/AuthModals.js';
 import 'tom-select/dist/css/tom-select.css';
 
@@ -58,6 +59,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         availablePlatforms: platforms,
                         showGenreSelection: showGenreSelection,
                         availableGenres: availableGenres
+                    });
+                }
+            }).mount(element);
+        }
+    });
+
+    // Mount user game search components
+    document.querySelectorAll('[data-vue-component="user-game-search"]').forEach(element => {
+        const routeUrl = element.getAttribute('data-route');
+        const defaultStatus = element.getAttribute('data-status') || 'backlog';
+        const csrfToken = element.getAttribute('data-csrf');
+
+        if (routeUrl) {
+            createApp({
+                render() {
+                    return h(UserGameSearch, {
+                        routeUrl,
+                        defaultStatus,
+                        csrfToken
                     });
                 }
             }).mount(element);

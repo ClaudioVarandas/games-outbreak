@@ -101,7 +101,7 @@ class SmokeTest extends TestCase
         $user = User::factory()->create(['username' => 'testuser']);
         $game = Game::factory()->create();
 
-        $backlogList = $user->getOrCreateBacklogList();
+        $backlogList = GameList::factory()->backlog()->create(['user_id' => $user->id]);
         $response = $this->actingAs($user)
             ->withHeaders([
                 'X-Requested-With' => 'XMLHttpRequest',
@@ -121,7 +121,7 @@ class SmokeTest extends TestCase
         $user = User::factory()->create(['username' => 'testuser']);
         $game = Game::factory()->create();
 
-        $wishlistList = $user->getOrCreateWishlistList();
+        $wishlistList = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
         $response = $this->actingAs($user)
             ->withHeaders([
                 'X-Requested-With' => 'XMLHttpRequest',

@@ -102,6 +102,11 @@ class Game extends Model
             ->withTimestamps();
     }
 
+    public function userGames(): HasMany
+    {
+        return $this->hasMany(UserGame::class);
+    }
+
     public function companies(): BelongsToMany
     {
         return $this->belongsToMany(Company::class, 'company_game')

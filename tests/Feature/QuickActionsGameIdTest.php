@@ -42,7 +42,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_adding_specific_game_to_backlog_adds_correct_game(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         // Create multiple games to simulate homepage with many games
         $game1 = Game::factory()->create(['name' => 'Game 1']);
@@ -69,7 +69,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_adding_multiple_games_to_backlog_in_sequence_adds_correct_games(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         // Create 5 games
         $games = Game::factory()->count(5)->create();
@@ -107,7 +107,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_removing_specific_game_from_backlog_removes_correct_game(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         // Create and add multiple games
         $game1 = Game::factory()->create(['name' => 'Game 1']);
@@ -142,7 +142,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_adding_specific_game_to_wishlist_adds_correct_game(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $wishlist = $user->getOrCreateWishlistList();
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         // Create multiple games (simulating the bug scenario)
         $game1 = Game::factory()->create(['name' => 'Game A']); // Target game to add
@@ -168,7 +168,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_adding_multiple_games_to_wishlist_in_sequence_adds_correct_games(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $wishlist = $user->getOrCreateWishlistList();
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         // Create 10 games to simulate a page with many games
         $games = Game::factory()->count(10)->create();
@@ -202,7 +202,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_removing_specific_game_from_wishlist_removes_correct_game(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $wishlist = $user->getOrCreateWishlistList();
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         // Create and add multiple games
         $game1 = Game::factory()->create();
@@ -267,7 +267,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_cannot_add_game_with_invalid_uuid(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $wishlist = $user->getOrCreateWishlistList();
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         // Try to add with invalid UUID
         $response = $this->actingAs($user)->postJson(
@@ -284,7 +284,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_cannot_add_game_with_nonexistent_uuid(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $wishlist = $user->getOrCreateWishlistList();
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         // Try to add with valid UUID format but game doesn't exist
         $response = $this->actingAs($user)->postJson(
@@ -305,7 +305,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_game_id_fallback_finds_game_by_database_id(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         $game = Game::factory()->create(['igdb_id' => 999999]);
 
@@ -324,7 +324,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_game_id_fallback_finds_game_by_igdb_id(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         // Create a game with specific IGDB ID
         $game = Game::factory()->create(['igdb_id' => 12345]);
@@ -344,7 +344,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_game_id_prioritizes_igdb_id_over_database_id(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         // Create game1 first (it will get database ID 1)
         $game1 = Game::factory()->create(['igdb_id' => 99999]);
@@ -374,7 +374,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_adding_same_game_twice_to_backlog_only_adds_once(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         $game = Game::factory()->create();
 
@@ -404,8 +404,8 @@ class QuickActionsGameIdTest extends TestCase
     public function test_adding_game_to_backlog_does_not_add_to_wishlist(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
-        $wishlist = $user->getOrCreateWishlistList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         $game = Game::factory()->create();
 
@@ -425,8 +425,8 @@ class QuickActionsGameIdTest extends TestCase
     public function test_adding_game_to_wishlist_does_not_add_to_backlog(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
-        $wishlist = $user->getOrCreateWishlistList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         $game = Game::factory()->create();
 
@@ -446,8 +446,8 @@ class QuickActionsGameIdTest extends TestCase
     public function test_adding_different_games_to_different_lists_maintains_correct_associations(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
-        $wishlist = $user->getOrCreateWishlistList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         $gameForBacklog = Game::factory()->create(['name' => 'Backlog Game']);
         $gameForWishlist = Game::factory()->create(['name' => 'Wishlist Game']);
@@ -481,7 +481,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_uuid_prevents_id_collision_with_igdb_id(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $wishlist = $user->getOrCreateWishlistList();
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         // Create a game where database ID could potentially match another game's IGDB ID
         $game1 = Game::factory()->create(['name' => 'Target Game', 'igdb_id' => 999999]);
@@ -508,7 +508,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_uuid_always_adds_correct_game_even_with_matching_ids(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         // Create games where database IDs and IGDB IDs might overlap
         // This simulates a real scenario where game IDs can match IGDB IDs
@@ -542,7 +542,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_multiple_games_with_id_collisions_are_handled_correctly(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $wishlist = $user->getOrCreateWishlistList();
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         // Create first batch of games
         $game1 = Game::factory()->create(['name' => 'First Game', 'igdb_id' => 50000]);
@@ -583,7 +583,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_game_detail_page_adds_correct_game_to_backlog(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         // Simulate multiple games existing (like in a real database)
         $otherGame = Game::factory()->create(['name' => 'Other Game', 'igdb_id' => 11111]);
@@ -672,7 +672,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_request_requires_either_game_uuid_or_game_id(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $user->getOrCreateBacklogList();
+        GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         // Request with neither game_uuid nor game_id
         $response = $this->actingAs($user)->postJson(
@@ -686,7 +686,7 @@ class QuickActionsGameIdTest extends TestCase
     public function test_game_uuid_takes_priority_over_game_id(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         $game1 = Game::factory()->create(['name' => 'Game via UUID']);
         $game2 = Game::factory()->create(['name' => 'Game via ID', 'igdb_id' => 77777]);

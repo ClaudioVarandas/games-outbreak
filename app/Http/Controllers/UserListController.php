@@ -35,7 +35,6 @@ class UserListController extends Controller
      */
     public function backlog(User $user): View
     {
-        $user->ensureSpecialLists();
         $list = $user->gameLists()
             ->backlog()
             ->with(['games' => function ($query) {
@@ -54,7 +53,6 @@ class UserListController extends Controller
      */
     public function wishlist(User $user): View
     {
-        $user->ensureSpecialLists();
         $list = $user->gameLists()
             ->wishlist()
             ->with(['games' => function ($query) {

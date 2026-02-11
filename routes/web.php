@@ -3,12 +3,14 @@
 use App\Http\Controllers\AdminGenreController;
 use App\Http\Controllers\AdminListController;
 use App\Http\Controllers\AdminNewsController;
+use App\Http\Controllers\Api\UserGameController as ApiUserGameController;
 use App\Http\Controllers\GameListController;
 use App\Http\Controllers\GamesController;
 use App\Http\Controllers\HomepageController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReleasesController;
+use App\Http\Controllers\UserGameController;
 use App\Http\Controllers\UserListController;
 use App\Http\Middleware\EnsureAdminUser;
 use App\Http\Middleware\EnsureNewsFeatureEnabled;
@@ -65,7 +67,45 @@ Route::middleware([EnsureNewsFeatureEnabled::class])
 Route::get('/list/{type}/{slug}', [GameListController::class, 'showBySlug'])->name('lists.show');
 
 // ============================================================================
-// NEW: User Profile Routes (/u/{username})
+// User Game Collection API (AJAX from game cards/popovers)
+// ============================================================================
+
+Route::middleware(['auth', 'prevent-caching'])
+    ->prefix('api/user-games')
+    ->name('api.user-games.')
+    ->group(function () {
+        Route::post('/', [ApiUserGameController::class, 'store'])->name('store');
+        Route::patch('/{userGame}', [ApiUserGameController::class, 'update'])->name('update');
+        Route::delete('/{userGame}', [ApiUserGameController::class, 'destroy'])->name('destroy');
+        Route::get('/status/{game:id}', [ApiUserGameController::class, 'status'])->name('status');
+    });
+
+// ============================================================================
+// My Games Collection Routes (/u/{username}/games)
+// ============================================================================
+
+// Owner-only routes
+Route::middleware(['auth', 'user.ownership', 'prevent-caching'])
+    ->prefix('u/{user:username}/games')
+    ->name('user.games.')
+    ->group(function () {
+        Route::get('/settings', [UserGameController::class, 'settings'])->name('settings');
+        Route::patch('/settings', [UserGameController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/', [UserGameController::class, 'store'])->name('store');
+        Route::patch('/reorder', [UserGameController::class, 'reorder'])->name('reorder');
+        Route::patch('/{userGame}', [UserGameController::class, 'update'])->name('update');
+        Route::delete('/{userGame}', [UserGameController::class, 'destroy'])->name('destroy');
+    });
+
+// Public viewing route
+Route::middleware(['prevent-caching'])
+    ->prefix('u/{user:username}')
+    ->group(function () {
+        Route::get('/games', [UserGameController::class, 'index'])->name('user.games');
+    });
+
+// ============================================================================
+// Legacy User List Routes (/u/{username})
 // ============================================================================
 
 // Dual-mode routes (public viewing, management for owner/admin)

@@ -57,6 +57,23 @@ class User extends Authenticatable
         return $this->hasMany(GameList::class);
     }
 
+    public function userGames(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(UserGame::class);
+    }
+
+    public function gameCollection(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserGameCollection::class);
+    }
+
+    public function getOrCreateGameCollection(): UserGameCollection
+    {
+        return $this->gameCollection ?? $this->gameCollection()->create([
+            'name' => $this->username."'s Games",
+        ]);
+    }
+
     public function isAdmin(): bool
     {
         return $this->is_admin ?? false;
@@ -65,47 +82,5 @@ class User extends Authenticatable
     public function canCreateSystemLists(): bool
     {
         return $this->isAdmin();
-    }
-
-    public function getOrCreateBacklogList(): GameList
-    {
-        return $this->gameLists()
-            ->firstOrCreate(
-                [
-                    'user_id' => $this->id,
-                    'list_type' => \App\Enums\ListTypeEnum::BACKLOG->value,
-                ],
-                [
-                    'name' => 'Backlog',
-                    'description' => 'Games I plan to play',
-                    'slug' => 'backlog-user-' . $this->id,
-                    'is_public' => false,
-                    'is_system' => false,
-                ]
-            );
-    }
-
-    public function getOrCreateWishlistList(): GameList
-    {
-        return $this->gameLists()
-            ->firstOrCreate(
-                [
-                    'user_id' => $this->id,
-                    'list_type' => \App\Enums\ListTypeEnum::WISHLIST->value,
-                ],
-                [
-                    'name' => 'Wishlist',
-                    'description' => 'Games I want to buy',
-                    'slug' => 'wishlist-user-' . $this->id,
-                    'is_public' => false,
-                    'is_system' => false,
-                ]
-            );
-    }
-
-    public function ensureSpecialLists(): void
-    {
-        $this->getOrCreateBacklogList();
-        $this->getOrCreateWishlistList();
     }
 }

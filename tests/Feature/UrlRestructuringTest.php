@@ -94,8 +94,8 @@ class UrlRestructuringTest extends TestCase
     public function test_user_lists_overview_accessible_at_u_username_lists_as_owner(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
-        $wishlist = $user->getOrCreateWishlistList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
         $customList = GameList::factory()->create([
             'user_id' => $user->id,
             'list_type' => ListTypeEnum::REGULAR,
@@ -396,7 +396,7 @@ class UrlRestructuringTest extends TestCase
     public function test_backlog_still_accessible_at_u_username_backlog(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $backlog = $user->getOrCreateBacklogList();
+        $backlog = GameList::factory()->backlog()->create(['user_id' => $user->id]);
 
         $response = $this->actingAs($user)->get('/u/testuser/backlog');
 
@@ -407,7 +407,7 @@ class UrlRestructuringTest extends TestCase
     public function test_wishlist_still_accessible_at_u_username_wishlist(): void
     {
         $user = User::factory()->create(['username' => 'testuser']);
-        $wishlist = $user->getOrCreateWishlistList();
+        $wishlist = GameList::factory()->wishlist()->create(['user_id' => $user->id]);
 
         $response = $this->actingAs($user)->get('/u/testuser/wishlist');
 

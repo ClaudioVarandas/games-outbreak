@@ -14,6 +14,8 @@ Alpine.plugin(collapse);
 
 // Import Alpine components BEFORE Alpine.start()
 import './components/list-filter.js';
+import './components/game-collection-actions.js';
+import './components/user-game-edit-modal.js';
 
 Alpine.start();
 

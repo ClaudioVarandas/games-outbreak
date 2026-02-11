@@ -14,7 +14,7 @@
 @endpush
 
 @section('content')
-    <div class="min-h-screen bg-gray-900 text-white">
+    <div class="min-h-screen bg-gray-900 text-white pb-20 md:pb-0">
         <!-- Hero with Trailer or Header -->
         <div class="relative h-96 overflow-hidden">
             @if($game->steam_data['header_image'] ?? null)
@@ -238,6 +238,14 @@
 
                 <!-- Sidebar -->
                 <div class="space-y-8">
+                    <!-- Collection Actions (Desktop) -->
+                    <div class="hidden md:block">
+                        <x-game-detail-collection :game="$game" />
+                    </div>
+
+                    <!-- System Lists (Admin Only) -->
+                    <x-add-to-list :game="$game" />
+
                     <!-- Release Dates -->
                     <div class="bg-gray-800 p-6 rounded-xl">
                         <h3 class="text-xl font-bold mb-4">Release Dates</h3>
@@ -465,8 +473,6 @@
                         </div>
                     </div>
 
-                    <!-- Add to List -->
-                    <x-add-to-list :game="$game" />
                 </div>
             </div>
 
@@ -486,6 +492,9 @@
                 </div>
             </div>
         </div>
+
+        <!-- Mobile Sticky Collection Bar -->
+        <x-game-detail-collection-mobile :game="$game" />
         @endsection
 
         @push('scripts')

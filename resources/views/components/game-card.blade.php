@@ -10,8 +10,6 @@
     'removeRoute' => null,
     'wantedScore' => null,
     'platformEnums' => null,
-    'backlogList' => null,
-    'wishlistList' => null,
     'carousel' => false, // Whether this card is used in a carousel context
     'displayReleaseDate' => null, // Optional: overrides game->first_release_date
     'displayPlatforms' => null, // Optional: JSON array of platform IDs to display (from pivot)
@@ -21,14 +19,6 @@
 
 @php
     $platformEnums = $platformEnums ?? \App\Enums\PlatformEnum::getActivePlatforms();
-
-    // Get backlog and wishlist lists if not provided
-    if (!$backlogList && auth()->check()) {
-        $backlogList = auth()->user()->gameLists()->backlog()->with('games')->first();
-    }
-    if (!$wishlistList && auth()->check()) {
-        $wishlistList = auth()->user()->gameLists()->wishlist()->with('games')->first();
-    }
 
     // Determine which release date to display
     $releaseDate = $displayReleaseDate ?? $game->first_release_date;
@@ -177,11 +167,7 @@
 
     {{-- Quick Actions --}}
     <div class="flex-shrink-0">
-        <x-game-quick-actions
-            :game="$game"
-            :backlogList="$backlogList"
-            :wishlistList="$wishlistList"
-            compact="true" />
+        <x-game-collection-actions-mobile :game="$game" />
     </div>
 </div>
 @else
@@ -227,12 +213,9 @@
                 </div>
             @endif
 
-            <!-- Quick Actions (Desktop Only) -->
+            <!-- Collection Actions (Desktop Only) -->
             <div class="hidden md:block">
-                <x-game-quick-actions
-                    :game="$game"
-                    :backlogList="$backlogList"
-                    :wishlistList="$wishlistList" />
+                <x-game-collection-actions :game="$game" />
             </div>
 
             <!-- Remove Button (Lists Show) -->
@@ -280,11 +263,8 @@
                         </p>
                     </div>
 
-                    <!-- Mobile Quick Actions -->
-                    <x-game-quick-actions-mobile
-                        :game="$game"
-                        :backlogList="$backlogList"
-                        :wishlistList="$wishlistList" />
+                    <!-- Mobile Collection Actions -->
+                    <x-game-collection-actions-mobile :game="$game" />
                 </div>
             @endif
 
@@ -315,11 +295,8 @@
                         </p>
                     </div>
 
-                    <!-- Mobile Quick Actions -->
-                    <x-game-quick-actions-mobile
-                        :game="$game"
-                        :backlogList="$backlogList"
-                        :wishlistList="$wishlistList" />
+                    <!-- Mobile Collection Actions -->
+                    <x-game-collection-actions-mobile :game="$game" />
                 </div>
             @endif
         </div>
@@ -351,11 +328,8 @@
                     </p>
                 </div>
 
-                <!-- Mobile Quick Actions -->
-                <x-game-quick-actions-mobile
-                    :game="$game"
-                    :backlogList="$backlogList"
-                    :wishlistList="$wishlistList" />
+                <!-- Mobile Collection Actions -->
+                <x-game-collection-actions-mobile :game="$game" />
             </div>
         @endif
     </div>

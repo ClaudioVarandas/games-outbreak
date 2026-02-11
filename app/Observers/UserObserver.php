@@ -6,11 +6,5 @@ use App\Models\User;
 
 class UserObserver
 {
-    /**
-     * Handle the User "created" event.
-     */
-    public function created(User $user): void
-    {
-        $user->ensureSpecialLists();
-    }
+    // Collection is created lazily when user first adds a game
 }
