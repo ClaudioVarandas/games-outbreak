@@ -257,4 +257,7 @@ Route::middleware(['auth', 'prevent-caching'])
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
+
+Route::get('/health', static fn() => response()->json(['status' => 'ok']));
+
 require __DIR__.'/auth.php';
