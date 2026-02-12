@@ -10,8 +10,8 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "binarybuilds/laritor-client": "^2.5",
         "laravel/framework": "^12.0",
+        "laravel/nightwatch": "^1.22",
         "laravel/tinker": "^2.10.1",
         "marcreichel/igdb-laravel": "^5.3"
     },
