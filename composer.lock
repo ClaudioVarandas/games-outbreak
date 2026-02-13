@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9e5457c45607e10167a80cb64e7b0904",
+    "content-hash": "029afdb4367637ff22beb31a3bee6c74",
     "packages": [
         {
             "name": "brick/math",
@@ -3254,6 +3254,82 @@
                 "source": "https://github.com/bobthecow/psysh/tree/v0.12.20"
             },
             "time": "2026-02-11T15:05:28+00:00"
+        },
+        {
+            "name": "queuewatch/laravel",
+            "version": "v1.1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/queuewatch/laravel.git",
+                "reference": "11adc75569a6c99eecb07057a5cb6ab747e6110a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/queuewatch/laravel/zipball/11adc75569a6c99eecb07057a5cb6ab747e6110a",
+                "reference": "11adc75569a6c99eecb07057a5cb6ab747e6110a",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.0",
+                "illuminate/console": "^10.0|^11.0|^12.0",
+                "illuminate/http": "^10.0|^11.0|^12.0",
+                "illuminate/queue": "^10.0|^11.0|^12.0",
+                "illuminate/support": "^10.0|^11.0|^12.0",
+                "php": "^8.1|^8.2|^8.3|^8.4"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.14",
+                "nunomaduro/collision": "^7.9|^8.0",
+                "orchestra/testbench": "^8.0|^9.0|^10.0",
+                "pestphp/pest": "^2.20|^3.0|^4.0",
+                "pestphp/pest-plugin-arch": "^2.0|^3.0|^4.0",
+                "pestphp/pest-plugin-laravel": "^2.0|^3.0|^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Mvpopuk\\LaravelEnhancedFailedJobs\\LaravelEnhancedFailedJobsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Mvpopuk\\LaravelEnhancedFailedJobs\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Marian Pop",
+                    "email": "mvpopuk@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Enhanced queue:failed command with JSON output and advanced filtering",
+            "homepage": "https://github.com/mvpopuk/laravel-enhanced-failed-jobs",
+            "keywords": [
+                "cli",
+                "failed-jobs",
+                "json",
+                "laravel",
+                "mvpopuk",
+                "queue"
+            ],
+            "support": {
+                "issues": "https://github.com/queuewatch/laravel/issues",
+                "source": "https://github.com/queuewatch/laravel/tree/v1.1.1"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/mvpopuk",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-11-30T19:25:31+00:00"
         },
         {
             "name": "ralouphie/getallheaders",

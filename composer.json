@@ -13,7 +13,8 @@
         "laravel/framework": "^12.0",
         "laravel/nightwatch": "^1.22",
         "laravel/tinker": "^2.10.1",
-        "marcreichel/igdb-laravel": "^5.3"
+        "marcreichel/igdb-laravel": "^5.3",
+        "queuewatch/laravel": "^1.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
