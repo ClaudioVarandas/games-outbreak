@@ -175,7 +175,11 @@ class AdminListController extends Controller
 
         $viewMode = session('game_view_mode', 'grid');
 
-        return view('admin.system-lists.edit', compact('list', 'viewMode', 'sortBy'));
+        $gamesByMonth = ($sortBy === 'release_date' && $list->isYearly())
+            ? $list->groupGamesByMonth()
+            : null;
+
+        return view('admin.system-lists.edit', compact('list', 'viewMode', 'sortBy', 'gamesByMonth'));
     }
 
     public function updateSystemList(UpdateGameListRequest $request, string $type, string $slug): RedirectResponse

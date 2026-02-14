@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ListTypeEnum;
 use App\Enums\PlatformEnum;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -480,6 +481,68 @@ class GameList extends Model
             'modes' => collect($modes)->sortByDesc('count')->values()->toArray(),
             'perspectives' => collect($perspectives)->sortByDesc('count')->values()->toArray(),
         ];
+    }
+
+    public function groupGamesByMonth(?int $filterMonth = null): array
+    {
+        $gamesByMonth = [];
+
+        foreach ($this->games as $game) {
+            if ($game->pivot->is_tba) {
+                if ($filterMonth !== null) {
+                    continue;
+                }
+                $monthKey = 'tba';
+                $monthLabel = 'To Be Announced';
+                $monthNumber = null;
+            } else {
+                $releaseDate = $game->pivot->release_date ?? $game->first_release_date;
+                if ($releaseDate && is_string($releaseDate)) {
+                    $releaseDate = Carbon::parse($releaseDate);
+                }
+
+                if (! $releaseDate) {
+                    if ($filterMonth !== null) {
+                        continue;
+                    }
+                    $monthKey = 'tba';
+                    $monthLabel = 'To Be Announced';
+                    $monthNumber = null;
+                } else {
+                    $monthNumber = (int) $releaseDate->month;
+
+                    if ($filterMonth !== null && $monthNumber !== $filterMonth) {
+                        continue;
+                    }
+
+                    $monthKey = $releaseDate->format('Y-m');
+                    $monthLabel = $releaseDate->format('F Y');
+                }
+            }
+
+            if (! isset($gamesByMonth[$monthKey])) {
+                $gamesByMonth[$monthKey] = [
+                    'label' => $monthLabel,
+                    'month_number' => $monthNumber ?? null,
+                    'games' => [],
+                ];
+            }
+
+            $gamesByMonth[$monthKey]['games'][] = $game;
+        }
+
+        uksort($gamesByMonth, function ($a, $b) {
+            if ($a === 'tba') {
+                return -1;
+            }
+            if ($b === 'tba') {
+                return 1;
+            }
+
+            return $a <=> $b;
+        });
+
+        return $gamesByMonth;
     }
 
     /**

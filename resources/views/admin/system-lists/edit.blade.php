@@ -12,10 +12,18 @@
         </div>
 
         {{-- List Settings Header --}}
-        <div class="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <h2 class="text-xl font-bold mb-6 text-gray-900 dark:text-white">List Settings</h2>
+        <div class="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden" x-data="{ settingsOpen: false }">
+            <button @click="settingsOpen = !settingsOpen"
+                    class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-750 transition">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">List Settings</h2>
+                <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200"
+                     :class="{ 'rotate-90': settingsOpen }"
+                     fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+            </button>
 
-            <form action="{{ route('admin.system-lists.update', [$list->list_type->toSlug(), $list->slug]) }}" method="POST">
+            <form x-show="settingsOpen" x-collapse action="{{ route('admin.system-lists.update', [$list->list_type->toSlug(), $list->slug]) }}" method="POST" class="px-6 pb-6">
                 @csrf
                 @method('PATCH')
 
@@ -267,12 +275,23 @@
 
             <!-- Games in List -->
             <div class="mt-6">
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
                     <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                         Games ({{ $list->games->count() }})
                     </h2>
 
-                    <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-6 flex-wrap">
+                        {{-- Filter --}}
+                        <div class="relative">
+                            <input type="text"
+                                   id="game-filter"
+                                   placeholder="Filter games..."
+                                   oninput="filterGames(this.value)"
+                                   class="w-64 pl-3 pr-9 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            <svg class="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
                         {{-- Sort Toggle --}}
                         <div class="flex items-center gap-2">
                             <span class="text-sm text-gray-600 dark:text-gray-400">Sort:</span>
@@ -302,11 +321,85 @@
                                 List
                             </button>
                         </div>
+
+                        @if(!empty($gamesByMonth))
+                            {{-- Expand / Collapse All --}}
+                            <div class="flex items-center gap-2">
+                                <button onclick="window.dispatchEvent(new CustomEvent('sections-expand'))"
+                                        class="px-3 py-1.5 text-sm rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                                    Expand All
+                                </button>
+                                <button onclick="window.dispatchEvent(new CustomEvent('sections-collapse'))"
+                                        class="px-3 py-1.5 text-sm rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                                    Collapse All
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
                 @if($list->games->count() > 0)
-                    <x-admin.system-lists.game-grid :games="$list->games" :list="$list" :viewMode="$viewMode" />
+                    @if(!empty($gamesByMonth))
+                        {{-- Sectioned view: Vue mount point + shared data rendered once --}}
+                        @php
+                            $activePlatforms = \App\Enums\PlatformEnum::getActivePlatforms()->map(fn($enum) => ['id' => $enum->value, 'label' => $enum->label(), 'color' => $enum->color()])->values();
+                            $systemGenres = \App\Models\Genre::visible()->where('is_pending_review', false)->ordered()->get(['id', 'name', 'slug']);
+                        @endphp
+                        <div id="game-edit-modals"
+                             data-list-type="{{ $list->list_type->toSlug() }}"
+                             data-list-slug="{{ $list->slug }}"
+                             data-list-name="{{ $list->name }}"
+                             data-toggle-highlight-url="{{ route('admin.system-lists.games.toggle-highlight', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
+                             data-toggle-indie-url="{{ route('admin.system-lists.games.toggle-indie', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
+                             data-get-genres-url="{{ route('admin.system-lists.games.genres', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
+                             data-update-pivot-url="{{ route('admin.system-lists.games.update-pivot', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
+                             data-csrf-token="{{ csrf_token() }}"
+                             data-platforms="{{ $activePlatforms->toJson() }}"
+                             data-system-genres="{{ $systemGenres->toJson() }}">
+                        </div>
+
+                        <div class="space-y-4">
+                            @foreach($gamesByMonth as $monthKey => $section)
+                                <div x-data="{ open: true }"
+                                     @sections-expand.window="open = true"
+                                     @sections-collapse.window="open = false"
+                                     data-section-wrapper
+                                     class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                                    {{-- Section Header --}}
+                                    <button @click="open = !open"
+                                            class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-750 transition">
+                                        <div class="flex items-center gap-3">
+                                            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200"
+                                                 :class="{ 'rotate-90': open }"
+                                                 fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                                                {{ $section['label'] }}
+                                            </h3>
+                                            <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                                {{ count($section['games']) }}
+                                            </span>
+                                        </div>
+                                    </button>
+
+                                    {{-- Section Content --}}
+                                    <div x-show="open" x-collapse>
+                                        <div class="px-6 pb-6">
+                                            <x-admin.system-lists.game-grid
+                                                :games="collect($section['games'])"
+                                                :list="$list"
+                                                :viewMode="$viewMode"
+                                                :sectionKey="$monthKey"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <x-admin.system-lists.game-grid :games="$list->games" :list="$list" :viewMode="$viewMode" />
+                    @endif
                 @else
                     <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
                         <p class="text-lg text-gray-600 dark:text-gray-400">
@@ -322,6 +415,22 @@
     </div>
 
     <script>
+        function filterGames(query) {
+            const term = query.toLowerCase().trim();
+            const cards = document.querySelectorAll('.game-card');
+
+            cards.forEach(card => {
+                const name = card.dataset.gameName || '';
+                card.style.display = (!term || name.includes(term)) ? '' : 'none';
+            });
+
+            // Hide sections that have no visible cards
+            document.querySelectorAll('[data-section-wrapper]').forEach(section => {
+                const visibleCards = section.querySelectorAll('.game-card:not([style*="display: none"])');
+                section.style.display = visibleCards.length > 0 ? '' : 'none';
+            });
+        }
+
         function toggleViewMode(mode) {
             fetch('{{ route('user.lists.toggle-view') }}', {
                 method: 'POST',

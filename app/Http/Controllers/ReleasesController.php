@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\PlatformEnum;
 use App\Models\GameList;
 use App\Models\Genre;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -47,7 +46,7 @@ class ReleasesController extends Controller
         $nextYear = $availableYears->filter(fn ($y) => $y > $year)->sort()->first();
 
         // Group games by month
-        $gamesByMonth = $this->groupGamesByMonth($yearlyList, $month);
+        $gamesByMonth = $yearlyList ? $yearlyList->groupGamesByMonth($month) : [];
 
         // Get genres for filter
         $genres = Genre::visible()
@@ -76,74 +75,5 @@ class ReleasesController extends Controller
             'platformEnums',
             'allGamesJson'
         ));
-    }
-
-    private function groupGamesByMonth(?GameList $list, ?int $filterMonth = null): array
-    {
-        if (! $list) {
-            return [];
-        }
-
-        $gamesByMonth = [];
-
-        foreach ($list->games as $game) {
-            if ($game->pivot->is_tba) {
-                // Skip TBA games when viewing a single month
-                if ($filterMonth !== null) {
-                    continue;
-                }
-                $monthKey = 'tba';
-                $monthLabel = 'To Be Announced';
-                $monthNumber = null;
-            } else {
-                $releaseDate = $game->pivot->release_date ?? $game->first_release_date;
-                if ($releaseDate && is_string($releaseDate)) {
-                    $releaseDate = Carbon::parse($releaseDate);
-                }
-
-                if (! $releaseDate) {
-                    if ($filterMonth !== null) {
-                        continue;
-                    }
-                    $monthKey = 'tba';
-                    $monthLabel = 'To Be Announced';
-                    $monthNumber = null;
-                } else {
-                    $monthNumber = (int) $releaseDate->month;
-
-                    // Filter by month if specified
-                    if ($filterMonth !== null && $monthNumber !== $filterMonth) {
-                        continue;
-                    }
-
-                    $monthKey = $releaseDate->format('Y-m');
-                    $monthLabel = $releaseDate->format('F Y');
-                }
-            }
-
-            if (! isset($gamesByMonth[$monthKey])) {
-                $gamesByMonth[$monthKey] = [
-                    'label' => $monthLabel,
-                    'month_number' => $monthNumber ?? null,
-                    'games' => [],
-                ];
-            }
-
-            $gamesByMonth[$monthKey]['games'][] = $game;
-        }
-
-        // Sort: TBA first, then chronological
-        uksort($gamesByMonth, function ($a, $b) {
-            if ($a === 'tba') {
-                return -1;
-            }
-            if ($b === 'tba') {
-                return 1;
-            }
-
-            return $a <=> $b;
-        });
-
-        return $gamesByMonth;
     }
 }
