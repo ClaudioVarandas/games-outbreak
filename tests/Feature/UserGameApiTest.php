@@ -249,3 +249,35 @@ it('requires authentication for status check', function () {
 
     $response->assertUnauthorized();
 });
+
+// ============================================================================
+// PATCH /api/user-games/{userGame} — save all fields at once
+// ============================================================================
+
+it('saves all fields in a single patch request', function () {
+    $user = User::factory()->create();
+    $userGame = UserGame::factory()->playing()->create([
+        'user_id' => $user->id,
+        'is_wishlisted' => false,
+        'time_played' => null,
+        'rating' => null,
+    ]);
+
+    $response = $this->actingAs($user)->patchJson("/api/user-games/{$userGame->id}", [
+        'status' => 'played',
+        'is_wishlisted' => true,
+        'time_played' => 42.5,
+        'rating' => 85,
+    ]);
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('user_game.status', 'played');
+    $response->assertJsonPath('user_game.is_wishlisted', true);
+    $response->assertJsonPath('user_game.rating', 85);
+
+    $userGame->refresh();
+    expect($userGame->status)->toBe(UserGameStatusEnum::Played);
+    expect($userGame->is_wishlisted)->toBeTrue();
+    expect((float) $userGame->time_played)->toBe(42.5);
+    expect($userGame->rating)->toBe(85);
+});

@@ -190,3 +190,103 @@ it('lazy creates game collection via user helper', function () {
     expect($collection->user_id)->toBe($user->id);
     expect($collection->name)->toBe($user->username."'s Games");
 });
+
+// ============================================================================
+// Avatar & Initials
+// ============================================================================
+
+it('returns avatar url when avatar_path is set', function () {
+    $user = User::factory()->create(['avatar_path' => 'user-avatars/1/test.webp']);
+
+    expect($user->avatar_url)->toContain('storage/user-avatars/1/test.webp');
+});
+
+it('returns null avatar url when no avatar', function () {
+    $user = User::factory()->create(['avatar_path' => null]);
+
+    expect($user->avatar_url)->toBeNull();
+});
+
+it('returns correct initials from username', function () {
+    $user = User::factory()->create(['username' => 'johndoe']);
+
+    expect($user->getInitials())->toBe('JO');
+});
+
+// ============================================================================
+// Default View Mode
+// ============================================================================
+
+it('defaults to list view mode', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get("/u/{$user->username}/games");
+
+    $response->assertSuccessful();
+    $response->assertViewHas('viewMode', 'list');
+});
+
+it('defaults to all status filter', function () {
+    $user = User::factory()->create();
+
+    $playingGame = Game::factory()->create(['name' => 'Default Playing']);
+    $backlogGame = Game::factory()->create(['name' => 'Default Backlog']);
+
+    UserGame::factory()->playing()->create(['user_id' => $user->id, 'game_id' => $playingGame->id]);
+    UserGame::factory()->backlog()->create(['user_id' => $user->id, 'game_id' => $backlogGame->id]);
+
+    $response = $this->actingAs($user)->get("/u/{$user->username}/games");
+
+    $response->assertSuccessful();
+    $response->assertViewHas('statusFilter', 'all');
+    $response->assertSee('Default Playing');
+    $response->assertSee('Default Backlog');
+});
+
+// ============================================================================
+// "All" Filter
+// ============================================================================
+
+it('shows all games when status=all filter is used', function () {
+    $user = User::factory()->create();
+
+    $playingGame = Game::factory()->create(['name' => 'Playing Game All']);
+    $backlogGame = Game::factory()->create(['name' => 'Backlog Game All']);
+
+    UserGame::factory()->playing()->create([
+        'user_id' => $user->id,
+        'game_id' => $playingGame->id,
+    ]);
+    UserGame::factory()->backlog()->create([
+        'user_id' => $user->id,
+        'game_id' => $backlogGame->id,
+    ]);
+
+    $response = $this->actingAs($user)->get("/u/{$user->username}/games?status=all");
+
+    $response->assertSuccessful();
+    $response->assertSee('Playing Game All');
+    $response->assertSee('Backlog Game All');
+});
+
+// ============================================================================
+// Avatar Upload
+// ============================================================================
+
+it('uploads avatar on settings update', function () {
+    $user = User::factory()->create();
+    UserGameCollection::factory()->create(['user_id' => $user->id]);
+
+    $file = \Illuminate\Http\UploadedFile::fake()->image('avatar.jpg', 400, 400);
+
+    $response = $this->actingAs($user)->patch("/u/{$user->username}/games/settings", [
+        'name' => 'My Games',
+        'avatar' => $file,
+    ]);
+
+    $response->assertRedirect();
+
+    $user->refresh();
+    expect($user->avatar_path)->not->toBeNull();
+    expect($user->avatar_path)->toStartWith('user-avatars/');
+});

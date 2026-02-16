@@ -10,7 +10,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use Intervention\Image\Laravel\Facades\Image;
 
 class UserGameController extends Controller
 {
@@ -22,7 +21,7 @@ class UserGameController extends Controller
         // Default filter to 'playing'
         $statusFilter = $request->query('status');
         $wishlistFilter = $request->boolean('wishlist');
-        $sortBy = $request->query('sort', 'date_added');
+        $sortBy = $request->query('sort', 'time_played');
 
         // Check privacy for non-owners
         if (! $isOwner && $collection) {
@@ -38,12 +37,13 @@ class UserGameController extends Controller
 
         if ($wishlistFilter) {
             $query->wishlisted();
+        } elseif ($statusFilter === 'all') {
+            // Show all games, no status filter
         } elseif ($statusFilter && in_array($statusFilter, ['playing', 'played', 'backlog'])) {
             $query->withStatus($statusFilter);
         } else {
-            // Default: show 'playing'
-            $statusFilter = 'playing';
-            $query->playing();
+            // Default: show all games
+            $statusFilter = 'all';
         }
 
         // Apply sorting
@@ -72,7 +72,7 @@ class UserGameController extends Controller
             'total_hours' => (float) UserGame::where('user_id', $user->id)->sum('time_played'),
         ];
 
-        $viewMode = session('game_view_mode', 'grid');
+        $viewMode = session('game_view_mode', 'list');
 
         return view('user-games.index', compact(
             'user',
@@ -99,7 +99,8 @@ class UserGameController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
-            'cover_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:10240'],
+            'cover_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:10240'],
             'privacy_playing' => ['nullable'],
             'privacy_played' => ['nullable'],
             'privacy_backlog' => ['nullable'],
@@ -116,6 +117,57 @@ class UserGameController extends Controller
             'privacy_backlog' => $request->has('privacy_backlog'),
             'privacy_wishlist' => $request->has('privacy_wishlist'),
         ];
+
+        // Handle avatar upload
+        if ($request->hasFile('avatar')) {
+            $source = $request->file('avatar');
+            $avatarPath = 'user-avatars/'.$user->id.'/'.uniqid().'.png';
+            $stored = false;
+
+            try {
+                $path = $source->getRealPath();
+                $mime = $source->getMimeType();
+
+                $sourceImage = match (true) {
+                    str_contains($mime, 'jpeg') => @imagecreatefromjpeg($path),
+                    str_contains($mime, 'png') => @imagecreatefrompng($path),
+                    str_contains($mime, 'webp') => @imagecreatefromwebp($path),
+                    default => @imagecreatefromstring(file_get_contents($path)),
+                };
+
+                if ($sourceImage) {
+                    $srcW = imagesx($sourceImage);
+                    $srcH = imagesy($sourceImage);
+                    $size = min($srcW, $srcH);
+                    $srcX = (int) (($srcW - $size) / 2);
+                    $srcY = (int) (($srcH - $size) / 2);
+
+                    $resized = imagecreatetruecolor(200, 200);
+                    imagealphablending($resized, false);
+                    imagesavealpha($resized, true);
+                    imagecopyresampled($resized, $sourceImage, 0, 0, $srcX, $srcY, 200, 200, $size, $size);
+
+                    ob_start();
+                    imagepng($resized);
+                    $pngData = ob_get_clean();
+                    imagedestroy($sourceImage);
+                    imagedestroy($resized);
+
+                    $stored = Storage::disk('public')->put($avatarPath, $pngData);
+                }
+            } catch (\Throwable) {
+                // GD processing failed — fall back to storing the original
+                $stored = $source->storeAs(dirname($avatarPath), basename($avatarPath), 'public');
+            }
+
+            if ($stored) {
+                $oldPath = $user->avatar_path;
+                $user->update(['avatar_path' => $avatarPath]);
+                if ($oldPath) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+        }
 
         // Handle cover image upload
         if ($request->hasFile('cover_image')) {

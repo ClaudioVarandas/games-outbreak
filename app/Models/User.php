@@ -26,6 +26,7 @@ class User extends Authenticatable
         'email',
         'password',
         'is_admin',
+        'avatar_path',
     ];
 
     /**
@@ -72,6 +73,20 @@ class User extends Authenticatable
         return $this->gameCollection ?? $this->gameCollection()->create([
             'name' => $this->username."'s Games",
         ]);
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (! $this->avatar_path) {
+            return null;
+        }
+
+        return asset('storage/'.$this->avatar_path);
+    }
+
+    public function getInitials(): string
+    {
+        return strtoupper(substr($this->username, 0, 2));
     }
 
     public function isAdmin(): bool

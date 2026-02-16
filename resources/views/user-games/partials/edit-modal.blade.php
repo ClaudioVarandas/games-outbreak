@@ -32,25 +32,39 @@
              @click.stop>
 
             {{-- Header --}}
-            <div class="relative flex items-center gap-4 p-5 border-b border-gray-700">
-                <img :src="gameCover" :alt="gameName"
-                     class="w-16 h-20 rounded-lg object-cover flex-shrink-0 bg-gray-700"
-                     onerror="this.style.display='none'">
-                <div class="min-w-0 flex-1">
-                    <h3 class="text-lg font-bold text-white truncate" x-text="gameName"></h3>
-                    <a :href="'/game/' + gameSlug"
-                       class="text-sm text-orange-400 hover:text-orange-300 transition flex items-center gap-1 mt-1">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>
+            <div class="relative p-5 border-b border-gray-700">
+                <div class="flex items-center gap-3 pr-8">
+                    <img x-show="gameCover" :src="gameCover" :alt="gameName"
+                         class="w-14 h-[4.5rem] rounded-lg object-cover flex-shrink-0 bg-gray-700"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                    <div x-show="!gameCover" class="w-14 h-[4.5rem] rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 01-.657.643 48.491 48.491 0 01-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 01-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 00-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 01-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 00.657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 01-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 005.427-.63 48.05 48.05 0 00.582-4.717.532.532 0 00-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.96.401v0a.656.656 0 00.658-.663 48.422 48.422 0 00-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 01-.61-.58v0z"/>
                         </svg>
-                        View game page
-                    </a>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-lg font-bold text-white truncate" x-text="gameName"></h3>
+                            <a :href="'/game/' + gameSlug"
+                               class="flex-shrink-0 text-gray-400 hover:text-orange-400 transition"
+                               title="View game page">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <button @click="closeModal()" class="absolute top-3 right-3 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
+
+                {{-- Status buttons + Wishlist toggle --}}
+                <div class="flex items-center gap-2 mt-4">
+                    @include('user-games.partials.edit-status-buttons')
+                </div>
             </div>
 
             {{-- Body --}}
@@ -59,8 +73,8 @@
             </div>
 
             {{-- Footer --}}
-            <div class="p-4 border-t border-gray-700 flex items-center justify-between">
-                <div x-show="!confirmingDelete">
+            <div class="p-4 border-t border-gray-700 flex items-center justify-between gap-3">
+                <div x-show="!confirmingDelete" class="flex-shrink-0">
                     <button @click="confirmingDelete = true"
                             class="text-sm text-red-400 hover:text-red-300 transition flex items-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -83,7 +97,15 @@
                 </div>
 
                 {{-- Notification toast --}}
-                <div x-show="notification" x-transition class="text-sm" :class="notification?.isError ? 'text-red-400' : 'text-green-400'" x-text="notification?.message"></div>
+                <div x-show="notification" x-transition class="text-sm flex-1 text-center" :class="notification?.isError ? 'text-red-400' : 'text-green-400'" x-text="notification?.message"></div>
+
+                {{-- Save button --}}
+                <button @click="saveAll()"
+                        :disabled="saving"
+                        class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 flex-shrink-0">
+                    <span x-show="!saving">Save</span>
+                    <span x-show="saving">Saving...</span>
+                </button>
             </div>
         </div>
     </div>
@@ -106,27 +128,39 @@
             </div>
 
             {{-- Header --}}
-            <div class="flex items-center gap-3 px-5 pb-4 border-b border-gray-700">
-                <img :src="gameCover" :alt="gameName"
-                     class="w-12 h-16 rounded-lg object-cover flex-shrink-0 bg-gray-700"
-                     onerror="this.style.display='none'">
-                <div class="min-w-0 flex-1">
-                    <h3 class="text-base font-bold text-white truncate" x-text="gameName"></h3>
-                    <a :href="'/game/' + gameSlug"
-                       class="text-sm text-orange-400 hover:text-orange-300 transition">
-                        View game page &rarr;
-                    </a>
+            <div class="px-5 pb-4 border-b border-gray-700">
+                <div class="flex items-center gap-3">
+                    <img :src="gameCover" :alt="gameName"
+                         class="w-12 h-16 rounded-lg object-cover flex-shrink-0 bg-gray-700"
+                         onerror="this.style.display='none'">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-base font-bold text-white truncate" x-text="gameName"></h3>
+                            <a :href="'/game/' + gameSlug"
+                               class="flex-shrink-0 text-gray-400 hover:text-orange-400 transition"
+                               title="View game page">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Status buttons + Wishlist toggle --}}
+                <div class="flex items-center gap-2 mt-3">
+                    @include('user-games.partials.edit-status-buttons')
                 </div>
             </div>
 
             {{-- Body --}}
-            <div class="p-5 space-y-5 overflow-y-auto" style="max-height: calc(85vh - 180px);">
+            <div class="p-5 space-y-5 overflow-y-auto" style="max-height: calc(85vh - 240px);">
                 @include('user-games.partials.edit-fields')
             </div>
 
             {{-- Footer --}}
-            <div class="p-4 border-t border-gray-700 safe-bottom flex items-center justify-between">
-                <div x-show="!confirmingDelete">
+            <div class="p-4 border-t border-gray-700 safe-bottom flex items-center justify-between gap-3">
+                <div x-show="!confirmingDelete" class="flex-shrink-0">
                     <button @click="confirmingDelete = true"
                             class="text-sm text-red-400 hover:text-red-300 transition flex items-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -147,7 +181,15 @@
                     </button>
                 </div>
 
-                <div x-show="notification" x-transition class="text-sm" :class="notification?.isError ? 'text-red-400' : 'text-green-400'" x-text="notification?.message"></div>
+                <div x-show="notification" x-transition class="text-sm flex-1 text-center" :class="notification?.isError ? 'text-red-400' : 'text-green-400'" x-text="notification?.message"></div>
+
+                {{-- Save button --}}
+                <button @click="saveAll()"
+                        :disabled="saving"
+                        class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 flex-shrink-0">
+                    <span x-show="!saving">Save</span>
+                    <span x-show="saving">Saving...</span>
+                </button>
             </div>
         </div>
     </div>

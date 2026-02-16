@@ -39,6 +39,22 @@
                     @enderror
                 </div>
 
+                <!-- Avatar -->
+                <div>
+                    <label for="avatar" class="block text-sm font-medium text-gray-300 mb-1">Avatar</label>
+                    @if($user->avatar_url)
+                        <div class="mb-3">
+                            <img src="{{ $user->avatar_url }}" alt="Current avatar" class="w-24 h-24 rounded-full object-cover">
+                        </div>
+                    @endif
+                    <input type="file" name="avatar" id="avatar" accept="image/jpeg,image/png,image/webp"
+                           class="w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-700 file:text-gray-200 hover:file:bg-gray-600">
+                    <p class="text-xs text-gray-500 mt-1">JPEG, PNG, or WebP. Max 10MB. Will be resized to 200x200.</p>
+                    @error('avatar')
+                        <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <!-- Cover Image -->
                 <div>
                     <label for="cover_image" class="block text-sm font-medium text-gray-300 mb-1">Cover Image</label>
@@ -49,7 +65,7 @@
                     @endif
                     <input type="file" name="cover_image" id="cover_image" accept="image/jpeg,image/png,image/webp"
                            class="w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-700 file:text-gray-200 hover:file:bg-gray-600">
-                    <p class="text-xs text-gray-500 mt-1">JPEG, PNG, or WebP. Max 2MB. Will be displayed as a banner (16:5 ratio).</p>
+                    <p class="text-xs text-gray-500 mt-1">JPEG, PNG, or WebP. Max 10MB. Will be displayed as a banner (16:5 ratio).</p>
                     @error('cover_image')
                         <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
                     @enderror
