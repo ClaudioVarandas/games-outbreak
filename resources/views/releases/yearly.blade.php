@@ -193,6 +193,7 @@
                                     return [
                                         'game' => $game,
                                         'displayDate' => $pivotReleaseDate ?? $game->first_release_date,
+                                        'displayPlatforms' => $game->pivot->platforms ?? null,
                                         'primaryGenreId' => $game->pivot->primary_genre_id,
                                         'genreIds' => is_string($game->pivot->genre_ids) ? json_decode($game->pivot->genre_ids, true) ?? [] : ($game->pivot->genre_ids ?? []),
                                         'isHighlight' => (bool) $game->pivot->is_highlight,
@@ -210,6 +211,7 @@
                                         <x-game-card
                                             :game="$entry['game']"
                                             :displayReleaseDate="$entry['displayDate']"
+                                            :displayPlatforms="$entry['displayPlatforms']"
                                             variant="default"
                                             layout="overlay"
                                             aspectRatio="3/4"
@@ -226,6 +228,7 @@
                                         <x-game-card
                                             :game="$entry['game']"
                                             :displayReleaseDate="$entry['displayDate']"
+                                            :displayPlatforms="$entry['displayPlatforms']"
                                             variant="table-row"
                                             :platformEnums="$platformEnums" />
                                     </div>

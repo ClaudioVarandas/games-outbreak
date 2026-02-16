@@ -38,6 +38,7 @@
                 <x-game-card
                     :game="$game"
                     :displayReleaseDate="$displayDate"
+                    :displayPlatforms="$game->pivot->platforms ?? null"
                     variant="glassmorphism"
                     layout="overlay"
                     aspectRatio="3/4"

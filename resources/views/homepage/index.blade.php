@@ -59,6 +59,7 @@
                         <x-game-card
                             :game="$game"
                             :displayReleaseDate="$game->pivot->release_date ? \Carbon\Carbon::parse($game->pivot->release_date) : $game->first_release_date"
+                            :displayPlatforms="$game->pivot->platforms ?? null"
                             variant="default"
                             layout="overlay"
                             aspectRatio="3/4"
