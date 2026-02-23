@@ -4,6 +4,53 @@
 
 @section('content')
     <div class="container mx-auto px-4 py-8">
+        <!-- This Week's Choices Section -->
+        <section class="mb-12">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl md:text-3xl font-bold flex items-center text-gray-800 dark:text-gray-100">
+                    <svg class="w-6 h-6 md:w-8 md:h-8 mr-2 md:mr-3 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                    This Week's Choices
+                </h2>
+                <a href="{{ route('releases.year.month', [$currentYear, $currentMonth]) }}"
+                   class="text-sm md:text-base text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition whitespace-nowrap">
+                    See all ->
+                </a>
+            </div>
+
+            @if($thisWeekGames->count() > 0)
+                {{-- Mobile: list layout --}}
+                <div class="md:hidden">
+                    <x-this-week-choices-mobile :games="$thisWeekGames" :platformEnums="$platformEnums" />
+                </div>
+                {{-- Desktop: grid layout --}}
+                <div class="hidden md:grid md:grid-cols-4 lg:grid-cols-6 gap-6">
+                    @foreach($thisWeekGames as $game)
+                        <x-game-card
+                            :game="$game"
+                            :displayReleaseDate="$game->pivot->release_date ? \Carbon\Carbon::parse($game->pivot->release_date) : $game->first_release_date"
+                            :displayPlatforms="$game->pivot->platforms ?? null"
+                            variant="default"
+                            layout="overlay"
+                            aspectRatio="3/4"
+                            :platformEnums="$platformEnums" />
+                    @endforeach
+                </div>
+            @else
+                <div class="text-center py-8 bg-white dark:bg-gray-800 rounded-lg">
+                    <p class="text-gray-600 dark:text-gray-400">
+                        No curated releases this week.
+                    </p>
+                    <a href="{{ route('releases.year', $currentYear) }}"
+                       class="inline-block mt-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition">
+                        Browse all {{ $currentYear }} releases ->
+                    </a>
+                </div>
+            @endif
+        </section>
+
         <h1 class="text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-4">
             <div class="flex gap-2">
                 <div class="w-2 h-2 rounded-full bg-orange-400"></div>
@@ -36,48 +83,6 @@
                 <div class="w-2 h-2 rounded-full bg-orange-400"></div>
             </div>
         </h1>
-
-        <!-- This Week's Choices Section -->
-        <section class="mb-12">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl md:text-3xl font-bold flex items-center text-gray-800 dark:text-gray-100">
-                    <svg class="w-6 h-6 md:w-8 md:h-8 mr-2 md:mr-3 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                    </svg>
-                    This Week's Choices
-                </h2>
-                <a href="{{ route('releases.year.month', [$currentYear, $currentMonth]) }}"
-                   class="text-sm md:text-base text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition whitespace-nowrap">
-                    See all ->
-                </a>
-            </div>
-
-            @if($thisWeekGames->count() > 0)
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                    @foreach($thisWeekGames as $game)
-                        <x-game-card
-                            :game="$game"
-                            :displayReleaseDate="$game->pivot->release_date ? \Carbon\Carbon::parse($game->pivot->release_date) : $game->first_release_date"
-                            :displayPlatforms="$game->pivot->platforms ?? null"
-                            variant="default"
-                            layout="overlay"
-                            aspectRatio="3/4"
-                            :platformEnums="$platformEnums" />
-                    @endforeach
-                </div>
-            @else
-                <div class="text-center py-8 bg-white dark:bg-gray-800 rounded-lg">
-                    <p class="text-gray-600 dark:text-gray-400">
-                        No curated releases this week.
-                    </p>
-                    <a href="{{ route('releases.year', $currentYear) }}"
-                       class="inline-block mt-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium transition">
-                        Browse all {{ $currentYear }} releases ->
-                    </a>
-                </div>
-            @endif
-        </section>
 
         <!-- Weekly Upcoming Games Section -->
         <section class="mb-12">
