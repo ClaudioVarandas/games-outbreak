@@ -25,7 +25,7 @@
 - Aim for "slim" Controllers and put larger logic pieces in Service classes
 - Use Laravel helpers instead of `use` section classes. Examples: use `auth()->id()` instead of `Auth::id()` and adding `Auth` in the `use` section. Other examples: use `redirect()->route()` instead of `Redirect::route()`, or `str()->slug()` instead of `Str::slug()`.
 - Don't use `whereKey()` or `whereKeyNot()`, use specific fields like `id`. Example: instead of `->whereKeyNot($currentUser->getKey())`, use `->where('id', '!=', $currentUser->id)`.
-- Don't add `::query()` when running Eloquent `create()` statements. Example: instead of `User::query()->create()`, use `User::create()`.
+- Add `::query()` when running Eloquent `create()` statements. Example: instead of `User::create()` use `User::query()->create()` 
 - In Livewire projects, don't use Livewire Volt. Only Livewire class components.
 - When creating pivot tables in migrations, if you use `timestamps()`, then in Eloquent Models, add `withTimestamps()` to the `BelongsToMany` relationships.
 - When adding columns in a migration, update the model's `$fillable` array to include those new attributes.
