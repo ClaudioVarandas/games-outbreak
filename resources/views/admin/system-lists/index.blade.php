@@ -338,7 +338,7 @@
                                 'Accept': 'application/json',
                             },
                         });
-                    } finally {
+                    } catch {
                         this.refreshing = false;
                     }
                 },
