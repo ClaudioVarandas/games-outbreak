@@ -7,9 +7,11 @@ use App\Enums\PlatformEnum;
 use App\Enums\PlatformGroupEnum;
 use App\Http\Requests\StoreGameListRequest;
 use App\Http\Requests\UpdateGameListRequest;
+use App\Jobs\RefreshGameListGamesJob;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Services\IgdbService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -284,6 +286,18 @@ class AdminListController extends Controller
 
         return redirect()->route('admin.system-lists')
             ->with('success', "System list '{$listName}' deleted successfully.");
+    }
+
+    public function refreshGameList(string $type, string $slug): JsonResponse
+    {
+        $list = $this->getSystemListByTypeAndSlug($type, $slug);
+
+        RefreshGameListGamesJob::dispatch($list->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Refresh queued for \"{$list->name}\".",
+        ]);
     }
 
     protected function generateUniqueSlug(string $name, string $listType, ?int $excludeId = null): string

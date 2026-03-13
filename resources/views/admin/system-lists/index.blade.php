@@ -50,7 +50,7 @@
             @if($yearlyLists->count() > 0)
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach($yearlyLists as $list)
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative border border-gray-200 dark:border-gray-700">
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative border border-gray-200 dark:border-gray-700" x-data="listCard('{{ route('admin.system-lists.refresh', [$list->list_type->toSlug(), $list->slug]) }}')">
                             <!-- Status Icons - Top Right -->
                             <div class="absolute top-4 right-4 flex gap-2">
                                 @if($list->is_active)
@@ -111,6 +111,15 @@
                                 @endif
                             </div>
                             <div class="flex gap-2 justify-end">
+                                <button
+                                    @click="triggerRefresh()"
+                                    :disabled="refreshing"
+                                    class="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Refresh from IGDB">
+                                    <svg class="w-5 h-5" :class="{ 'animate-spin': refreshing }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    </svg>
+                                </button>
                                 <a href="{{ route('admin.system-lists.edit', [$list->list_type->toSlug(), $list->slug]) }}"
                                    class="p-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
                                    title="Edit">
@@ -145,7 +154,7 @@
             @if($seasonedLists->count() > 0)
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach($seasonedLists as $list)
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative">
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative" x-data="listCard('{{ route('admin.system-lists.refresh', [$list->list_type->toSlug(), $list->slug]) }}')">
                             <!-- Status Icons - Top Right -->
                             <div class="absolute top-4 right-4 flex gap-2">
                                 @if($list->is_active)
@@ -192,6 +201,15 @@
                                 @endif
                             </div>
                             <div class="flex gap-2 justify-end">
+                                <button
+                                    @click="triggerRefresh()"
+                                    :disabled="refreshing"
+                                    class="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Refresh from IGDB">
+                                    <svg class="w-5 h-5" :class="{ 'animate-spin': refreshing }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    </svg>
+                                </button>
                                 <a href="{{ route('admin.system-lists.edit', [$list->list_type->toSlug(), $list->slug]) }}"
                                    class="p-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
                                    title="Edit">
@@ -226,7 +244,7 @@
             @if($eventsLists->count() > 0)
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach($eventsLists as $list)
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative">
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative" x-data="listCard('{{ route('admin.system-lists.refresh', [$list->list_type->toSlug(), $list->slug]) }}')">
                             <!-- Status Icons - Top Right -->
                             <div class="absolute top-4 right-4 flex gap-2">
                                 @if($list->is_active)
@@ -273,6 +291,15 @@
                                 @endif
                             </div>
                             <div class="flex gap-2 justify-end">
+                                <button
+                                    @click="triggerRefresh()"
+                                    :disabled="refreshing"
+                                    class="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Refresh from IGDB">
+                                    <svg class="w-5 h-5" :class="{ 'animate-spin': refreshing }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    </svg>
+                                </button>
                                 <a href="{{ route('admin.system-lists.edit', [$list->list_type->toSlug(), $list->slug]) }}"
                                    class="p-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
                                    title="Edit">
@@ -298,6 +325,26 @@
     </div>
 
     <script>
+        function listCard(refreshUrl) {
+            return {
+                refreshing: false,
+                async triggerRefresh() {
+                    this.refreshing = true;
+                    try {
+                        await fetch(refreshUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                                'Accept': 'application/json',
+                            },
+                        });
+                    } finally {
+                        this.refreshing = false;
+                    }
+                },
+            };
+        }
+
         function openDeleteModal(listName, deleteUrl) {
             document.getElementById('deleteListName').textContent = listName;
             document.getElementById('deleteForm').action = deleteUrl;

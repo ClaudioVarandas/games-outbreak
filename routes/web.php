@@ -163,6 +163,7 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
         Route::patch('/system-lists/{type}/{slug}', [AdminListController::class, 'updateSystemList'])->name('system-lists.update');
         Route::patch('/system-lists/{type}/{slug}/toggle', [AdminListController::class, 'toggleSystemListActive'])->name('system-lists.toggle');
         Route::delete('/system-lists/{type}/{slug}', [AdminListController::class, 'destroySystemList'])->name('system-lists.destroy');
+        Route::post('/system-lists/{type}/{slug}/refresh', [AdminListController::class, 'refreshGameList'])->name('system-lists.refresh');
 
         // System list game management
         Route::post('/system-lists/{type}/{slug}/games', [AdminListController::class, 'addGame'])->name('system-lists.games.add');
@@ -257,7 +258,6 @@ Route::middleware(['auth', 'prevent-caching'])
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
-
-Route::get('/health', static fn() => response()->json(['status' => 'ok']));
+Route::get('/health', static fn () => response()->json(['status' => 'ok']));
 
 require __DIR__.'/auth.php';
