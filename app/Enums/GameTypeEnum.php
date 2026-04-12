@@ -50,6 +50,22 @@ enum GameTypeEnum: int
         };
     }
 
+    public function neonColorClass(): string
+    {
+        return match ($this) {
+            self::MAIN => 'neon-type-main',
+            self::DLC => 'neon-type-dlc',
+            self::EXPANSION => 'neon-type-expansion',
+            self::BUNDLE => 'neon-type-bundle',
+            self::STANDALONE => 'neon-type-standalone',
+            self::MOD => 'neon-type-mod',
+            self::EPISODE => 'neon-type-episode',
+            self::SEASON => 'neon-type-season',
+            self::REMAKE => 'neon-type-remake',
+            self::REMASTER => 'neon-type-remaster',
+        };
+    }
+
     public static function fromValue(int $value): ?self
     {
         return self::tryFrom($value);

@@ -1,6 +1,6 @@
 @props([
     'game',
-    'variant' => 'simple', // 'glassmorphism', 'simple', 'carousel', 'overlay', 'table-row'
+    'variant' => 'simple', // 'glassmorphism', 'simple', 'carousel', 'overlay', 'table-row', 'neon'
     'layout' => 'below', // 'overlay' (info on image) or 'below' (info below image)
     'aspectRatio' => '3/4', // '3/4' or 'video'
     'showRank' => false,
@@ -75,6 +75,7 @@
     // Variant-specific classes
     $blurIntensity = $carousel ? 'backdrop-blur-sm' : 'backdrop-blur-md';
     $containerClasses = match($variant) {
+        'neon' => 'group relative flex h-full w-full flex-col overflow-hidden rounded-[1.25rem] neon-card bg-transparent',
         'glassmorphism' => 'relative ' . $aspectClass . ' rounded-xl overflow-hidden ' . $blurIntensity . ' bg-white/10 dark:bg-white/5 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:bg-white/20 dark:hover:bg-white/10',
         'carousel' => 'bg-gray-800 dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all',
         'overlay' => 'group relative bg-gray-800 dark:bg-gray-800 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-400',
@@ -83,6 +84,7 @@
     };
 
     $imageContainerClasses = match($variant) {
+        'neon' => 'relative ' . $aspectClass . ' overflow-hidden rounded-[1.18rem] bg-slate-950/80',
         'glassmorphism' => 'relative ' . $aspectClass . ' rounded-xl overflow-hidden',
         'carousel' => $aspectClass . ' relative overflow-hidden',
         'overlay' => 'relative ' . $aspectClass . ' bg-gray-200 dark:bg-gray-700 overflow-hidden',
@@ -91,6 +93,7 @@
     };
 
     $imageClasses = match($variant) {
+        'neon' => 'h-full w-full object-cover transition-transform duration-500 group-hover:scale-105',
         'glassmorphism' => 'w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100',
         'carousel' => 'w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500',
         'overlay' => 'w-full h-full object-cover group-hover:scale-110 transition-transform duration-500',
@@ -99,6 +102,7 @@
     };
 
     $platformBadgeClasses = match($variant) {
+        'neon' => 'neon-platform-pill',
         'glassmorphism' => 'px-2 py-1 text-xs font-bold text-white rounded shadow-lg backdrop-blur-sm bg-black/40 border border-white/20',
         default => 'px-2 py-1 text-xs font-bold text-white rounded shadow-lg',
     };
@@ -172,8 +176,8 @@
 </div>
 @else
 {{-- Wrapper for card + mobile buttons --}}
-<div class="{{ ($variant === 'carousel' || $carousel) ? 'flex-shrink-0 w-56 md:w-64' : '' }}">
-    <a href="{{ $linkUrl }}" class="group block transition-all duration-300 hover:z-30">
+<div class="{{ $variant === 'neon' && $carousel ? 'flex h-full flex-shrink-0 w-[12.1rem] md:w-[12.6rem]' : (($variant === 'carousel' || $carousel) ? 'flex-shrink-0 w-56 md:w-64' : '') }}">
+    <a href="{{ $linkUrl }}" class="group block transition-all duration-300 hover:z-30 {{ $variant === 'neon' && $carousel ? 'flex h-full w-full' : '' }}">
         <div class="{{ $containerClasses }}">
         <!-- Cover Image Container -->
         <div class="{{ $imageContainerClasses }} group/card">
@@ -195,7 +199,7 @@
             @endif
 
             <!-- Platform Badges -->
-            @if($sortedPlatforms->count() > 0)
+            @if($sortedPlatforms->count() > 0 && $variant !== 'neon')
                 <div class="absolute top-2 left-2 flex flex-wrap gap-1 z-10">
                     @foreach($sortedPlatforms as $platform)
                         @php
@@ -215,7 +219,9 @@
 
             <!-- Collection Actions (Desktop Only) -->
             <div class="hidden md:block">
+                @if($variant !== 'neon')
                 <x-game-collection-actions :game="$game" />
+                @endif
             </div>
 
             <!-- Remove Button (Lists Show) -->
@@ -303,7 +309,7 @@
 
         <!-- Info Below Image (for below layout) -->
         @if($layout === 'below' && $variant !== 'glassmorphism')
-            <div class="p-4 {{ $variant === 'simple' ? '' : 'relative' }}">
+            <div class="p-4 {{ in_array($variant, ['simple', 'neon']) ? '' : 'relative' }} {{ $variant === 'neon' ? 'flex flex-1 flex-col px-3 pb-2.5 pt-2.5' : '' }}">
                 @if($wantedScore !== null)
                     <div class="h-2.5 w-full bg-gray-700 rounded-full mb-3 overflow-hidden">
                         <div class="h-full bg-red-600 transition-all" style="width: {{ $wantedScore }}%;"></div>
@@ -311,25 +317,48 @@
                     <p class="text-xs text-gray-400 mb-2">Wanted Score: <span class="text-red-400 font-bold">{{ $wantedScore }}%</span></p>
                 @endif
 
-                <h3 class="font-bold text-lg {{ $variant === 'carousel' ? 'text-white truncate group-hover/card:text-orange-400' : ($variant === 'simple' ? ($wantedScore !== null ? 'text-white truncate' : 'text-gray-900 dark:text-white truncate') : 'text-white truncate') }} mb-2">
+                <h3 class="mb-1 font-bold {{ $variant === 'neon' ? 'line-clamp-2 min-h-[2.55rem] text-[0.85rem] uppercase tracking-[0.04em] text-slate-100 md:text-[0.9rem]' : 'text-lg' }} {{ $variant === 'carousel' ? 'text-white truncate group-hover/card:text-orange-400' : ($variant === 'simple' ? ($wantedScore !== null ? 'text-white truncate' : 'text-gray-900 dark:text-white truncate') : ($variant === 'neon' ? '' : 'text-white truncate')) }}">
                     {{ $game->name }}
                 </h3>
 
-                <div class="flex items-center justify-between mb-2">
-                    <span class="{{ $game->getGameTypeEnum()->colorClass() }} px-2 py-0.5 text-xs font-medium rounded text-white">
-                        {{ $game->getGameTypeEnum()->label() }}
-                    </span>
-                    <p class="text-sm {{ $variant === 'carousel' ? 'text-gray-400' : ($variant === 'simple' ? ($wantedScore !== null ? 'text-gray-400' : 'text-gray-600 dark:text-gray-400') : 'text-gray-400') }}">
+                <div class="mb-1 flex items-center justify-between gap-2">
+                    @if($variant === 'neon')
+                        <span class="neon-type-pill {{ $game->getGameTypeEnum()->neonColorClass() }}">
+                            {{ $game->getGameTypeEnum()->label() }}
+                        </span>
+                    @else
+                        <span class="{{ $game->getGameTypeEnum()->colorClass() }} px-2 py-0.5 text-xs font-medium rounded text-white">
+                            {{ $game->getGameTypeEnum()->label() }}
+                        </span>
+                    @endif
+                    <p class="text-sm {{ $variant === 'carousel' ? 'text-gray-400' : ($variant === 'simple' ? ($wantedScore !== null ? 'text-gray-400' : 'text-gray-600 dark:text-gray-400') : ($variant === 'neon' ? 'text-[0.8rem] font-semibold uppercase tracking-[0.05em] text-slate-300' : 'text-gray-400')) }}">
                         @if($isTba)
                             {{ 'TBA' }}
                         @else
-                            {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+                            {{ $displayReleaseDateFormatted ?? $releaseDate?->format($variant === 'neon' ? 'd M' : 'M j, Y') ?? 'TBA' }}
                         @endif
                     </p>
                 </div>
 
+                @if($variant === 'neon' && $sortedPlatforms->count() > 0)
+                    <div class="mb-1.5 flex min-h-[1.7rem] flex-wrap content-start gap-1">
+                        @foreach($sortedPlatforms->take(4) as $platform)
+                            @php
+                                $enum = $platformEnums[$platform->igdb_id] ?? null;
+                            @endphp
+                            <span class="{{ $platformBadgeClasses }}">
+                                {{ $enum?->label() ?? \Illuminate\Support\Str::limit($platform->name, 6) }}
+                            </span>
+                        @endforeach
+                    </div>
+                @endif
+
                 <!-- Mobile Collection Actions -->
-                <x-game-collection-actions-mobile :game="$game" />
+                <div class="{{ $variant === 'neon' && $carousel ? 'mt-auto' : '' }}">
+                    @if($variant !== 'neon')
+                    <x-game-collection-actions-mobile :game="$game" />
+                    @endif
+                </div>
             </div>
         @endif
     </div>
