@@ -142,6 +142,8 @@
         linear-gradient(140deg, rgba(255, 138, 42, 0.03), transparent 34%),
         linear-gradient(220deg, rgba(124, 58, 237, 0.05), transparent 36%);
     border: 1px solid rgba(99, 243, 255, 0.1);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     box-shadow:
         inset 0 0 0 1px rgba(99, 243, 255, 0.02),
         0 0 0 1px rgba(99, 243, 255, 0.03),
