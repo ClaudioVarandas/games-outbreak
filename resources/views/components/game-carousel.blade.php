@@ -80,6 +80,7 @@
                         <div class="hidden md:block absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-gray-900 dark:from-gray-900 to-transparent z-10 pointer-events-none"></div>
 
                         <button
+                            type="button"
                             onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: -400, behavior: 'smooth'})"
                             class="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-black/70 hover:bg-black/90 text-white p-4 rounded-full
                                opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 shadow-2xl
@@ -90,6 +91,7 @@
                         </button>
 
                         <button
+                            type="button"
                             onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: 400, behavior: 'smooth'})"
                             class="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-black/70 hover:bg-black/90 text-white p-4 rounded-full
                                opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 shadow-2xl
