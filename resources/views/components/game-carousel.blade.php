@@ -5,6 +5,7 @@
     'emptyMessage' => 'No games available.',
     'carouselId' => 'game-carousel-' . uniqid(),
     'platformEnums' => null,
+    'variant' => 'glassmorphism',
 ])
 
 <section class="my-6">
@@ -17,64 +18,115 @@
         </h2>
     @endif
 
-    <div class="relative group/carousel">
+    <div class="relative group/carousel {{ $variant === 'neon' ? 'neon-carousel-shell' : '' }}">
         @if($games && $games->count() > 0)
-            <!-- Left Arrow (Desktop only) -->
-            <button
-                onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: -400, behavior: 'smooth'})"
-                class="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-black/70 hover:bg-black/90 text-white p-4 rounded-full
-                   opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 shadow-2xl
-                   pointer-events-auto">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/>
-                </svg>
-            </button>
+            @if($variant === 'neon')
+                <div class="neon-release-carousel-shell w-full max-w-full">
+                    <div class="neon-release-carousel-viewport">
+                        <button
+                            type="button"
+                            aria-label="Previous upcoming releases"
+                            onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: -400, behavior: 'smooth'})"
+                            class="neon-carousel-arrow hidden md:flex items-center justify-center rounded-full border border-cyan-300/20 bg-slate-900/95 text-white shadow-2xl transition-all duration-300 hover:border-orange-300/40 hover:bg-slate-900 left-3">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
 
-            <!-- Right Arrow (Desktop only) -->
-            <button
-                onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: 400, behavior: 'smooth'})"
-                class="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-black/70 hover:bg-black/90 text-white p-4 rounded-full
-                   opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 shadow-2xl
-                   pointer-events-auto">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
-                </svg>
-            </button>
+                        <div class="neon-release-carousel-edge neon-release-carousel-edge--left hidden md:block"></div>
+                        <div class="neon-release-carousel-edge neon-release-carousel-edge--right hidden md:block"></div>
 
-            <!-- Left Fade Overlay (Desktop only) -->
-            <div
-                class="hidden md:block absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-gray-900 dark:from-gray-900 to-transparent z-10 pointer-events-none"></div>
-            <!-- Right Fade Overlay (Desktop only) -->
-            <div
-                class="hidden md:block absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-gray-900 dark:from-gray-900 to-transparent z-10 pointer-events-none"></div>
+                        <div id="{{ $carouselId }}" class="carousel-inner w-full max-w-full overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory">
+                            <div class="neon-release-carousel-track flex gap-4 py-4 px-2 md:gap-3 items-start">
+                                @foreach($games as $carouselGame)
+                                    @php
+                                        $platformEnums = $platformEnums ?? \App\Enums\PlatformEnum::getActivePlatforms();
 
-            <!-- Scrollable Carousel -->
-            <div id="{{ $carouselId }}" class="carousel-inner overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory">
-                <div class="flex gap-4 md:gap-6 py-4 px-2 md:px-0">
-                    @foreach($games as $carouselGame)
-                        @php
-                            $platformEnums = $platformEnums ?? \App\Enums\PlatformEnum::getActivePlatforms();
-
-                            // Convert pivot release_date string to Carbon instance if present
-                            $displayDate = $carouselGame->first_release_date;
-                            if (isset($carouselGame->pivot->release_date) && $carouselGame->pivot->release_date) {
-                                $displayDate = \Carbon\Carbon::parse($carouselGame->pivot->release_date);
-                            }
-                        @endphp
-                        <div class="snap-start">
-                            <x-game-card
-                                :game="$carouselGame"
-                                variant="glassmorphism"
-                                layout="overlay"
-                                aspectRatio="3/4"
-                                :carousel="true"
-                                :platformEnums="$platformEnums"
-                                :displayReleaseDate="$displayDate"
-                                :displayPlatforms="isset($carouselGame->pivot) ? ($carouselGame->pivot->platforms ?? null) : null" />
+                                        $displayDate = $carouselGame->first_release_date;
+                                        if (isset($carouselGame->pivot->release_date) && $carouselGame->pivot->release_date) {
+                                            $displayDate = \Carbon\Carbon::parse($carouselGame->pivot->release_date);
+                                        }
+                                    @endphp
+                                    <div class="snap-start neon-release-carousel-slide">
+                                        <x-game-card
+                                            :game="$carouselGame"
+                                            :variant="$variant"
+                                            layout="below"
+                                            aspectRatio="3/4"
+                                            :carousel="true"
+                                            :platformEnums="$platformEnums"
+                                            :displayReleaseDate="$displayDate"
+                                            :displayPlatforms="isset($carouselGame->pivot) ? ($carouselGame->pivot->platforms ?? null) : null" />
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
-                    @endforeach
+
+                        <button
+                            type="button"
+                            aria-label="Next upcoming releases"
+                            onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: 400, behavior: 'smooth'})"
+                            class="neon-carousel-arrow hidden md:flex items-center justify-center rounded-full border border-cyan-300/20 bg-slate-900/95 text-white shadow-2xl transition-all duration-300 hover:border-orange-300/40 hover:bg-slate-900 right-3">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-            </div>
+            @else
+                <div class="relative">
+                    <div class="relative min-w-0">
+                        <div class="hidden md:block absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-gray-900 dark:from-gray-900 to-transparent z-10 pointer-events-none"></div>
+                        <div class="hidden md:block absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-gray-900 dark:from-gray-900 to-transparent z-10 pointer-events-none"></div>
+
+                        <button
+                            onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: -400, behavior: 'smooth'})"
+                            class="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-black/70 hover:bg-black/90 text-white p-4 rounded-full
+                               opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 shadow-2xl
+                               pointer-events-auto">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+
+                        <button
+                            onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: 400, behavior: 'smooth'})"
+                            class="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-black/70 hover:bg-black/90 text-white p-4 rounded-full
+                               opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 shadow-2xl
+                               pointer-events-auto">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+
+                        <div id="{{ $carouselId }}" class="carousel-inner overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory">
+                            <div class="flex gap-4 md:gap-6 py-4 px-2 md:px-0">
+                                @foreach($games as $carouselGame)
+                                    @php
+                                        $platformEnums = $platformEnums ?? \App\Enums\PlatformEnum::getActivePlatforms();
+
+                                        $displayDate = $carouselGame->first_release_date;
+                                        if (isset($carouselGame->pivot->release_date) && $carouselGame->pivot->release_date) {
+                                            $displayDate = \Carbon\Carbon::parse($carouselGame->pivot->release_date);
+                                        }
+                                    @endphp
+                                    <div class="snap-start">
+                                        <x-game-card
+                                            :game="$carouselGame"
+                                            :variant="$variant"
+                                            layout="overlay"
+                                            aspectRatio="3/4"
+                                            :carousel="true"
+                                            :platformEnums="$platformEnums"
+                                            :displayReleaseDate="$displayDate"
+                                            :displayPlatforms="isset($carouselGame->pivot) ? ($carouselGame->pivot->platforms ?? null) : null" />
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             <!-- Pagination Dots (Mobile only) -->
             <div class="flex md:hidden justify-center gap-2 mt-4" id="{{ $carouselId }}-dots">

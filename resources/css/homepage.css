@@ -381,7 +381,7 @@
     position: absolute;
     top: 1.15rem;
     height: 19.25rem;
-    width: 1.7rem;
+    width: 2.875rem;
     z-index: 20;
     pointer-events: none;
     border-radius: 1.5rem;
@@ -389,23 +389,23 @@
 
 .neon-release-carousel-edge--left {
     left: 0;
-    background: linear-gradient(90deg, rgba(20, 24, 39, 0.72), rgba(20, 24, 39, 0));
+    background: linear-gradient(90deg, rgba(24, 28, 46, 0.92), rgba(24, 28, 46, 0));
 }
 
 .neon-release-carousel-edge--right {
     right: 0;
-    background: linear-gradient(270deg, rgba(20, 24, 39, 0.72), rgba(20, 24, 39, 0));
+    background: linear-gradient(270deg, rgba(24, 28, 46, 0.92), rgba(24, 28, 46, 0));
 }
 
 .neon-carousel-arrow {
     position: absolute;
     top: 10.25rem;
     z-index: 60;
-    height: 3.75rem;
-    width: 3.75rem;
+    height: 2.375rem;
+    width: 2.375rem;
     transform: translateY(-50%);
     box-shadow:
-        0 0 0 1px rgba(99, 243, 255, 0.12),
+        0 0 0 1px rgba(99, 243, 255, 0.18),
         0 0 20px rgba(0, 0, 0, 0.38);
 }
 
