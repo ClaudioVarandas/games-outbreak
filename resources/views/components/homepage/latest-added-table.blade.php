@@ -57,7 +57,7 @@
                                 $enum = $platformEnums[$platform->igdb_id] ?? null;
                             @endphp
                             <span class="neon-platform-pill">
-                                {{ $enum?->label() ?? \Illuminate\Support\Str::limit($platform->name, 6) }}
+                                {{ $enum?->label() ?? str()->limit($platform->name, 6) }}
                             </span>
                         @endforeach
                     </div>
