@@ -187,7 +187,7 @@
         linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02)),
         rgba(255, 255, 255, 0.025);
     border: 1px dashed rgba(255, 255, 255, 0.14);
-    transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    transition: transform 250ms ease, border-color 250ms ease, box-shadow 250ms ease;
 }
 
 .neon-card::before {
@@ -204,22 +204,25 @@
 .neon-card::after {
     content: '';
     position: absolute;
-    inset: 0;
-    background: linear-gradient(120deg, transparent 38%, rgba(255, 255, 255, 0.08) 50%, transparent 62%);
-    transform: translateX(-120%);
+    top: -120%;
+    left: -40%;
+    width: 42%;
+    height: 260%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    transform: rotate(18deg);
     opacity: 0;
-    transition: transform 280ms ease, opacity 280ms ease;
+    transition: transform 0.5s ease, opacity 0.28s ease;
     pointer-events: none;
 }
 
 .neon-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(109, 40, 217, 0.26);
+    transform: translateY(-4px) scale(1.005);
+    border-color: rgba(109, 40, 217, 0.34);
     box-shadow:
-        0 0 0 1px rgba(109, 40, 217, 0.08),
-        0 0 8px rgba(109, 40, 217, 0.1),
-        0 0 12px rgba(99, 243, 255, 0.04),
-        0 10px 22px rgba(0, 0, 0, 0.2);
+        0 0 0 1px rgba(255, 138, 42, 0.12),
+        0 0 14px rgba(255, 138, 42, 0.14),
+        0 0 24px rgba(109, 40, 217, 0.18),
+        0 10px 22px rgba(109, 40, 217, 0.16);
 }
 
 .neon-card:hover::before {
@@ -228,7 +231,7 @@
 
 .neon-card:hover::after {
     opacity: 1;
-    transform: translateX(120%);
+    transform: translateX(260%) rotate(18deg);
 }
 
 .neon-btn {
