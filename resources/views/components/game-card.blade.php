@@ -84,7 +84,7 @@
     };
 
     $imageContainerClasses = match($variant) {
-        'neon' => 'relative ' . $aspectClass . ' overflow-hidden rounded-[1.18rem] bg-slate-950/80',
+        'neon' => 'relative mt-[9px] mx-[9px] ' . $aspectClass . ' overflow-hidden rounded-[1.18rem] bg-slate-950/80',
         'glassmorphism' => 'relative ' . $aspectClass . ' rounded-xl overflow-hidden',
         'carousel' => $aspectClass . ' relative overflow-hidden',
         'overlay' => 'relative ' . $aspectClass . ' bg-gray-200 dark:bg-gray-700 overflow-hidden',
