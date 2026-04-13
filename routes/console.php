@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\News\PublishScheduledNewsJob;
 use Illuminate\Support\Facades\Schedule;
 
 // === GAME UPDATE SCHEDULES ===
@@ -45,6 +46,15 @@ Schedule::command('igdb:sync-sources')
 Schedule::command('steamspy:sync --limit=100 --threshold=50')
     ->dailyAt('5:00')
     ->name('steamspy-sync')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// === NEWS PIPELINE SCHEDULES ===
+
+// Publish scheduled news articles every 5 minutes
+Schedule::job(new PublishScheduledNewsJob)
+    ->everyFiveMinutes()
+    ->name('news-publish-scheduled')
     ->withoutOverlapping()
     ->onOneServer();
 
