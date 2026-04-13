@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Enums\ListTypeEnum;
 use App\Enums\PlatformEnum;
+use App\Http\Middleware\EnsureNewsFeatureEnabled;
 use App\Models\Game;
 use App\Models\GameList;
+use App\Models\News;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class HomepageController extends Controller
@@ -27,7 +30,7 @@ class HomepageController extends Controller
     /**
      * Get games releasing this week from the yearly list.
      */
-    private function getThisWeekGames(): \Illuminate\Support\Collection
+    private function getThisWeekGames(): Collection
     {
         $startOfWeek = Carbon::today()->startOfWeek(Carbon::MONDAY);
         $endOfWeek = $startOfWeek->copy()->endOfWeek(Carbon::SUNDAY);
@@ -46,7 +49,7 @@ class HomepageController extends Controller
             ->with('platforms')
             ->reorder()
             ->wherePivotBetween('release_date', [$startOfWeek->toDateString(), $endOfWeek->toDateString()])
-            ->limit(12)
+            ->limit(10)
             ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
             ->get();
     }
@@ -54,7 +57,7 @@ class HomepageController extends Controller
     /**
      * Get all games from games table releasing this week (from today to end of week).
      */
-    private function getWeeklyUpcomingGames(): \Illuminate\Support\Collection
+    private function getWeeklyUpcomingGames(): Collection
     {
         $today = Carbon::today();
 
@@ -90,7 +93,7 @@ class HomepageController extends Controller
             ->toArray();
     }
 
-    private function getLatestAddedGames(): \Illuminate\Support\Collection
+    private function getLatestAddedGames(): Collection
     {
         return Game::with('platforms')
             ->orderBy('created_at', 'desc')
@@ -109,6 +112,12 @@ class HomepageController extends Controller
         $latestAddedGames = $this->getLatestAddedGames();
         $platformEnums = PlatformEnum::getActivePlatforms();
         $eventBanners = $this->getEventBanners();
+        $newsEnabled = EnsureNewsFeatureEnabled::isVisibleTo(auth()->user());
+        $homepageNews = $newsEnabled
+            ? News::published()->with('author')->orderByDesc('published_at')->limit(5)->get()
+            : collect();
+        $featuredNews = $homepageNews->first();
+        $topNews = $homepageNews->slice(1)->values();
 
         $currentYear = now()->year;
         $currentMonth = now()->month;
@@ -120,6 +129,9 @@ class HomepageController extends Controller
             'latestAddedGames',
             'platformEnums',
             'eventBanners',
+            'newsEnabled',
+            'featuredNews',
+            'topNews',
             'currentYear',
             'currentMonth'
         ));

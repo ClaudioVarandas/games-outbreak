@@ -2,90 +2,86 @@
 
 @section('title', 'News')
 
-@section('content')
-    <!-- Releases Navigation Menu -->
-    <x-releases-nav active="news" />
+@section('body-class', 'neon-body')
 
-    <div class="container mx-auto px-4 py-8">
-        <!-- Page Header -->
+@section('content')
+<div class="theme-neon overflow-x-hidden">
+    <div class="page-shell py-10">
+
+        {{-- Page Heading --}}
         <div class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100">
-                News
-            </h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">
-                Latest gaming news and updates
-            </p>
+            <x-homepage.section-heading icon="newspaper" title="News" />
         </div>
 
         @if($news->isNotEmpty())
-            <!-- News Feed -->
-            <div class="space-y-6">
+            <div class="flex flex-col gap-4">
                 @foreach($news as $article)
-                    <article class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                        <a href="{{ route('news.show', $article) }}" class="flex flex-col md:flex-row">
+                    <a href="{{ route('news.show', $article) }}"
+                       class="neon-card group flex flex-col overflow-hidden p-[9px] sm:flex-row sm:items-start sm:gap-4">
+
+                        {{-- Image --}}
+                        <div class="relative [transform:translateZ(0)] shrink-0 overflow-hidden rounded-[14px] sm:w-64"
+                             style="height:160px">
                             @if($article->image_url)
-                                <div class="md:w-72 md:flex-shrink-0">
-                                    <img
-                                        src="{{ $article->image_url }}"
-                                        alt="{{ $article->title }}"
-                                        class="w-full h-48 md:h-full object-cover"
-                                        loading="lazy"
-                                    >
-                                </div>
+                                <img src="{{ $article->image_url }}"
+                                     alt="{{ $article->title }}"
+                                     class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                     loading="lazy">
+                            @else
+                                <div class="h-full w-full bg-gradient-to-br from-orange-500/20 to-violet-500/20"></div>
                             @endif
-                            <div class="p-6 flex flex-col justify-between flex-grow">
-                                <div>
-                                    <div class="flex items-center gap-3 mb-3">
-                                        @if($article->source_name)
-                                            <span class="text-xs font-medium text-orange-500 uppercase tracking-wider">
-                                                {{ $article->source_name }}
-                                            </span>
-                                        @endif
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ $article->formatted_published_at }}
-                                        </span>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ $article->reading_time }} min read
-                                        </span>
-                                    </div>
-                                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 hover:text-orange-500 transition-colors">
-                                        {{ $article->title }}
-                                    </h2>
-                                    <p class="text-gray-600 dark:text-gray-400 line-clamp-2">
+                            <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                        </div>
+
+                        {{-- Content --}}
+                        <div class="relative mt-3 flex flex-1 flex-col justify-between sm:mt-0 sm:py-1">
+                            <div>
+                                {{-- Meta --}}
+                                <p class="mb-2 flex flex-wrap items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.08em]">
+                                    @if($article->source_name)
+                                        <span class="text-orange-400">{{ $article->source_name }}</span>
+                                        <span class="text-white/20">·</span>
+                                    @endif
+                                    <span class="text-slate-500">{{ $article->formatted_published_at }}</span>
+                                    <span class="text-white/20">·</span>
+                                    <span class="text-slate-500">{{ $article->reading_time }} min read</span>
+                                </p>
+
+                                <h2 class="text-[0.95rem] font-bold uppercase leading-snug tracking-[0.04em] text-slate-100 transition-colors group-hover:text-cyan-300">
+                                    {{ $article->title }}
+                                </h2>
+
+                                @if($article->summary)
+                                    <p class="mt-2 line-clamp-2 text-[0.8rem] leading-relaxed text-slate-400">
                                         {{ $article->summary }}
                                     </p>
-                                </div>
-                                <div class="mt-4 flex items-center gap-2">
-                                    @if($article->tags)
-                                        @foreach(array_slice($article->tags, 0, 3) as $tag)
-                                            <span class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded">
-                                                {{ $tag }}
-                                            </span>
-                                        @endforeach
-                                    @endif
-                                </div>
+                                @endif
                             </div>
-                        </a>
-                    </article>
+
+                            @if($article->tags)
+                                <div class="mt-3 flex flex-wrap gap-1.5">
+                                    @foreach(array_slice($article->tags, 0, 3) as $tag)
+                                        <span class="neon-platform-pill">{{ $tag }}</span>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    </a>
                 @endforeach
             </div>
 
-            <!-- Pagination -->
+            {{-- Pagination --}}
             <div class="mt-8">
                 {{ $news->links() }}
             </div>
         @else
-            <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
-                <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
-                </svg>
-                <p class="text-xl text-gray-600 dark:text-gray-400">
-                    No news articles yet.
-                </p>
-                <p class="text-gray-500 dark:text-gray-500 mt-2">
-                    Check back soon for the latest gaming news!
-                </p>
+            <div class="neon-panel px-6 py-14 text-center">
+                <x-heroicon-o-newspaper class="mx-auto mb-4 h-10 w-10 text-slate-600" />
+                <p class="text-sm uppercase tracking-[0.08em] text-slate-400">No news articles yet.</p>
+                <p class="mt-1 text-xs uppercase tracking-[0.08em] text-slate-600">Check back soon for the latest gaming news.</p>
             </div>
         @endif
+
     </div>
+</div>
 @endsection

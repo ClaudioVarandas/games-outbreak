@@ -110,7 +110,7 @@
 
 {{-- TABLE ROW VARIANT --}}
 @if($variant === 'table-row')
-<div class="relative flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-gray-200 dark:border-gray-700">
+<div class="relative flex items-center gap-4 p-3 transition-colors hover:bg-white/[0.03]">
     {{-- Small Cover Thumbnail --}}
     <a href="{{ $linkUrl }}" class="flex-shrink-0">
         <div class="w-12 h-16 rounded overflow-hidden bg-gray-200 dark:bg-gray-700">
@@ -121,52 +121,54 @@
                      loading="lazy">
             @else
                 <div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
+                    <x-heroicon-o-photo class="w-6 h-6" />
                 </div>
             @endif
         </div>
     </a>
 
-    {{-- Game Name --}}
+    {{-- Game Name + Type + Platforms --}}
     <div class="flex-1 min-w-0">
         <a href="{{ $linkUrl }}" class="block">
-            <h3 class="font-semibold text-gray-900 dark:text-white truncate hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
+            <h3 class="font-semibold text-slate-100 truncate hover:text-cyan-300 transition-colors">
                 {{ $game->name }}
             </h3>
-            <span class="{{ $game->getGameTypeEnum()->colorClass() }} px-1.5 py-0.5 text-xs font-medium rounded inline-block mt-1">
+        </a>
+        <div class="mt-1.5 flex flex-wrap items-center gap-1">
+            <span class="{{ $game->getGameTypeEnum()->neonColorClass() }} px-1.5 py-0.5 text-xs font-medium rounded">
                 {{ $game->getGameTypeEnum()->label() }}
             </span>
-        </a>
-    </div>
-
-    {{-- Platforms (hidden on mobile) --}}
-    <div class="hidden sm:flex flex-shrink-0 gap-1 items-center">
-        @foreach($sortedPlatforms->take(4) as $platform)
-            @php
-                $enum = $platformEnums[$platform->igdb_id] ?? null;
-            @endphp
-            <span class="px-1.5 py-0.5 text-xs font-bold text-white rounded bg-{{ $enum?->color() ?? 'gray' }}-600">
-                {{ $enum?->label() ?? \Illuminate\Support\Str::limit($platform->name, 4) }}
-            </span>
-        @endforeach
-        @if($sortedPlatforms->count() > 4)
-            <span class="px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-                +{{ $sortedPlatforms->count() - 4 }}
-            </span>
-        @endif
-    </div>
-
-    {{-- Release Date --}}
-    <div class="flex-shrink-0 text-right hidden xs:block">
-        <span class="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-            @if($isTba)
-                {{ 'TBA' }}
-            @else
-                {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+            @foreach($sortedPlatforms->take(4) as $platform)
+                @php $enum = $platformEnums[$platform->igdb_id] ?? null; @endphp
+                <span class="neon-platform-pill">
+                    {{ $enum?->label() ?? \Illuminate\Support\Str::limit($platform->name, 4) }}
+                </span>
+            @endforeach
+            @if($sortedPlatforms->count() > 4)
+                <span class="neon-platform-pill opacity-60">+{{ $sortedPlatforms->count() - 4 }}</span>
             @endif
-        </span>
+        </div>
+    </div>
+
+    {{-- Day --}}
+    <div class="flex-shrink-0">
+        @if($isTba || !($displayReleaseDateFormatted ?? $releaseDate))
+            <span class="text-[0.7rem] font-bold uppercase tracking-[0.06em] text-slate-500">TBA</span>
+        @else
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-14 w-14 text-white/30">
+                <rect x="2.75" y="3.75" width="18.5" height="17.5" rx="2.25" stroke="currentColor" stroke-width="1.25"/>
+                <rect x="2.75" y="3.75" width="18.5" height="6" rx="2.25" fill="currentColor" opacity="0.25"/>
+                <line x1="7.5" y1="2" x2="7.5" y2="5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="16.5" y1="2" x2="16.5" y2="5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <text x="12" y="17.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#63f3ff" font-family="Inter, ui-sans-serif, system-ui, sans-serif" filter="url(#glow-{{ $cardId }})">{{ $releaseDate->format('j') }}</text>
+                <defs>
+                    <filter id="glow-{{ $cardId }}" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="1" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                </defs>
+            </svg>
+        @endif
     </div>
 
     {{-- Quick Actions --}}
@@ -176,8 +178,8 @@
 </div>
 @else
 {{-- Wrapper for card + mobile buttons --}}
-<div class="{{ $variant === 'neon' && $carousel ? 'flex h-full flex-shrink-0 w-[12.1rem] md:w-[12.6rem]' : (($variant === 'carousel' || $carousel) ? 'flex-shrink-0 w-56 md:w-64' : '') }}">
-    <a href="{{ $linkUrl }}" class="group block transition-all duration-300 hover:z-30 {{ $variant === 'neon' && $carousel ? 'flex h-full w-full' : '' }}">
+<div class="{{ $variant === 'neon' && $carousel ? 'flex h-full flex-shrink-0 w-[calc(50vw-1.5rem)] md:w-[12.6rem]' : (($variant === 'carousel' || $carousel) ? 'flex-shrink-0 w-56 md:w-64' : '') }}">
+    <a href="{{ $linkUrl }}" class="group block outline-none transition-all duration-300 hover:z-30 {{ $variant === 'neon' && $carousel ? 'flex h-full w-full' : '' }}">
         <div class="{{ $containerClasses }}">
         <!-- Cover Image Container -->
         <div class="{{ $imageContainerClasses }} group/card">
@@ -233,9 +235,7 @@
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-lg">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
+                        <x-heroicon-o-x-mark class="w-4 h-4" />
                     </button>
                 </form>
             @endif

@@ -1,4 +1,3 @@
-{{-- resources/views/layouts/app.blade.php --}}
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -31,19 +30,21 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
+<body class="@yield('body-class', 'bg-gray-100 dark:bg-gray-900') text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
 
 <x-header />
-
-@if(request()->is('/'))
-    <x-releases-nav active="" />
-@endif
 
 <main class="flex-1">
     @yield('content')
 </main>
 
 <x-footer />
+
+@guest
+    <x-auth.login-modal />
+    <x-auth.register-modal />
+    <x-auth.forgot-password-modal />
+@endguest
 
 @stack('scripts')
 

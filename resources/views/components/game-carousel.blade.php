@@ -6,9 +6,10 @@
     'carouselId' => 'game-carousel-' . uniqid(),
     'platformEnums' => null,
     'variant' => 'glassmorphism',
+    'showDots' => true,
 ])
 
-<section class="my-6">
+<section class="my-6 min-w-0">
     @if($title)
         <h2 class="text-3xl font-bold mb-8 flex items-center text-gray-800 dark:text-gray-100">
             @if($titleIcon)
@@ -21,16 +22,14 @@
     <div class="relative group/carousel {{ $variant === 'neon' ? 'neon-carousel-shell' : '' }}">
         @if($games && $games->count() > 0)
             @if($variant === 'neon')
-                <div class="neon-release-carousel-shell w-full max-w-full">
+                <div class="neon-release-carousel-shell w-full max-w-full min-w-0">
                     <div class="neon-release-carousel-viewport">
                         <button
                             type="button"
                             aria-label="Previous upcoming releases"
                             onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: -400, behavior: 'smooth'})"
-                            class="neon-carousel-arrow hidden md:flex items-center justify-center rounded-full border border-cyan-300/20 bg-slate-900/95 text-white shadow-2xl transition-all duration-300 hover:border-orange-300/40 hover:bg-slate-900 left-3">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/>
-                            </svg>
+                            class="neon-carousel-arrow hidden md:flex items-center justify-center rounded-full border border-cyan-300/20 bg-slate-900/95 text-white transition-all duration-300 hover:border-orange-300/40 hover:bg-slate-900 left-3">
+                            <x-heroicon-o-chevron-left class="h-5 w-5" />
                         </button>
 
                         <div class="neon-release-carousel-edge neon-release-carousel-edge--left hidden md:block"></div>
@@ -66,10 +65,8 @@
                             type="button"
                             aria-label="Next upcoming releases"
                             onclick="document.getElementById('{{ $carouselId }}').scrollBy({left: 400, behavior: 'smooth'})"
-                            class="neon-carousel-arrow hidden md:flex items-center justify-center rounded-full border border-cyan-300/20 bg-slate-900/95 text-white shadow-2xl transition-all duration-300 hover:border-orange-300/40 hover:bg-slate-900 right-3">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
-                            </svg>
+                            class="neon-carousel-arrow hidden md:flex items-center justify-center rounded-full border border-cyan-300/20 bg-slate-900/95 text-white transition-all duration-300 hover:border-orange-300/40 hover:bg-slate-900 right-3">
+                            <x-heroicon-o-chevron-right class="h-5 w-5" />
                         </button>
                     </div>
                 </div>
@@ -85,9 +82,7 @@
                             class="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-black/70 hover:bg-black/90 text-white p-4 rounded-full
                                opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 shadow-2xl
                                pointer-events-auto">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/>
-                            </svg>
+                            <x-heroicon-o-chevron-left class="w-8 h-8" />
                         </button>
 
                         <button
@@ -96,9 +91,7 @@
                             class="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-black/70 hover:bg-black/90 text-white p-4 rounded-full
                                opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 shadow-2xl
                                pointer-events-auto">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
-                            </svg>
+                            <x-heroicon-o-chevron-right class="w-8 h-8" />
                         </button>
 
                         <div id="{{ $carouselId }}" class="carousel-inner overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory">
@@ -130,16 +123,18 @@
                 </div>
             @endif
 
+            @if($showDots)
             <!-- Pagination Dots (Mobile only) -->
             <div class="flex md:hidden justify-center gap-2 mt-4" id="{{ $carouselId }}-dots">
                 @foreach($games as $index => $game)
                     <button
                         onclick="scrollCarouselToIndex('{{ $carouselId }}', {{ $index }})"
-                        class="carousel-dot w-2 h-2 rounded-full bg-gray-600 transition-all duration-300"
+                        class="carousel-dot w-2.5 h-2.5 rounded-full bg-white/30 transition-all duration-300"
                         data-index="{{ $index }}">
                     </button>
                 @endforeach
             </div>
+            @endif
         @else
             <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
                 <p class="text-lg text-gray-600 dark:text-gray-400">
@@ -180,11 +175,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             dots.forEach((dot, index) => {
                 if (index === currentIndex) {
-                    dot.classList.remove('bg-gray-600');
-                    dot.classList.add('bg-orange-500', 'w-6');
+                    dot.classList.remove('bg-white/30', 'w-2.5');
+                    dot.classList.add('bg-cyan-400', 'w-5');
                 } else {
-                    dot.classList.remove('bg-orange-500', 'w-6');
-                    dot.classList.add('bg-gray-600');
+                    dot.classList.remove('bg-cyan-400', 'w-5');
+                    dot.classList.add('bg-white/30', 'w-2.5');
                 }
             });
         }

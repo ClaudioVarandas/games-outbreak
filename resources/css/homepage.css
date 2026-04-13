@@ -15,16 +15,11 @@
     position: relative;
 }
 
-.theme-neon::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -2;
-    pointer-events: none;
+body.neon-body {
     background:
-        radial-gradient(circle at top left, rgba(255, 138, 42, 0.14), transparent 26%),
-        radial-gradient(circle at top right, rgba(124, 58, 237, 0.16), transparent 32%),
-        linear-gradient(180deg, #1a1f2f 0%, #252c41 50%, #181d2a 100%);
+        radial-gradient(circle at top left, rgba(255, 138, 42, 0.14), transparent 24%),
+        radial-gradient(circle at top right, rgba(109, 40, 217, 0.18), transparent 30%),
+        linear-gradient(180deg, #262c42 0%, #2e3550 50%, #21273c 100%);
 }
 
 .theme-neon::after {
@@ -38,7 +33,7 @@
         linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
     background-size: 28px 28px;
     mask-image: radial-gradient(circle at center, black 40%, transparent 88%);
-    opacity: 0.45;
+    opacity: 0.5;
 }
 
 .site-header {
@@ -190,6 +185,12 @@
         rgba(255, 255, 255, 0.025);
     border: 1px dashed rgba(255, 255, 255, 0.14);
     transition: transform 250ms ease, border-color 250ms ease, box-shadow 250ms ease;
+    outline: none;
+}
+
+.neon-card:focus-visible {
+    outline: 2px solid rgba(99, 243, 255, 0.5);
+    outline-offset: 3px;
 }
 
 .neon-card::before {
@@ -284,6 +285,15 @@
     background: var(--neon-cyan);
     box-shadow: 0 0 12px var(--neon-cyan);
     flex-shrink: 0;
+}
+
+.neon-eyebrow--orange {
+    color: var(--neon-orange);
+}
+
+.neon-eyebrow--orange::before {
+    background: var(--neon-orange);
+    box-shadow: 0 0 12px var(--neon-orange);
 }
 
 .neon-section-heading {
@@ -381,21 +391,22 @@
 
 .neon-release-carousel-edge {
     position: absolute;
-    top: 1.15rem;
-    height: 19.25rem;
-    width: 2.875rem;
+    top: 0;
+    height: 100%;
+    width: 6.875rem;
     z-index: 20;
     pointer-events: none;
-    border-radius: 1.5rem;
 }
 
 .neon-release-carousel-edge--left {
     left: 0;
+    border-radius: 1.25rem 0 0 1.25rem;
     background: linear-gradient(90deg, rgba(24, 28, 46, 0.92), rgba(24, 28, 46, 0));
 }
 
 .neon-release-carousel-edge--right {
     right: 0;
+    border-radius: 0 1.25rem 1.25rem 0;
     background: linear-gradient(270deg, rgba(24, 28, 46, 0.92), rgba(24, 28, 46, 0));
 }
 
@@ -439,7 +450,7 @@
 
 @media (min-width: 768px) {
     .neon-release-carousel-viewport {
-        max-width: calc((6 * var(--neon-release-card-width)) + (5 * var(--neon-release-card-gap)));
+        max-width: calc((6 * var(--neon-release-card-width)) + (9 * var(--neon-release-card-gap)));
     }
 
     .neon-release-carousel-track {
@@ -555,4 +566,5 @@
         padding: 1rem;
         border-radius: 1.5rem;
     }
+
 }

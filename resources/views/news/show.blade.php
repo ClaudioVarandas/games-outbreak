@@ -79,8 +79,8 @@
                 </div>
             @endif
 
-            <!-- Author Info -->
-            @if($news->author)
+            {{-- Author Info (hidden) --}}
+            {{-- @if($news->author)
                 <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
@@ -92,11 +92,11 @@
                         </div>
                     </div>
                 </div>
-            @endif
+            @endif --}}
         </article>
 
-        <!-- Related News -->
-        @if($relatedNews->isNotEmpty())
+        {{-- Related News (hidden) --}}
+        {{-- @if($relatedNews->isNotEmpty())
             <div class="max-w-4xl mx-auto mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Related News</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -120,6 +120,6 @@
                     @endforeach
                 </div>
             </div>
-        @endif
+        @endif --}}
     </div>
 @endsection

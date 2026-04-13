@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminGenreController;
 use App\Http\Controllers\AdminListController;
 use App\Http\Controllers\AdminNewsController;
 use App\Http\Controllers\Api\UserGameController as ApiUserGameController;
+use App\Http\Controllers\EventsController;
 use App\Http\Controllers\GameListController;
 use App\Http\Controllers\GamesController;
 use App\Http\Controllers\HomepageController;
@@ -39,6 +40,7 @@ Route::redirect('/releases/indie-games', '/releases', 301);
 Route::redirect('/indie-games', '/releases', 301);
 Route::redirect('/highlights', '/releases', 301);
 
+Route::get('/events', EventsController::class)->name('events');
 Route::get('/upcoming', [GamesController::class, 'upcoming'])->name('upcoming');
 Route::get('/most-wanted', [GamesController::class, 'mostWanted'])->name('most-wanted');
 Route::get('/game/{game:slug}', [GamesController::class, 'show'])->name('game.show');

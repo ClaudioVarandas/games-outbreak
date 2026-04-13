@@ -509,6 +509,11 @@ class GameList extends Model
                     $monthLabel = 'To Be Announced';
                     $monthNumber = null;
                 } else {
+                    // Skip games whose release date falls outside this list's year
+                    if ($this->start_at && $releaseDate->year !== (int) $this->start_at->year) {
+                        continue;
+                    }
+
                     $monthNumber = (int) $releaseDate->month;
 
                     if ($filterMonth !== null && $monthNumber !== $filterMonth) {
