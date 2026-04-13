@@ -1,0 +1,100 @@
+<?php
+
+use App\Contracts\NewsGenerationServiceInterface;
+use App\Services\AnthropicNewsGenerationService;
+use App\Support\News\MarkdownToTiptapConverter;
+use Illuminate\Support\Facades\Http;
+
+beforeEach(function () {
+    config([
+        'services.anthropic.api_key' => 'test-key',
+        'services.anthropic.model' => 'claude-haiku-4-5-20251001',
+        'services.anthropic.version' => '2023-06-01',
+    ]);
+});
+
+it('implements NewsGenerationServiceInterface', function () {
+    $service = new AnthropicNewsGenerationService(new MarkdownToTiptapConverter);
+
+    expect($service)->toBeInstanceOf(NewsGenerationServiceInterface::class);
+});
+
+it('calls Anthropic and returns both locales with converted body', function () {
+    Http::fake([
+        'api.anthropic.com/*' => Http::response([
+            'content' => [[
+                'type' => 'text',
+                'text' => json_encode([
+                    'pt-PT' => [
+                        'title' => 'Jogo PT',
+                        'summary_short' => 'Curto PT.',
+                        'summary_medium' => 'Médio PT.',
+                        'body_markdown' => "## Visão\n\nTexto PT.",
+                        'seo_title' => 'SEO PT',
+                        'seo_description' => 'Desc PT.',
+                    ],
+                    'pt-BR' => [
+                        'title' => 'Jogo BR',
+                        'summary_short' => 'Curto BR.',
+                        'summary_medium' => 'Médio BR.',
+                        'body_markdown' => "## Visão\n\nTexto BR.",
+                        'seo_title' => 'SEO BR',
+                        'seo_description' => 'Desc BR.',
+                    ],
+                ]),
+            ]],
+        ], 200),
+    ]);
+
+    $service = new AnthropicNewsGenerationService(new MarkdownToTiptapConverter);
+    $result = $service->summarizeAndLocalize([
+        'title' => 'Game Announced',
+        'content' => "## Overview\n\nContent.",
+        'source' => 'IGN',
+    ]);
+
+    expect($result)->toHaveKeys(['pt-PT', 'pt-BR']);
+    expect($result['pt-PT']['title'])->toBe('Jogo PT');
+    expect($result['pt-PT']['body'])->toBeArray();
+    expect($result['pt-PT']['body']['type'])->toBe('doc');
+    expect($result['pt-BR']['title'])->toBe('Jogo BR');
+});
+
+it('throws RuntimeException on Anthropic API failure', function () {
+    Http::fake([
+        'api.anthropic.com/*' => Http::response(['error' => ['message' => 'Unauthorized']], 401),
+    ]);
+
+    $service = new AnthropicNewsGenerationService(new MarkdownToTiptapConverter);
+
+    expect(fn () => $service->summarizeAndLocalize([
+        'title' => 'Test',
+        'content' => 'Content',
+        'source' => 'Test',
+    ]))->toThrow(RuntimeException::class);
+});
+
+it('throws RuntimeException when response missing locale keys', function () {
+    Http::fake([
+        'api.anthropic.com/*' => Http::response([
+            'content' => [[
+                'type' => 'text',
+                'text' => json_encode(['wrong_key' => []]),
+            ]],
+        ], 200),
+    ]);
+
+    $service = new AnthropicNewsGenerationService(new MarkdownToTiptapConverter);
+
+    expect(fn () => $service->summarizeAndLocalize([
+        'title' => 'Test',
+        'content' => 'Content',
+        'source' => 'Test',
+    ]))->toThrow(RuntimeException::class);
+});
+
+it('can be resolved from container via interface binding', function () {
+    $service = app(NewsGenerationServiceInterface::class);
+
+    expect($service)->toBeInstanceOf(AnthropicNewsGenerationService::class);
+});
