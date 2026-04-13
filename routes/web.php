@@ -10,6 +10,7 @@ use App\Http\Controllers\EventsController;
 use App\Http\Controllers\GameListController;
 use App\Http\Controllers\GamesController;
 use App\Http\Controllers\HomepageController;
+use App\Http\Controllers\NewsArticleController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReleasesController;
@@ -65,6 +66,16 @@ Route::middleware([EnsureNewsFeatureEnabled::class])
     ->group(function () {
         Route::get('/', [NewsController::class, 'index'])->name('index');
         Route::get('/{news:slug}', [NewsController::class, 'show'])->name('show');
+    });
+
+// Localized news routes (pt-pt/noticias, pt-br/noticias)
+Route::middleware([EnsureNewsFeatureEnabled::class])
+    ->prefix('{localePrefix}/noticias')
+    ->where(['localePrefix' => 'pt-pt|pt-br'])
+    ->name('news-articles.')
+    ->group(function () {
+        Route::get('/', [NewsArticleController::class, 'index'])->name('index');
+        Route::get('/{slug}', [NewsArticleController::class, 'show'])->name('show');
     });
 
 // Public list view (read-only)
