@@ -25,4 +25,14 @@ return [
     |
     */
     'news_url_import' => env('FEATURE_NEWS_URL_IMPORT', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | News Import Pipeline
+    |--------------------------------------------------------------------------
+    |
+    | Enables the queued URL import pipeline with AI localisation.
+    |
+    */
+    'news_import_pipeline' => env('FEATURE_NEWS_IMPORT_PIPELINE', false),
 ];

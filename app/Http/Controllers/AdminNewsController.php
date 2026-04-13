@@ -7,6 +7,7 @@ use App\Enums\NewsStatusEnum;
 use App\Http\Requests\StoreNewsRequest;
 use App\Http\Requests\UpdateNewsRequest;
 use App\Models\News;
+use App\Support\News\MarkdownToTiptapConverter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,7 +78,7 @@ class AdminNewsController extends Controller
             ->with('success', 'News article deleted successfully.');
     }
 
-    public function importFromUrl(Request $request, ContentExtractorInterface $extractor): JsonResponse
+    public function importFromUrl(Request $request, ContentExtractorInterface $extractor, MarkdownToTiptapConverter $converter): JsonResponse
     {
         if (! config('features.news_url_import')) {
             return response()->json(['error' => 'URL import feature is disabled.'], 403);
@@ -101,7 +102,7 @@ class AdminNewsController extends Controller
             ], 422);
         }
 
-        $tiptapContent = $this->markdownToTiptap($data['content'] ?? '');
+        $tiptapContent = $converter->convert($data['content'] ?? '');
 
         return response()->json([
             'success' => true,
@@ -114,74 +115,5 @@ class AdminNewsController extends Controller
                 'source_name' => $data['source_name'],
             ],
         ]);
-    }
-
-    protected function markdownToTiptap(string $markdown): array
-    {
-        $content = [];
-        $lines = explode("\n", $markdown);
-        $currentParagraph = '';
-
-        foreach ($lines as $line) {
-            $trimmedLine = trim($line);
-
-            if (empty($trimmedLine)) {
-                if (! empty($currentParagraph)) {
-                    $content[] = [
-                        'type' => 'paragraph',
-                        'content' => [
-                            ['type' => 'text', 'text' => $currentParagraph],
-                        ],
-                    ];
-                    $currentParagraph = '';
-                }
-
-                continue;
-            }
-
-            if (preg_match('/^#{1,6}\s+(.+)$/', $trimmedLine, $matches)) {
-                if (! empty($currentParagraph)) {
-                    $content[] = [
-                        'type' => 'paragraph',
-                        'content' => [
-                            ['type' => 'text', 'text' => $currentParagraph],
-                        ],
-                    ];
-                    $currentParagraph = '';
-                }
-
-                $level = strlen(preg_replace('/[^#]/', '', $trimmedLine));
-                $content[] = [
-                    'type' => 'heading',
-                    'attrs' => ['level' => min($level, 6)],
-                    'content' => [
-                        ['type' => 'text', 'text' => $matches[1]],
-                    ],
-                ];
-
-                continue;
-            }
-
-            if (! empty($currentParagraph)) {
-                $currentParagraph .= ' ';
-            }
-            $currentParagraph .= $trimmedLine;
-        }
-
-        if (! empty($currentParagraph)) {
-            $content[] = [
-                'type' => 'paragraph',
-                'content' => [
-                    ['type' => 'text', 'text' => $currentParagraph],
-                ],
-            ];
-        }
-
-        return [
-            'type' => 'doc',
-            'content' => $content ?: [
-                ['type' => 'paragraph', 'content' => []],
-            ],
-        ];
     }
 }
