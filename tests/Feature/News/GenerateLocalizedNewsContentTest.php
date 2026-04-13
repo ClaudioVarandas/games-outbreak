@@ -14,35 +14,49 @@ beforeEach(function () {
     ]);
 });
 
+/** Returns a 3-locale payload (en + pt-PT + pt-BR). */
+function threeLocalePayload(): array
+{
+    return [
+        'en' => [
+            'title' => 'Game EN',
+            'summary_short' => 'Short EN.',
+            'summary_medium' => 'Medium EN.',
+            'body_markdown' => "## Overview\n\nContent EN.",
+            'seo_title' => 'SEO EN',
+            'seo_description' => 'Desc EN.',
+        ],
+        'pt-PT' => [
+            'title' => 'Jogo PT',
+            'summary_short' => 'Curto PT.',
+            'summary_medium' => 'Médio PT.',
+            'body_markdown' => "## Visão\n\nTexto PT.",
+            'seo_title' => 'SEO PT',
+            'seo_description' => 'Desc PT.',
+        ],
+        'pt-BR' => [
+            'title' => 'Jogo BR',
+            'summary_short' => 'Curto BR.',
+            'summary_medium' => 'Médio BR.',
+            'body_markdown' => "## Visão\n\nTexto BR.",
+            'seo_title' => 'SEO BR',
+            'seo_description' => 'Desc BR.',
+        ],
+    ];
+}
+
 it('implements NewsGenerationServiceInterface', function () {
     $service = new AnthropicNewsGenerationService(new MarkdownToTiptapConverter);
 
     expect($service)->toBeInstanceOf(NewsGenerationServiceInterface::class);
 });
 
-it('calls Anthropic and returns both locales with converted body', function () {
+it('calls Anthropic and returns all three locales with converted body', function () {
     Http::fake([
         'api.anthropic.com/*' => Http::response([
             'content' => [[
                 'type' => 'text',
-                'text' => json_encode([
-                    'pt-PT' => [
-                        'title' => 'Jogo PT',
-                        'summary_short' => 'Curto PT.',
-                        'summary_medium' => 'Médio PT.',
-                        'body_markdown' => "## Visão\n\nTexto PT.",
-                        'seo_title' => 'SEO PT',
-                        'seo_description' => 'Desc PT.',
-                    ],
-                    'pt-BR' => [
-                        'title' => 'Jogo BR',
-                        'summary_short' => 'Curto BR.',
-                        'summary_medium' => 'Médio BR.',
-                        'body_markdown' => "## Visão\n\nTexto BR.",
-                        'seo_title' => 'SEO BR',
-                        'seo_description' => 'Desc BR.',
-                    ],
-                ]),
+                'text' => json_encode(threeLocalePayload()),
             ]],
         ], 200),
     ]);
@@ -54,9 +68,11 @@ it('calls Anthropic and returns both locales with converted body', function () {
         'source' => 'IGN',
     ]);
 
-    expect($result)->toHaveKeys(['pt-PT', 'pt-BR']);
+    expect($result)->toHaveKeys(['en', 'pt-PT', 'pt-BR']);
+    expect($result['en']['title'])->toBe('Game EN');
+    expect($result['en']['body'])->toBeArray();
+    expect($result['en']['body']['type'])->toBe('doc');
     expect($result['pt-PT']['title'])->toBe('Jogo PT');
-    expect($result['pt-PT']['body'])->toBeArray();
     expect($result['pt-PT']['body']['type'])->toBe('doc');
     expect($result['pt-BR']['title'])->toBe('Jogo BR');
 });
@@ -112,29 +128,12 @@ it('OpenAiNewsGenerationService implements NewsGenerationServiceInterface', func
     expect($service)->toBeInstanceOf(NewsGenerationServiceInterface::class);
 });
 
-it('OpenAiNewsGenerationService calls OpenAI and returns both locales with converted body', function () {
+it('OpenAiNewsGenerationService calls OpenAI and returns all three locales with converted body', function () {
     Http::fake([
         'api.openai.com/*' => Http::response([
             'choices' => [[
                 'message' => [
-                    'content' => json_encode([
-                        'pt-PT' => [
-                            'title' => 'Jogo PT',
-                            'summary_short' => 'Curto PT.',
-                            'summary_medium' => 'Médio PT.',
-                            'body_markdown' => "## Visão\n\nTexto PT.",
-                            'seo_title' => 'SEO PT',
-                            'seo_description' => 'Desc PT.',
-                        ],
-                        'pt-BR' => [
-                            'title' => 'Jogo BR',
-                            'summary_short' => 'Curto BR.',
-                            'summary_medium' => 'Médio BR.',
-                            'body_markdown' => "## Visão\n\nTexto BR.",
-                            'seo_title' => 'SEO BR',
-                            'seo_description' => 'Desc BR.',
-                        ],
-                    ]),
+                    'content' => json_encode(threeLocalePayload()),
                 ],
             ]],
         ], 200),
@@ -147,9 +146,10 @@ it('OpenAiNewsGenerationService calls OpenAI and returns both locales with conve
         'source' => 'IGN',
     ]);
 
-    expect($result)->toHaveKeys(['pt-PT', 'pt-BR']);
+    expect($result)->toHaveKeys(['en', 'pt-PT', 'pt-BR']);
+    expect($result['en']['title'])->toBe('Game EN');
+    expect($result['en']['body']['type'])->toBe('doc');
     expect($result['pt-PT']['title'])->toBe('Jogo PT');
-    expect($result['pt-PT']['body'])->toBeArray();
     expect($result['pt-PT']['body']['type'])->toBe('doc');
     expect($result['pt-BR']['title'])->toBe('Jogo BR');
 });

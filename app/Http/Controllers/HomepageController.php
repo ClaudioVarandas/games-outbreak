@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ListTypeEnum;
+use App\Enums\NewsLocaleEnum;
 use App\Enums\PlatformEnum;
 use App\Http\Middleware\EnsureNewsFeatureEnabled;
 use App\Models\Game;
 use App\Models\GameList;
-use App\Models\News;
+use App\Models\NewsArticle;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -114,7 +115,11 @@ class HomepageController extends Controller
         $eventBanners = $this->getEventBanners();
         $newsEnabled = EnsureNewsFeatureEnabled::isVisibleTo(auth()->user());
         $homepageNews = $newsEnabled
-            ? News::published()->with('author')->orderByDesc('published_at')->limit(5)->get()
+            ? NewsArticle::published()
+                ->with(['localizations' => fn ($q) => $q->where('locale', NewsLocaleEnum::PtPt->value)])
+                ->orderByDesc('published_at')
+                ->limit(5)
+                ->get()
             : collect();
         $featuredNews = $homepageNews->first();
         $topNews = $homepageNews->slice(1)->values();

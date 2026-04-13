@@ -1,17 +1,16 @@
 <?php
 
+use App\Enums\NewsLocaleEnum;
 use App\Http\Controllers\Admin\News\NewsArticleController as AdminNewsArticleController;
 use App\Http\Controllers\Admin\News\NewsImportController as AdminNewsImportController;
 use App\Http\Controllers\AdminGenreController;
 use App\Http\Controllers\AdminListController;
-use App\Http\Controllers\AdminNewsController;
 use App\Http\Controllers\Api\UserGameController as ApiUserGameController;
 use App\Http\Controllers\EventsController;
 use App\Http\Controllers\GameListController;
 use App\Http\Controllers\GamesController;
 use App\Http\Controllers\HomepageController;
 use App\Http\Controllers\NewsArticleController;
-use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReleasesController;
 use App\Http\Controllers\UserGameController;
@@ -57,18 +56,19 @@ Route::get('/search', [GamesController::class, 'searchResults'])->middleware('pr
 Route::get('/game/{game:slug}/similar-games-html', [GamesController::class, 'similarGamesHtml'])->middleware('prevent-caching')->name('game.similar.html');
 
 // ============================================================================
-// News Routes (Public)
+// News Routes (Public — localized)
 // ============================================================================
 
+// EN news routes
 Route::middleware([EnsureNewsFeatureEnabled::class])
-    ->prefix('news')
-    ->name('news.')
+    ->prefix('en/news')
+    ->name('news-articles.en.')
     ->group(function () {
-        Route::get('/', [NewsController::class, 'index'])->name('index');
-        Route::get('/{news:slug}', [NewsController::class, 'show'])->name('show');
+        Route::get('/', fn () => app(NewsArticleController::class)->index('en'))->name('index');
+        Route::get('/{slug}', fn (string $slug) => app(NewsArticleController::class)->show('en', $slug))->name('show');
     });
 
-// Localized news routes (pt-pt/noticias, pt-br/noticias)
+// PT news routes (pt-pt/noticias, pt-br/noticias)
 Route::middleware([EnsureNewsFeatureEnabled::class])
     ->prefix('{localePrefix}/noticias')
     ->where(['localePrefix' => 'pt-pt|pt-br'])
@@ -77,6 +77,11 @@ Route::middleware([EnsureNewsFeatureEnabled::class])
         Route::get('/', [NewsArticleController::class, 'index'])->name('index');
         Route::get('/{slug}', [NewsArticleController::class, 'show'])->name('show');
     });
+
+// Default redirect — /news → locale from app.locale
+Route::middleware([EnsureNewsFeatureEnabled::class])
+    ->get('/news', fn () => redirect(NewsLocaleEnum::fromAppLocale()->indexUrl()))
+    ->name('news-articles.default');
 
 // Public list view (read-only)
 Route::get('/list/{type}/{slug}', [GameListController::class, 'showBySlug'])->name('lists.show');
@@ -193,20 +198,6 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
 
         // All users' lists overview
         Route::get('/user-lists', [AdminListController::class, 'userLists'])->name('user-lists');
-
-        // News management
-        Route::middleware([EnsureNewsFeatureEnabled::class])
-            ->prefix('news')
-            ->name('news.')
-            ->group(function () {
-                Route::get('/', [AdminNewsController::class, 'index'])->name('index');
-                Route::get('/create', [AdminNewsController::class, 'create'])->name('create');
-                Route::post('/', [AdminNewsController::class, 'store'])->name('store');
-                Route::get('/{news}/edit', [AdminNewsController::class, 'edit'])->name('edit');
-                Route::patch('/{news}', [AdminNewsController::class, 'update'])->name('update');
-                Route::delete('/{news}', [AdminNewsController::class, 'destroy'])->name('destroy');
-                Route::post('/import-url', [AdminNewsController::class, 'importFromUrl'])->name('import-url');
-            });
 
         // Genre management
         Route::prefix('genres')

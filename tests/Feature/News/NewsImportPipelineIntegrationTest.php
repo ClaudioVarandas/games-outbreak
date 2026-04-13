@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
 it('runs full pipeline: url → extract → generate → article in review', function () {
     config([
         'services.anthropic.api_key' => 'test-key',
-        'services.anthropic.model'   => 'claude-haiku-4-5-20251001',
+        'services.anthropic.model' => 'claude-haiku-4-5-20251001',
         'services.anthropic.version' => '2023-06-01',
     ]);
 
@@ -26,20 +26,28 @@ it('runs full pipeline: url → extract → generate → article in review', fun
             'content' => [[
                 'type' => 'text',
                 'text' => json_encode([
+                    'en' => [
+                        'title' => 'Game EN',
+                        'summary_short' => 'Short EN.',
+                        'summary_medium' => 'Medium EN.',
+                        'body_markdown' => "## Overview\n\nContent EN.",
+                        'seo_title' => 'SEO EN',
+                        'seo_description' => 'Desc EN.',
+                    ],
                     'pt-PT' => [
-                        'title'           => 'Jogo PT',
-                        'summary_short'   => 'Curto PT.',
-                        'summary_medium'  => 'Médio PT.',
-                        'body_markdown'   => "## Título\n\nConteúdo PT.",
-                        'seo_title'       => 'SEO PT',
+                        'title' => 'Jogo PT',
+                        'summary_short' => 'Curto PT.',
+                        'summary_medium' => 'Médio PT.',
+                        'body_markdown' => "## Título\n\nConteúdo PT.",
+                        'seo_title' => 'SEO PT',
                         'seo_description' => 'Desc PT.',
                     ],
                     'pt-BR' => [
-                        'title'           => 'Jogo BR',
-                        'summary_short'   => 'Curto BR.',
-                        'summary_medium'  => 'Médio BR.',
-                        'body_markdown'   => "## Título\n\nConteúdo BR.",
-                        'seo_title'       => 'SEO BR',
+                        'title' => 'Jogo BR',
+                        'summary_short' => 'Curto BR.',
+                        'summary_medium' => 'Médio BR.',
+                        'body_markdown' => "## Título\n\nConteúdo BR.",
+                        'seo_title' => 'SEO BR',
                         'seo_description' => 'Desc BR.',
                     ],
                 ]),
@@ -54,10 +62,10 @@ it('runs full pipeline: url → extract → generate → article in review', fun
     $extractor->shouldReceive('extract')
         ->once()
         ->andReturn([
-            'title'       => 'New Game Released for 2026',
-            'content'     => "## Overview\n\nBig announcement today.",
-            'image'       => 'https://cdn.example.com/game.jpg',
-            'summary'     => 'Big announcement.',
+            'title' => 'New Game Released for 2026',
+            'content' => "## Overview\n\nBig announcement today.",
+            'image' => 'https://cdn.example.com/game.jpg',
+            'summary' => 'Big announcement.',
             'source_name' => 'IGN',
         ]);
 
@@ -70,11 +78,15 @@ it('runs full pipeline: url → extract → generate → article in review', fun
 
     expect($import->fresh()->status)->toBe(NewsImportStatusEnum::Ready);
     expect($article->status)->toBe(NewsArticleStatusEnum::Review);
-    expect($article->localizations)->toHaveCount(2);
+    expect($article->localizations)->toHaveCount(3);
+
+    $en = $article->localizations->firstWhere('locale', 'en');
+    expect($en->title)->toBe('Game EN');
+    expect($en->body)->toBeArray();
+    expect($en->body['type'])->toBe('doc');
 
     $ptPt = $article->localizations->firstWhere('locale', 'pt-PT');
     expect($ptPt->title)->toBe('Jogo PT');
-    expect($ptPt->body)->toBeArray();
     expect($ptPt->body['type'])->toBe('doc');
 
     $ptBr = $article->localizations->firstWhere('locale', 'pt-BR');

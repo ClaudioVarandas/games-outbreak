@@ -19,7 +19,7 @@ class MarkdownToTiptapConverter
                 if (! empty($currentParagraph)) {
                     $content[] = [
                         'type' => 'paragraph',
-                        'content' => [['type' => 'text', 'text' => $currentParagraph]],
+                        'content' => $this->parseInline($currentParagraph),
                     ];
                     $currentParagraph = '';
                 }
@@ -27,19 +27,20 @@ class MarkdownToTiptapConverter
                 continue;
             }
 
-            if (preg_match('/^#{1,6}\s+(.+)$/', $trimmedLine, $matches)) {
+            if (preg_match('/^(#{1,6})\s+(.+)$/', $trimmedLine, $matches)) {
                 if (! empty($currentParagraph)) {
                     $content[] = [
                         'type' => 'paragraph',
-                        'content' => [['type' => 'text', 'text' => $currentParagraph]],
+                        'content' => $this->parseInline($currentParagraph),
                     ];
                     $currentParagraph = '';
                 }
-                $level = strlen(preg_replace('/[^#]/', '', $trimmedLine));
+
+                $level = min(strlen($matches[1]), 6);
                 $content[] = [
                     'type' => 'heading',
-                    'attrs' => ['level' => min($level, 6)],
-                    'content' => [['type' => 'text', 'text' => $matches[1]]],
+                    'attrs' => ['level' => $level],
+                    'content' => $this->parseInline($matches[2]),
                 ];
 
                 continue;
@@ -54,7 +55,7 @@ class MarkdownToTiptapConverter
         if (! empty($currentParagraph)) {
             $content[] = [
                 'type' => 'paragraph',
-                'content' => [['type' => 'text', 'text' => $currentParagraph]],
+                'content' => $this->parseInline($currentParagraph),
             ];
         }
 
@@ -62,5 +63,36 @@ class MarkdownToTiptapConverter
             'type' => 'doc',
             'content' => $content ?: [['type' => 'paragraph', 'content' => []]],
         ];
+    }
+
+    /** Parse inline markdown (**bold**, *italic*, ***both***) into Tiptap text nodes with marks. */
+    private function parseInline(string $text): array
+    {
+        $parts = preg_split(
+            '/(\*\*\*.+?\*\*\*|\*\*.+?\*\*|\*.+?\*|_.+?_)/su',
+            $text,
+            -1,
+            PREG_SPLIT_DELIM_CAPTURE
+        );
+
+        $nodes = [];
+
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+
+            if (preg_match('/^\*\*\*(.+)\*\*\*$/su', $part, $m)) {
+                $nodes[] = ['type' => 'text', 'text' => $m[1], 'marks' => [['type' => 'bold'], ['type' => 'italic']]];
+            } elseif (preg_match('/^\*\*(.+)\*\*$/su', $part, $m)) {
+                $nodes[] = ['type' => 'text', 'text' => $m[1], 'marks' => [['type' => 'bold']]];
+            } elseif (preg_match('/^\*(.+)\*$/su', $part, $m) || preg_match('/^_(.+)_$/su', $part, $m)) {
+                $nodes[] = ['type' => 'text', 'text' => $m[1], 'marks' => [['type' => 'italic']]];
+            } else {
+                $nodes[] = ['type' => 'text', 'text' => $part];
+            }
+        }
+
+        return $nodes ?: [['type' => 'text', 'text' => '']];
     }
 }

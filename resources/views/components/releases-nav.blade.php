@@ -4,7 +4,7 @@
     <div class="container mx-auto px-4">
         <nav class="flex gap-6 py-3">
             @if(\App\Http\Middleware\EnsureNewsFeatureEnabled::isVisibleTo(auth()->user()))
-                <a href="{{ route('news.index') }}"
+                <a href="{{ route('news-articles.index', 'pt-pt') }}"
                    class="{{ $active === 'news' ? 'text-orange-400 font-semibold' : 'text-white hover:text-orange-300' }} transition">
                     News
                 </a>

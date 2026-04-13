@@ -91,13 +91,13 @@
             </div>
 
             {{-- Right: Localization tabs --}}
-            <div class="lg:col-span-2">
+            <div class="lg:col-span-2" x-data="{ tab: '{{ $locales[0]->value }}' }">
                 <form method="POST" action="{{ route('admin.news-articles.update', $article) }}">
                     @csrf
                     @method('PATCH')
 
                     {{-- Tab nav --}}
-                    <div class="flex border-b border-gray-200 dark:border-gray-700 mb-4" x-data="{ tab: '{{ $locales[0]->value }}' }">
+                    <div class="flex border-b border-gray-200 dark:border-gray-700 mb-4">
                         @foreach ($locales as $locale)
                             <button type="button"
                                     @click="tab = '{{ $locale->value }}'"
@@ -116,8 +116,11 @@
                     </div>
 
                     @foreach ($locales as $i => $locale)
-                        @php $loc = $article->localization($locale->value); @endphp
-                        <div x-show="tab === '{{ $locale->value }}'" x-data="{ tab: '{{ $locales[0]->value }}' }" class="space-y-4">
+                        @php
+                            $loc = $article->localization($locale->value);
+                            $currentSlug = $article->{$locale->slugColumn()};
+                        @endphp
+                        <div x-show="tab === '{{ $locale->value }}'" x-cloak class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
                                 <input type="text"
@@ -128,6 +131,21 @@
                                        name="localizations[{{ $i }}][title]"
                                        value="{{ old("localizations.{$i}.title", $loc?->title) }}"
                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Slug
+                                    @if ($currentSlug)
+                                        <span class="text-xs font-normal text-gray-400 ml-1">(leave blank to keep current)</span>
+                                    @else
+                                        <span class="text-xs font-normal text-orange-500 ml-1">(auto-generated on save if blank)</span>
+                                    @endif
+                                </label>
+                                <input type="text"
+                                       name="localizations[{{ $i }}][slug]"
+                                       value="{{ old("localizations.{$i}.slug", $currentSlug) }}"
+                                       placeholder="{{ $currentSlug ?? 'e.g. game-title-announcement' }}"
+                                       class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm font-mono text-sm">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Summary Short (max 160)</label>

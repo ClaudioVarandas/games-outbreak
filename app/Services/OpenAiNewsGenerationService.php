@@ -26,10 +26,15 @@ class OpenAiNewsGenerationService implements NewsGenerationServiceInterface
             'Content-Type' => 'application/json',
         ])->timeout(60)->post('https://api.openai.com/v1/chat/completions', [
             'model' => config('services.openai.model'),
-            'max_tokens' => 4096,
+            'max_completion_tokens' => 4096,
             'messages' => [
                 ['role' => 'user', 'content' => $this->buildPrompt($article)],
             ],
+        ]);
+
+        Log::debug('OpenAI raw HTTP response', [
+            'status' => $response->status(),
+            'body' => $response->body(),
         ]);
 
         if ($response->failed()) {
@@ -38,14 +43,31 @@ class OpenAiNewsGenerationService implements NewsGenerationServiceInterface
         }
 
         $raw = $response->json('choices.0.message.content', '');
-        $data = json_decode($raw, true);
 
-        if (! is_array($data) || ! isset($data['pt-PT'], $data['pt-BR'])) {
-            Log::error('OpenAI unexpected response format', ['raw' => $raw]);
+        Log::debug('OpenAI message content (raw)', ['raw' => $raw]);
+
+        // Strip markdown code fences if model wrapped the JSON
+        $stripped = trim((string) $raw);
+        if (str_starts_with($stripped, '```')) {
+            $stripped = preg_replace('/^```(?:json)?\s*/i', '', $stripped);
+            $stripped = preg_replace('/\s*```$/', '', $stripped);
+            Log::debug('OpenAI content after fence strip', ['stripped' => $stripped]);
+        }
+
+        $data = json_decode($stripped, true);
+
+        Log::debug('OpenAI decoded data', [
+            'keys' => is_array($data) ? array_keys($data) : null,
+            'json_error' => json_last_error_msg(),
+        ]);
+
+        if (! is_array($data) || ! isset($data['en'], $data['pt-PT'], $data['pt-BR'])) {
+            Log::error('OpenAI unexpected response format', ['raw' => $raw, 'stripped' => $stripped, 'decoded_keys' => is_array($data) ? array_keys($data) : null]);
             throw new RuntimeException('AI returned unexpected response format.');
         }
 
         return [
+            'en' => $this->processLocale($data['en']),
             'pt-PT' => $this->processLocale($data['pt-PT']),
             'pt-BR' => $this->processLocale($data['pt-BR']),
         ];
@@ -70,7 +92,7 @@ class OpenAiNewsGenerationService implements NewsGenerationServiceInterface
         $source = $article['source'];
 
         return <<<PROMPT
-        You are a professional gaming news editor. Translate and summarise the following article into both pt-PT (European Portuguese) and pt-BR (Brazilian Portuguese).
+        You are a professional gaming news editor. Summarise and localise the following article into English (en), European Portuguese (pt-PT), and Brazilian Portuguese (pt-BR).
 
         Source: {$source}
         Title: {$title}
@@ -80,6 +102,14 @@ class OpenAiNewsGenerationService implements NewsGenerationServiceInterface
 
         Return ONLY a valid JSON object with this exact structure (no markdown, no explanation):
         {
+          "en": {
+            "title": "polished title in English",
+            "summary_short": "1-2 sentence summary in English (max 160 chars)",
+            "summary_medium": "3-4 sentence summary in English (max 400 chars)",
+            "body_markdown": "full article body in English in Markdown",
+            "seo_title": "SEO-optimised title in English (max 70 chars)",
+            "seo_description": "SEO meta description in English (max 160 chars)"
+          },
           "pt-PT": {
             "title": "translated title in pt-PT",
             "summary_short": "1-2 sentence summary in pt-PT (max 160 chars)",

@@ -12,10 +12,46 @@ beforeEach(function () {
     config(['features.news' => true]);
 });
 
+// ============================================================
+// EN routes
+// ============================================================
+
+it('shows published articles at en locale index', function () {
+    $article = NewsArticle::factory()->published()->create(['slug_en' => 'game-announced']);
+    NewsArticleLocalization::factory()->for($article, 'article')->create([
+        'locale' => NewsLocaleEnum::En,
+        'title' => 'Game Announced',
+    ]);
+
+    $this->get('/en/news')->assertOk()->assertSee('Game Announced');
+});
+
+it('shows a specific article at its en slug', function () {
+    $article = NewsArticle::factory()->published()->create(['slug_en' => 'game-test-slug']);
+    NewsArticleLocalization::factory()->for($article, 'article')->create([
+        'locale' => NewsLocaleEnum::En,
+        'title' => 'Game Test EN',
+    ]);
+
+    $this->get('/en/news/game-test-slug')->assertOk()->assertSee('Game Test EN');
+});
+
+it('returns 404 for unpublished article at en slug', function () {
+    NewsArticle::factory()->create([
+        'status' => NewsArticleStatusEnum::Review,
+        'slug_en' => 'draft-en',
+    ]);
+
+    $this->get('/en/news/draft-en')->assertNotFound();
+});
+
+// ============================================================
+// PT-PT routes
+// ============================================================
+
 it('shows published articles at pt-pt locale index', function () {
     $article = NewsArticle::factory()->published()->create(['slug_pt_pt' => 'jogo-anunciado']);
-    NewsArticleLocalization::factory()->create([
-        'news_article_id' => $article->id,
+    NewsArticleLocalization::factory()->for($article, 'article')->create([
         'locale' => NewsLocaleEnum::PtPt,
         'title' => 'Jogo Anunciado',
     ]);
@@ -23,20 +59,9 @@ it('shows published articles at pt-pt locale index', function () {
     $this->get('/pt-pt/noticias')->assertOk()->assertSee('Jogo Anunciado');
 });
 
-it('shows published articles at pt-br locale index', function () {
-    $article = NewsArticle::factory()->published()->create(['slug_pt_pt' => 'jogo-anunciado-pt', 'slug_pt_br' => 'jogo-anunciado-br']);
-    NewsArticleLocalization::factory()->ptBr()->create([
-        'news_article_id' => $article->id,
-        'title' => 'Jogo Anunciado BR',
-    ]);
-
-    $this->get('/pt-br/noticias')->assertOk()->assertSee('Jogo Anunciado BR');
-});
-
 it('shows a specific article at its pt-pt slug', function () {
     $article = NewsArticle::factory()->published()->create(['slug_pt_pt' => 'jogo-test-slug']);
-    NewsArticleLocalization::factory()->create([
-        'news_article_id' => $article->id,
+    NewsArticleLocalization::factory()->for($article, 'article')->create([
         'locale' => NewsLocaleEnum::PtPt,
         'title' => 'Jogo Test',
     ]);
@@ -44,18 +69,34 @@ it('shows a specific article at its pt-pt slug', function () {
     $this->get('/pt-pt/noticias/jogo-test-slug')->assertOk()->assertSee('Jogo Test');
 });
 
+// ============================================================
+// PT-BR routes
+// ============================================================
+
+it('shows published articles at pt-br locale index', function () {
+    $article = NewsArticle::factory()->published()->create(['slug_pt_pt' => 'jogo-pt', 'slug_pt_br' => 'jogo-br']);
+    NewsArticleLocalization::factory()->for($article, 'article')->ptBr()->create([
+        'title' => 'Jogo Anunciado BR',
+    ]);
+
+    $this->get('/pt-br/noticias')->assertOk()->assertSee('Jogo Anunciado BR');
+});
+
 it('shows a specific article at its pt-br slug', function () {
     $article = NewsArticle::factory()->published()->create(['slug_pt_pt' => 'jogo-test-pt', 'slug_pt_br' => 'jogo-test-br']);
-    NewsArticleLocalization::factory()->ptBr()->create([
-        'news_article_id' => $article->id,
+    NewsArticleLocalization::factory()->for($article, 'article')->ptBr()->create([
         'title' => 'Jogo Test BR',
     ]);
 
     $this->get('/pt-br/noticias/jogo-test-br')->assertOk()->assertSee('Jogo Test BR');
 });
 
+// ============================================================
+// Common failure paths
+// ============================================================
+
 it('returns 404 for unpublished articles', function () {
-    $article = NewsArticle::factory()->create([
+    NewsArticle::factory()->create([
         'status' => NewsArticleStatusEnum::Review,
         'slug_pt_pt' => 'draft-article',
     ]);
@@ -65,4 +106,8 @@ it('returns 404 for unpublished articles', function () {
 
 it('returns 404 for unknown locale prefix', function () {
     $this->get('/fr-fr/noticias')->assertNotFound();
+});
+
+it('redirects /news to locale from app.locale', function () {
+    $this->get('/news')->assertRedirect();
 });

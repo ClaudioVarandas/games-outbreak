@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\NewsLocaleEnum;
 use App\Models\Game;
 use App\Models\GameList;
-use App\Models\News;
+use App\Models\NewsArticle;
+use App\Models\NewsArticleLocalization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -39,12 +41,19 @@ it('renders both upcoming releases carousel controls', function () {
 it('shows the homepage hero when news is enabled and published news exists', function () {
     config(['features.news' => true]);
 
-    News::factory()->published()->withImage()->create([
-        'title' => 'The Big Feature',
-        'summary' => 'Lead story summary.',
+    $article = NewsArticle::factory()->published()->create([
+        'featured_image_url' => 'https://example.com/image.jpg',
     ]);
 
-    News::factory()->count(4)->published()->create();
+    NewsArticleLocalization::factory()->for($article, 'article')->create([
+        'locale' => NewsLocaleEnum::PtPt,
+        'title' => 'The Big Feature',
+        'summary_short' => 'Lead story summary.',
+    ]);
+
+    NewsArticle::factory()->published()->count(4)->create()->each(function (NewsArticle $a) {
+        NewsArticleLocalization::factory()->for($a, 'article')->create(['locale' => NewsLocaleEnum::PtPt]);
+    });
 
     $response = $this->get(route('homepage'));
 
@@ -57,7 +66,7 @@ it('shows the homepage hero when news is enabled and published news exists', fun
 it('omits the homepage hero when news is enabled but no published articles exist', function () {
     config(['features.news' => true]);
 
-    News::factory()->count(2)->create();
+    NewsArticle::factory()->count(2)->create();
 
     $response = $this->get(route('homepage'));
 

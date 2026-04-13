@@ -12,7 +12,7 @@ class NewsArticleController extends Controller
 {
     public function index(string $localePrefix): View
     {
-        $locale = $this->resolveLocale($localePrefix);
+        $locale = NewsLocaleEnum::fromPrefix($localePrefix);
 
         $articles = NewsArticle::published()
             ->with(['localizations' => fn ($q) => $q->where('locale', $locale->value)])
@@ -24,15 +24,10 @@ class NewsArticleController extends Controller
 
     public function show(string $localePrefix, string $slug): View
     {
-        $locale = $this->resolveLocale($localePrefix);
-
-        $column = match ($locale) {
-            NewsLocaleEnum::PtPt => 'slug_pt_pt',
-            NewsLocaleEnum::PtBr => 'slug_pt_br',
-        };
+        $locale = NewsLocaleEnum::fromPrefix($localePrefix);
 
         $article = NewsArticle::published()
-            ->where($column, $slug)
+            ->where($locale->slugColumn(), $slug)
             ->with('localizations')
             ->firstOrFail();
 
@@ -43,14 +38,5 @@ class NewsArticleController extends Controller
         }
 
         return view('news-articles.show', compact('article', 'localization', 'locale'));
-    }
-
-    private function resolveLocale(string $prefix): NewsLocaleEnum
-    {
-        return match ($prefix) {
-            'pt-pt' => NewsLocaleEnum::PtPt,
-            'pt-br' => NewsLocaleEnum::PtBr,
-            default => abort(404),
-        };
     }
 }

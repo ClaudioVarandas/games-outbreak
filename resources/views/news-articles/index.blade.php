@@ -1,42 +1,85 @@
 @extends('layouts.app')
 
+@section('body-class', 'neon-body theme-neon')
+
 @section('title', 'Notícias')
 
 @section('content')
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-8">Notícias</h1>
+<div class="theme-neon overflow-x-hidden">
+    <div class="page-shell py-10">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            @forelse ($articles as $article)
-                @php $loc = $article->localizations->first(); @endphp
-                @if ($loc)
-                    <article class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden flex flex-col">
+        {{-- Section heading + locale switcher --}}
+        <div class="mb-8 flex items-center justify-between">
+            <x-homepage.section-heading icon="newspaper" title="Notícias" />
+            <div class="flex gap-2">
+                @foreach (\App\Enums\NewsLocaleEnum::cases() as $l)
+                    <a href="{{ $l->indexUrl() }}"
+                       class="neon-pill inline-flex items-center rounded-full px-3 py-1 text-[0.7rem] font-bold uppercase tracking-[0.08em] transition {{ $locale === $l ? 'bg-orange-500/20 text-orange-300 border-orange-500/40' : 'text-slate-400' }}">
+                        {{ $l->shortLabel() }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Article list --}}
+        @forelse ($articles as $article)
+            @php $loc = $article->localizations->first(); @endphp
+            @if ($loc)
+                <a href="{{ $locale->articleUrl($article) }}"
+                   class="neon-card group mb-4 flex flex-col overflow-hidden p-[9px] sm:flex-row sm:items-start sm:gap-4">
+
+                    {{-- Thumbnail --}}
+                    <div class="relative [transform:translateZ(0)] shrink-0 overflow-hidden rounded-[14px] sm:w-64" style="height:160px">
                         @if ($article->featured_image_url)
                             <img src="{{ $article->featured_image_url }}"
                                  alt="{{ $loc->title }}"
-                                 class="w-full h-48 object-cover">
+                                 class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                 loading="lazy">
+                        @else
+                            <div class="h-full w-full bg-gradient-to-br from-orange-500/20 to-violet-500/20"></div>
                         @endif
-                        <div class="p-4 flex flex-col flex-1">
-                            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                                <a href="{{ route('news-articles.show', [$locale->slugPrefix(), $locale === \App\Enums\NewsLocaleEnum::PtPt ? $article->slug_pt_pt : $article->slug_pt_br]) }}"
-                                   class="hover:underline">
-                                    {{ $loc->title }}
-                                </a>
-                            </h2>
-                            @if ($loc->summary_short)
-                                <p class="text-sm text-gray-600 dark:text-gray-400 flex-1">{{ $loc->summary_short }}</p>
-                            @endif
-                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">
-                                {{ $article->source_name }} &middot; {{ $article->published_at?->diffForHumans() }}
-                            </p>
-                        </div>
-                    </article>
-                @endif
-            @empty
-                <p class="col-span-3 text-center text-gray-500 dark:text-gray-400 py-12">Sem notícias disponíveis.</p>
-            @endforelse
-        </div>
+                        <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                    </div>
 
-        <div class="mt-8">{{ $articles->links() }}</div>
+                    {{-- Content --}}
+                    <div class="relative mt-3 flex flex-1 flex-col justify-between sm:mt-0 sm:py-1">
+                        <div>
+                            <p class="mb-2 flex flex-wrap items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.08em]">
+                                @if ($article->source_name)
+                                    <span class="text-orange-400">{{ $article->source_name }}</span>
+                                    <span class="text-white/20">·</span>
+                                @endif
+                                <span class="text-slate-500">{{ $article->published_at?->diffForHumans() }}</span>
+                            </p>
+
+                            <h2 class="text-[0.95rem] font-bold uppercase leading-snug tracking-[0.04em] text-slate-100 transition-colors group-hover:text-cyan-300">
+                                {{ $loc->title }}
+                            </h2>
+
+                            @if ($loc->summary_short)
+                                <p class="mt-2 line-clamp-2 text-[0.8rem] leading-relaxed text-slate-400">
+                                    {{ $loc->summary_short }}
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                </a>
+            @endif
+        @empty
+            <div class="neon-panel px-6 py-14 text-center">
+                <x-heroicon-o-newspaper class="mx-auto mb-4 h-10 w-10 text-slate-600" />
+                <p class="text-sm uppercase tracking-[0.08em] text-slate-400">No articles available.</p>
+                <p class="mt-1 text-xs uppercase tracking-[0.08em] text-slate-600">Check back soon for the latest gaming news.</p>
+            </div>
+        @endforelse
+
+        {{-- Pagination --}}
+        @if ($articles->hasPages())
+            <div class="mt-8">
+                {{ $articles->links() }}
+            </div>
+        @endif
+
     </div>
+</div>
 @endsection

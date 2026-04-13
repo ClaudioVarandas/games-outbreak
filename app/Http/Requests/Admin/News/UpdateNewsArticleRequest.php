@@ -26,6 +26,7 @@ class UpdateNewsArticleRequest extends FormRequest
             'localizations.*.title' => ['required', 'string', 'max:255'],
             'localizations.*.summary_short' => ['nullable', 'string', 'max:160'],
             'localizations.*.summary_medium' => ['nullable', 'string', 'max:400'],
+            'localizations.*.slug' => ['nullable', 'string', 'max:255'],
             'localizations.*.body' => ['nullable', 'array'],
             'localizations.*.seo_title' => ['nullable', 'string', 'max:70'],
             'localizations.*.seo_description' => ['nullable', 'string', 'max:160'],

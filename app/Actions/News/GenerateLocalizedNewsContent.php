@@ -40,8 +40,26 @@ class GenerateLocalizedNewsContent
                 'featured_image_url' => $import->raw_image_url,
             ]);
 
+            $provider = config('services.news_ai_provider', 'anthropic');
+            $metadata = [
+                'provider' => $provider,
+                'model' => config("services.{$provider}.model"),
+            ];
+
+            Log::debug('GenerateLocalizedNewsContent: localized keys received', [
+                'keys' => array_keys($localized),
+                'import_id' => $import->id,
+            ]);
+
             foreach (NewsLocaleEnum::cases() as $locale) {
                 $data = $localized[$locale->value] ?? null;
+
+                Log::debug('GenerateLocalizedNewsContent: processing locale', [
+                    'locale' => $locale->value,
+                    'found' => ! is_null($data),
+                    'title' => $data['title'] ?? null,
+                ]);
+
                 if (! $data) {
                     continue;
                 }
@@ -54,7 +72,7 @@ class GenerateLocalizedNewsContent
                     'body' => $data['body'],
                     'seo_title' => $data['seo_title'],
                     'seo_description' => $data['seo_description'],
-                    'generation_metadata' => ['model' => config('services.anthropic.model')],
+                    'generation_metadata' => $metadata,
                 ]);
             }
 

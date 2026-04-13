@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\NewsArticleStatusEnum;
+use App\Enums\NewsLocaleEnum;
 use Database\Factories\NewsArticleFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,6 +28,7 @@ class NewsArticle extends Model
         'original_language',
         'original_published_at',
         'featured_image_url',
+        'slug_en',
         'slug_pt_pt',
         'slug_pt_br',
         'scheduled_at',
@@ -46,8 +48,19 @@ class NewsArticle extends Model
     protected static function booted(): void
     {
         static::creating(function (NewsArticle $article) {
-            if (empty($article->slug_pt_pt) && $article->original_title) {
+            if (! $article->original_title) {
+                return;
+            }
+
+            if (empty($article->slug_en)) {
+                $article->slug_en = static::generateUniqueSlug($article->original_title, 'slug_en');
+            }
+
+            if (empty($article->slug_pt_pt)) {
                 $article->slug_pt_pt = static::generateUniqueSlug($article->original_title, 'slug_pt_pt');
+            }
+
+            if (empty($article->slug_pt_br)) {
                 $article->slug_pt_br = static::generateUniqueSlug($article->original_title, 'slug_pt_br');
             }
         });
@@ -70,7 +83,9 @@ class NewsArticle extends Model
 
     public function localization(string $locale): ?NewsArticleLocalization
     {
-        return $this->localizations->firstWhere('locale', $locale);
+        $enum = NewsLocaleEnum::from($locale);
+
+        return $this->localizations->first(fn (NewsArticleLocalization $l) => $l->locale === $enum);
     }
 
     public function scopePublished(Builder $query): Builder
@@ -92,7 +107,7 @@ class NewsArticle extends Model
         return $this->status === NewsArticleStatusEnum::Published;
     }
 
-    protected static function generateUniqueSlug(string $title, string $column): string
+    public static function generateUniqueSlug(string $title, string $column): string
     {
         $slug = $base = str()->slug($title);
         $counter = 1;

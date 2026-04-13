@@ -41,12 +41,13 @@ class AnthropicNewsGenerationService implements NewsGenerationServiceInterface
         $raw = $response->json('content.0.text', '');
         $data = json_decode($raw, true);
 
-        if (! is_array($data) || ! isset($data['pt-PT'], $data['pt-BR'])) {
+        if (! is_array($data) || ! isset($data['en'], $data['pt-PT'], $data['pt-BR'])) {
             Log::error('Anthropic unexpected response format', ['raw' => $raw]);
             throw new RuntimeException('AI returned unexpected response format.');
         }
 
         return [
+            'en' => $this->processLocale($data['en']),
             'pt-PT' => $this->processLocale($data['pt-PT']),
             'pt-BR' => $this->processLocale($data['pt-BR']),
         ];
@@ -71,7 +72,7 @@ class AnthropicNewsGenerationService implements NewsGenerationServiceInterface
         $source = $article['source'];
 
         return <<<PROMPT
-        You are a professional gaming news editor. Translate and summarise the following article into both pt-PT (European Portuguese) and pt-BR (Brazilian Portuguese).
+        You are a professional gaming news editor. Summarise and localise the following article into English (en), European Portuguese (pt-PT), and Brazilian Portuguese (pt-BR).
 
         Source: {$source}
         Title: {$title}
@@ -81,6 +82,14 @@ class AnthropicNewsGenerationService implements NewsGenerationServiceInterface
 
         Return ONLY a valid JSON object with this exact structure (no markdown, no explanation):
         {
+          "en": {
+            "title": "polished title in English",
+            "summary_short": "1-2 sentence summary in English (max 160 chars)",
+            "summary_medium": "3-4 sentence summary in English (max 400 chars)",
+            "body_markdown": "full article body in English in Markdown",
+            "seo_title": "SEO-optimised title in English (max 70 chars)",
+            "seo_description": "SEO meta description in English (max 160 chars)"
+          },
           "pt-PT": {
             "title": "translated title in pt-PT",
             "summary_short": "1-2 sentence summary in pt-PT (max 160 chars)",

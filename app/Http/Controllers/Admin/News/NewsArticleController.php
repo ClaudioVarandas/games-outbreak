@@ -56,6 +56,8 @@ class NewsArticleController extends Controller
             'featured_image_url' => $data['featured_image_url'] ?? $newsArticle->featured_image_url,
         ]);
 
+        $slugUpdates = [];
+
         foreach ($data['localizations'] as $locData) {
             $newsArticle->localizations()->updateOrCreate(
                 ['locale' => $locData['locale']],
@@ -68,6 +70,24 @@ class NewsArticleController extends Controller
                     'seo_description' => $locData['seo_description'] ?? null,
                 ]
             );
+
+            $locale = NewsLocaleEnum::tryFrom($locData['locale']);
+            if (! $locale) {
+                continue;
+            }
+
+            $column = $locale->slugColumn();
+            $explicitSlug = $locData['slug'] ?? null;
+
+            if (! empty($explicitSlug)) {
+                $slugUpdates[$column] = $explicitSlug;
+            } elseif (empty($newsArticle->{$column})) {
+                $slugUpdates[$column] = NewsArticle::generateUniqueSlug($locData['title'], $column);
+            }
+        }
+
+        if ($slugUpdates) {
+            $newsArticle->update($slugUpdates);
         }
 
         return redirect()->route('admin.news-articles.edit', $newsArticle)

@@ -13,9 +13,18 @@ class GenerateNewsContentJob implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 2;
+    public int $tries = 3;
 
     public int $timeout = 120;
+
+    /**
+     * Exponential backoff: 60s, 120s, 240s between retries.
+     * Needed for OpenAI free-tier rate limits (3 RPM).
+     */
+    public function backoff(): array
+    {
+        return [60, 120, 240];
+    }
 
     public function __construct(
         public readonly NewsImport $import

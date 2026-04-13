@@ -41,9 +41,10 @@
                 </div>
 
                 {{-- Row 2 (mobile) / Col 3 (desktop): nav chips + auth --}}
-                <div class="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide xl:justify-end">
+                <div class="flex items-center gap-2 xl:justify-end">
+                    <div class="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
                     @if($newsVisible)
-                        <a href="{{ route('news.index') }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition">
+                        <a href="{{ \App\Enums\NewsLocaleEnum::fromAppLocale()->indexUrl() }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition">
                             News
                         </a>
                     @endif
@@ -55,9 +56,10 @@
                     <a href="{{ route('events') }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition">
                         Events
                     </a>
+                    </div>
 
                     @auth
-                        <div x-data="{ open: false }" class="relative" @click.outside="open = false">
+                        <div x-data="{ open: false }" class="relative shrink-0" @click.outside="open = false">
                             <button
                                 type="button"
                                 class="site-header__icon-button inline-flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold uppercase"
@@ -91,7 +93,7 @@
                                         <span>User Lists</span>
                                     </a>
                                     @if($newsVisible)
-                                        <a href="{{ route('admin.news.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
+                                        <a href="{{ route('admin.news-articles.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
                                             <span>News</span>
                                         </a>
                                     @endif
@@ -108,7 +110,7 @@
                             </div>
                         </div>
                     @else
-                        <div x-data>
+                        <div x-data class="shrink-0">
                             <button
                                 type="button"
                                 class="site-header__icon-button inline-flex h-11 w-11 items-center justify-center rounded-full"
