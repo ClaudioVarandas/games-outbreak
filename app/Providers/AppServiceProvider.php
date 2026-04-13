@@ -7,6 +7,7 @@ use App\Contracts\NewsGenerationServiceInterface;
 use App\Services\AnthropicNewsGenerationService;
 use App\Services\IgdbService;
 use App\Services\JinaReaderService;
+use App\Services\OpenAiNewsGenerationService;
 use App\Support\News\MarkdownToTiptapConverter;
 use Http;
 use Illuminate\Support\ServiceProvider;
@@ -21,7 +22,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ContentExtractorInterface::class, JinaReaderService::class);
 
         $this->app->bind(NewsGenerationServiceInterface::class, function () {
-            return new AnthropicNewsGenerationService(new MarkdownToTiptapConverter);
+            $converter = new MarkdownToTiptapConverter;
+
+            return match (config('services.news_ai_provider')) {
+                'openai' => new OpenAiNewsGenerationService($converter),
+                default => new AnthropicNewsGenerationService($converter),
+            };
         });
     }
 

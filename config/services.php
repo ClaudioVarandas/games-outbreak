@@ -52,4 +52,9 @@ return [
         'model' => env('ANTHROPIC_MODEL', 'claude-haiku-4-5-20251001'),
         'version' => '2023-06-01',
     ],
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+    ],
+    'news_ai_provider' => env('NEWS_AI_PROVIDER', 'anthropic'),
 ];
