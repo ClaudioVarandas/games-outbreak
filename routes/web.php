@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\News\NewsArticleController as AdminNewsArticleController;
+use App\Http\Controllers\Admin\News\NewsImportController as AdminNewsImportController;
 use App\Http\Controllers\AdminGenreController;
 use App\Http\Controllers\AdminListController;
 use App\Http\Controllers\AdminNewsController;
@@ -215,6 +217,30 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
 
         // Genre API (for Tom Select search)
         Route::get('/api/genres/search', [AdminGenreController::class, 'search'])->name('api.genres.search');
+
+        // News import pipeline
+        Route::middleware([EnsureNewsFeatureEnabled::class])
+            ->prefix('news-imports')
+            ->name('news-imports.')
+            ->group(function () {
+                Route::get('/', [AdminNewsImportController::class, 'index'])->name('index');
+                Route::get('/create', [AdminNewsImportController::class, 'create'])->name('create');
+                Route::post('/', [AdminNewsImportController::class, 'store'])->name('store');
+                Route::get('/{newsImport}', [AdminNewsImportController::class, 'show'])->name('show');
+            });
+
+        // News articles (pipeline output)
+        Route::middleware([EnsureNewsFeatureEnabled::class])
+            ->prefix('news-articles')
+            ->name('news-articles.')
+            ->group(function () {
+                Route::get('/', [AdminNewsArticleController::class, 'index'])->name('index');
+                Route::get('/{newsArticle}/edit', [AdminNewsArticleController::class, 'edit'])->name('edit');
+                Route::patch('/{newsArticle}', [AdminNewsArticleController::class, 'update'])->name('update');
+                Route::post('/{newsArticle}/publish', [AdminNewsArticleController::class, 'publish'])->name('publish');
+                Route::post('/{newsArticle}/schedule', [AdminNewsArticleController::class, 'schedule'])->name('schedule');
+                Route::delete('/{newsArticle}', [AdminNewsArticleController::class, 'destroy'])->name('destroy');
+            });
     });
 
 // ============================================================================
