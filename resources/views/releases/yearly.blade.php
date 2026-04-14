@@ -14,7 +14,7 @@
                 {{-- Title + Year Nav --}}
                 <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h2 class="neon-section-heading__title">Game Releases</h2>
+                        <h2 class="neon-section-heading__title">{{ __('Game Releases') }}</h2>
                         <h1 class="text-3xl font-bold uppercase tracking-wide text-slate-100">
                             @if($month)
                                 {{ \Carbon\Carbon::create($year, $month)->format('F') }} {{ $year }}
@@ -29,7 +29,7 @@
                             <a href="{{ route('releases.year', $year) }}"
                                class="mt-2 inline-flex items-center gap-1 text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-cyan-400 hover:text-cyan-300 transition-colors">
                                 <x-heroicon-o-arrow-left class="h-3.5 w-3.5" />
-                                Back to {{ $year }}
+                                {{ __('Back to :year', ['year' => $year]) }}
                             </a>
                         @endif
                     </div>
@@ -71,7 +71,7 @@
                         {{-- Month Jump --}}
                         <select onchange="if(this.value) window.location.href = this.value"
                                 class="rounded-full border border-white/10 bg-slate-900/60 px-4 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.06em] text-slate-200 focus:border-cyan-400/50 focus:outline-none focus:ring-0">
-                            <option value="">Jump to month...</option>
+                            <option value="">{{ __('Jump to month...') }}</option>
                             @for($m = 1; $m <= 12; $m++)
                                 <option value="{{ route('releases.year.month', [$year, $m]) }}">
                                     {{ \Carbon\Carbon::create($year, $m)->format('F') }}
@@ -86,17 +86,17 @@
                     <button type="button" @click="typeFilter = 'all'"
                             :class="typeFilter === 'all' ? 'border-cyan-400/60 text-cyan-300 bg-cyan-400/10' : 'text-slate-400 hover:text-slate-200'"
                             class="neon-btn-ghost rounded-full px-4 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition">
-                        All
+                        {{ __('All') }}
                     </button>
                     <button type="button" @click="typeFilter = 'highlights'"
                             :class="typeFilter === 'highlights' ? 'border-yellow-400/60 text-yellow-300 bg-yellow-400/10' : 'text-slate-400 hover:text-slate-200'"
                             class="neon-btn-ghost rounded-full px-4 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition">
-                        Highlights
+                        {{ __('Highlights') }}
                     </button>
                     <button type="button" @click="typeFilter = 'indies'"
                             :class="typeFilter === 'indies' ? 'border-orange-400/60 text-orange-300 bg-orange-400/10' : 'text-slate-400 hover:text-slate-200'"
                             class="neon-btn-ghost rounded-full px-4 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition">
-                        Indies
+                        {{ __('Indies') }}
                     </button>
 
                     {{-- Platform Group (hidden) --}}
@@ -119,7 +119,7 @@
                     <div class="relative">
                         <input type="text"
                                x-model="searchQuery"
-                               placeholder="Search games..."
+                               placeholder="{{ __('Search games...') }}"
                                class="w-56 rounded-full border border-white/10 bg-slate-900/60 py-1.5 pl-9 pr-4 text-[0.72rem] text-slate-200 placeholder-slate-500 focus:border-cyan-400/50 focus:outline-none focus:ring-0 md:w-80">
                         <x-heroicon-o-magnifying-glass class="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                     </div>

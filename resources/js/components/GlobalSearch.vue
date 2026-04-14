@@ -7,7 +7,7 @@
         @input="debouncedSearch"
         type="text"
         class="w-full px-6 py-3 text-base rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
-        placeholder="Search games..."
+        :placeholder="placeholder"
         autocomplete="off"
         ref="input"
       >
@@ -30,7 +30,7 @@
         <svg class="inline-block w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
         </svg>
-        <span class="ml-2">Searching...</span>
+        <span class="ml-2">{{ searching }}</span>
       </div>
 
       <!-- Results -->
@@ -51,7 +51,7 @@
           <div class="flex-1">
             <div class="font-medium text-white truncate">{{ game.name }}</div>
             <div class="text-xs text-gray-400">
-              {{ game.release || 'TBA' }}
+              {{ game.release || tba }}
               <span v-if="game.platforms"> • {{ game.platforms }}</span>
             </div>
             <div v-if="checkAndLogBadge(game)" class="mt-1">
@@ -67,7 +67,7 @@
           @click="closeDropdown"
           class="flex items-center justify-center gap-2 px-4 py-3 hover:bg-orange-600/20 transition border-t border-gray-700 text-orange-400 hover:text-orange-300 font-medium"
         >
-          <span>Show more</span>
+          <span>{{ showMore }}</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
           </svg>
@@ -76,7 +76,7 @@
 
       <!-- No Results -->
       <div v-else-if="query.length >= 2" class="px-4 py-8 text-center text-gray-400">
-        No games found for "{{ query }}"
+        {{ noResults }} "{{ query }}"
       </div>
     </div>
   </div>
@@ -84,6 +84,14 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue';
+
+const props = defineProps({
+    placeholder: { type: String, default: 'Search games...' },
+    searching:   { type: String, default: 'Searching...' },
+    showMore:    { type: String, default: 'Show more' },
+    noResults:   { type: String, default: 'No games found for' },
+    tba:         { type: String, default: 'TBA' },
+});
 
 const query = ref('');
 const results = ref([]);

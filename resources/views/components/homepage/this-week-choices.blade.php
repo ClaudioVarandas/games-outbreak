@@ -8,8 +8,8 @@
 <section class="neon-section-frame grid gap-5">
     <x-homepage.section-heading
         icon="controller"
-        title="This Week's Choices"
-        linkText="See monthly"
+        :title="__('This Week\'s Choices')"
+        :linkText="__('See monthly')"
         :href="route('releases.year.month', [$currentYear, $currentMonth])" />
 
     @if($games->isNotEmpty())
@@ -27,7 +27,7 @@
         </div>
     @else
         <div class="neon-panel p-8 text-center text-sm uppercase tracking-[0.08em] text-slate-400">
-            No curated releases this week.
+            {{ __('No curated releases this week.') }}
         </div>
     @endif
 </section>

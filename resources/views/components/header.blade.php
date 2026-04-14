@@ -22,7 +22,7 @@
                         </div>
                         <div class="min-w-0">
                             <p class="truncate text-sm font-bold uppercase tracking-[0.08em] text-slate-100">Games Outbreak</p>
-                            <p class="truncate text-xs uppercase tracking-[0.08em] text-slate-400">News-first release radar</p>
+                            <p class="truncate text-xs uppercase tracking-[0.08em] text-slate-400">{{ __('News-first release radar') }}</p>
                         </div>
                     </a>
 
@@ -37,7 +37,12 @@
 
                 {{-- Col 2 (desktop only): search bar --}}
                 <div id="app-search" class="hidden xl:block w-full max-w-md mx-auto">
-                    <global-search></global-search>
+                    <global-search
+                        :placeholder="'{{ __('Search games...') }}'"
+                        :searching="'{{ __('Searching...') }}'"
+                        :show-more="'{{ __('Show more') }}'"
+                        :no-results="'{{ __('No games found for') }}'"
+                        :tba="'{{ __('TBA') }}'"></global-search>
                 </div>
 
                 {{-- Row 2 (mobile) / Col 3 (desktop): nav chips + auth --}}
@@ -45,63 +50,61 @@
                     <div class="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
                     @if($newsVisible)
                         <a href="{{ route('news-articles.default') }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition">
-                            News
+                            {{ __('News') }}
                         </a>
                     @endif
 
                     <a href="{{ route('releases.year', ['year' => now()->year]) }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition">
-                        Curated Lists
+                        {{ __('Curated Lists') }}
                     </a>
 
                     <a href="{{ route('events') }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition">
-                        Events
+                        {{ __('Events') }}
                     </a>
                     </div>
 
                     {{-- Locale + auth: separated from nav by a divider --}}
                     <div class="flex items-center gap-3 border-l border-white/10 pl-4">
 
-                    @if($newsVisible)
-                        @php
-                            $headerNewsLocale = $currentNewsLocale ?? null;
-                            if (! $headerNewsLocale && session('news_locale')) {
-                                try {
-                                    $headerNewsLocale = \App\Enums\NewsLocaleEnum::fromPrefix(session('news_locale'));
-                                } catch (\Throwable) {}
-                            }
-                            $headerNewsLocale ??= \App\Enums\NewsLocaleEnum::fromAppLocale();
-                        @endphp
-                        <div x-data="{ open: false }" class="relative shrink-0" @click.outside="open = false">
-                            <button
-                                type="button"
-                                class="inline-flex min-h-9 items-center rounded-full border border-slate-600/60 px-3 text-[0.7rem] font-bold uppercase tracking-[0.1em] text-slate-400 transition hover:border-slate-400 hover:text-slate-200"
-                                @click="open = !open"
-                                aria-label="Switch news language">
-                                {{ strtoupper($headerNewsLocale->slugPrefix()) }}
-                            </button>
+                    @php
+                        $headerNewsLocale = $currentNewsLocale ?? null;
+                        if (! $headerNewsLocale && session('locale')) {
+                            try {
+                                $headerNewsLocale = \App\Enums\NewsLocaleEnum::fromPrefix(session('locale'));
+                            } catch (\Throwable) {}
+                        }
+                        $headerNewsLocale ??= \App\Enums\NewsLocaleEnum::fromAppLocale();
+                    @endphp
+                    <div x-data="{ open: false }" class="relative shrink-0" @click.outside="open = false">
+                        <button
+                            type="button"
+                            class="inline-flex min-h-9 items-center rounded-full border border-slate-600/60 px-3 text-[0.7rem] font-bold uppercase tracking-[0.1em] text-slate-400 transition hover:border-slate-400 hover:text-slate-200"
+                            @click="open = !open"
+                            aria-label="Switch language">
+                            {{ strtoupper($headerNewsLocale->slugPrefix()) }}
+                        </button>
 
-                            <div
-                                x-show="open"
-                                x-transition:enter="transition ease-out duration-100"
-                                x-transition:enter-start="opacity-0 scale-95"
-                                x-transition:enter-end="opacity-100 scale-100"
-                                x-transition:leave="transition ease-in duration-75"
-                                x-transition:leave-start="opacity-100 scale-100"
-                                x-transition:leave-end="opacity-0 scale-95"
-                                class="absolute right-0 mt-2 w-36 overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-900/95 text-sm text-slate-100 shadow-2xl"
-                                style="display: none;">
-                                @foreach (\App\Enums\NewsLocaleEnum::cases() as $l)
-                                    <a href="{{ $l->indexUrl() }}"
-                                       class="flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest transition hover:bg-white/5 {{ $headerNewsLocale === $l ? 'text-orange-300' : 'text-slate-400' }}">
-                                        {{ strtoupper($l->slugPrefix()) }}
-                                        @if ($headerNewsLocale === $l)
-                                            <span class="ml-auto text-orange-400">✓</span>
-                                        @endif
-                                    </a>
-                                @endforeach
-                            </div>
+                        <div
+                            x-show="open"
+                            x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="opacity-0 scale-95"
+                            x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
+                            class="absolute right-0 mt-2 w-36 overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-900/95 text-sm text-slate-100 shadow-2xl"
+                            style="display: none;">
+                            @foreach (\App\Enums\NewsLocaleEnum::cases() as $l)
+                                <a href="{{ route('locale.switch', $l->slugPrefix()) }}"
+                                   class="flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest transition hover:bg-white/5 {{ $headerNewsLocale === $l ? 'text-orange-300' : 'text-slate-400' }}">
+                                    {{ strtoupper($l->slugPrefix()) }}
+                                    @if ($headerNewsLocale === $l)
+                                        <span class="ml-auto text-orange-400">✓</span>
+                                    @endif
+                                </a>
+                            @endforeach
                         </div>
-                    @endif
+                    </div>
 
                     @auth
                         <div x-data="{ open: false }" class="relative shrink-0" @click.outside="open = false">
@@ -124,7 +127,7 @@
                                 class="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-900/95 text-sm text-slate-100 shadow-2xl"
                                 style="display: none;">
                                 <a href="{{ route('user.games', ['user' => auth()->user()->username]) }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
-                                    <span>My Games</span>
+                                    <span>{{ __('My Games') }}</span>
                                 </a>
 
                                 @if(auth()->user()->isAdmin())
@@ -208,7 +211,12 @@
                 </div>
 
                 <div id="app-search-mobile">
-                    <global-search></global-search>
+                    <global-search
+                        :placeholder="'{{ __('Search games...') }}'"
+                        :searching="'{{ __('Searching...') }}'"
+                        :show-more="'{{ __('Show more') }}'"
+                        :no-results="'{{ __('No games found for') }}'"
+                        :tba="'{{ __('TBA') }}'"></global-search>
                 </div>
             </div>
         </div>

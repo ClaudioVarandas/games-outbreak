@@ -12,6 +12,7 @@ use App\Http\Controllers\EventsController;
 use App\Http\Controllers\GameListController;
 use App\Http\Controllers\GamesController;
 use App\Http\Controllers\HomepageController;
+use App\Http\Controllers\LocaleSwitchController;
 use App\Http\Controllers\NewsArticleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReleasesController;
@@ -24,6 +25,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomepageController::class, 'index'])->name('homepage');
+
+Route::get('/locale/{prefix}', LocaleSwitchController::class)
+    ->where('prefix', 'en|pt-pt|pt-br')
+    ->name('locale.switch');
 
 // Releases routes - seasoned must come before {year} to avoid conflict
 Route::get('/releases/seasoned', [HomepageController::class, 'releases'])->name('releases.seasoned')
@@ -84,7 +89,7 @@ Route::middleware([EnsureNewsFeatureEnabled::class, 'set-news-locale'])
 // Default redirect — /news → saved locale, then browser locale, then app.locale
 Route::middleware([EnsureNewsFeatureEnabled::class])
     ->get('/news', function (Request $request) {
-        $savedSlug = session('news_locale');
+        $savedSlug = session('locale');
 
         if ($savedSlug) {
             try {

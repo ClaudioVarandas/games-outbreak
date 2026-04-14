@@ -96,7 +96,7 @@ class HomepageController extends Controller
 
     private function resolveNewsLocale(Request $request): NewsLocaleEnum
     {
-        $savedSlug = session('news_locale');
+        $savedSlug = session('locale');
 
         if ($savedSlug) {
             try {

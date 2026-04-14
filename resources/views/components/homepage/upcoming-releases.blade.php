@@ -9,7 +9,7 @@
     <section class="neon-section-frame grid">
         <x-homepage.section-heading
             icon="rocket"
-            title="Upcoming Releases"
+            :title="__('Upcoming Releases')"
             :href="route('upcoming')" />
 
         <x-game-carousel
@@ -18,7 +18,7 @@
             :carouselId="$upcomingCarouselId"
             :showDots="false"
             variant="neon"
-            emptyMessage="No games releasing this week." />
+            :emptyMessage="__('No games releasing this week.')" />
     </section>
 
     {{-- Dots outside section-frame so overflow:hidden never clips them --}}

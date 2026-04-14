@@ -10,12 +10,12 @@
 
         {{-- Page heading --}}
         <div class="mb-10">
-            <x-homepage.section-heading icon="broadcast" title="Events" />
+            <x-homepage.section-heading icon="broadcast" :title="__('Events')" />
         </div>
 
         {{-- Upcoming Events --}}
         <div class="mb-14">
-            <h2 class="neon-eyebrow mb-8">Upcoming</h2>
+            <h2 class="neon-eyebrow mb-8">{{ __('Upcoming') }}</h2>
 
             @if($upcoming->isNotEmpty())
                 <div class="relative flex flex-col">
@@ -71,7 +71,7 @@
                                         <span class="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full border border-cyan-400/70 bg-cyan-950/85 px-2 py-[3px] text-[0.66rem] font-bold uppercase tracking-[0.05em] text-cyan-300">
                                             <span class="inline-block h-[5px] w-[5px] shrink-0 rounded-full bg-cyan-400"
                                                   style="box-shadow:0 0 6px var(--neon-cyan)"></span>
-                                            Upcoming
+                                            {{ __('Upcoming') }}
                                         </span>
                                     </div>
 
@@ -88,7 +88,7 @@
                                             @endif
                                         </div>
                                         <p class="mt-3 inline-flex items-center gap-1 text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-cyan-400">
-                                            View Event
+                                            {{ __('View Event') }}
                                             <x-heroicon-o-arrow-right class="h-3.5 w-3.5" />
                                         </p>
                                     </div>
@@ -106,7 +106,7 @@
 
         {{-- Past Events --}}
         <div>
-            <h2 class="neon-eyebrow neon-eyebrow--orange mb-8">Past Events</h2>
+            <h2 class="neon-eyebrow neon-eyebrow--orange mb-8">{{ __('Past Events') }}</h2>
 
             @if($past->isNotEmpty())
                 <div class="relative flex flex-col">
@@ -159,7 +159,7 @@
                                         <span class="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full border border-orange-400/70 bg-orange-950/85 px-2 py-[3px] text-[0.66rem] font-bold uppercase tracking-[0.05em] text-orange-300">
                                             <span class="inline-block h-[5px] w-[5px] shrink-0 rounded-full bg-orange-400"
                                                   style="box-shadow:0 0 6px var(--neon-orange)"></span>
-                                            Past Event
+                                            {{ __('Past Event') }}
                                         </span>
                                     </div>
 
@@ -176,7 +176,7 @@
                                             @endif
                                         </div>
                                         <p class="mt-3 inline-flex items-center gap-1 text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-orange-400/80">
-                                            View Event
+                                            {{ __('View Event') }}
                                             <x-heroicon-o-arrow-right class="h-3.5 w-3.5" />
                                         </p>
                                     </div>

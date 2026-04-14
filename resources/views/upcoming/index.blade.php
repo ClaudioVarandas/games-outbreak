@@ -8,7 +8,7 @@
     <div class="container mx-auto px-4 py-8">
         <div class="flex items-center justify-between mb-6">
             <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100">
-                Upcoming Games
+                {{ __('Upcoming Games') }}
             </h1>
             <x-filter-drawer 
                 :allGenres="$allGenres"
@@ -172,7 +172,7 @@
         @else
             <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
                 <p class="text-xl text-gray-600 dark:text-gray-400">
-                    No upcoming games found.
+                    {{ __('No upcoming games found.') }}
                 </p>
             </div>
         @endif

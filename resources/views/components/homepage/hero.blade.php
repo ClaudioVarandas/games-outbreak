@@ -17,7 +17,7 @@
 
             <div class="relative z-10 flex h-full max-w-3xl flex-col">
                 <div>
-                    <span class="neon-eyebrow">Featured News</span>
+                    <span class="neon-eyebrow">{{ __('Featured News') }}</span>
                     <h1 class="mt-4 max-w-3xl text-3xl font-bold uppercase leading-tight text-slate-50 md:text-5xl">
                         {{ $featured->localizations->first()?->title }}
                     </h1>
@@ -28,11 +28,11 @@
 
                 <div class="mt-auto flex flex-wrap gap-3 pt-8">
                     <a href="{{ $newsLocale->articleUrl($featured) }}" class="neon-btn">
-                        Read Feature
+                        {{ __('Read Feature') }}
                     </a>
 
                     <a href="{{ $newsLocale->indexUrl() }}" class="neon-btn-ghost">
-                        View All News
+                        {{ __('View All News') }}
                     </a>
                 </div>
             </div>

@@ -20,7 +20,7 @@ class SetNewsLocale
         $newsLocale = NewsLocaleEnum::fromPrefix($localePrefix);
 
         app()->setLocale($newsLocale->value);
-        session(['news_locale' => $newsLocale->slugPrefix()]);
+        session(['locale' => $newsLocale->slugPrefix()]);
         view()->share('currentNewsLocale', $newsLocale);
 
         return $next($request);

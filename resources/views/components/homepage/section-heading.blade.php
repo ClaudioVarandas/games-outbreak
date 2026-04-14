@@ -29,12 +29,12 @@
                 <x-heroicon-o-photo class="h-5 w-5" />
             @endif
         </span>
-        <span>{{ $title }}</span>
+        <span>{!! $title !!}</span>
     </h2>
 
     @if($href)
         <a href="{{ $href }}" class="neon-link inline-flex items-center gap-1 transition">
-            {{ $linkText }}
+            {!! $linkText !!}
             <x-heroicon-o-arrow-right class="h-3.5 w-3.5" />
         </a>
     @endif

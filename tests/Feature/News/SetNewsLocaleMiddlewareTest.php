@@ -56,7 +56,7 @@ it('persists en locale to session', function () {
         'locale' => NewsLocaleEnum::En,
     ]);
 
-    $this->get('/en/news')->assertSessionHas('news_locale', 'en');
+    $this->get('/en/news')->assertSessionHas('locale', 'en');
 });
 
 it('persists pt-pt locale to session', function () {
@@ -65,14 +65,14 @@ it('persists pt-pt locale to session', function () {
         'locale' => NewsLocaleEnum::PtPt,
     ]);
 
-    $this->get('/pt-pt/noticias')->assertSessionHas('news_locale', 'pt-pt');
+    $this->get('/pt-pt/noticias')->assertSessionHas('locale', 'pt-pt');
 });
 
 it('persists pt-br locale to session', function () {
     NewsArticle::factory()->published()->create(['slug_pt_br' => 'teste-br', 'slug_pt_pt' => 'teste-pt']);
     NewsArticleLocalization::factory()->for(NewsArticle::first(), 'article')->ptBr()->create();
 
-    $this->get('/pt-br/noticias')->assertSessionHas('news_locale', 'pt-br');
+    $this->get('/pt-br/noticias')->assertSessionHas('locale', 'pt-br');
 });
 
 // ============================================================
@@ -94,13 +94,13 @@ it('fromBrowserLocale returns app default for unsupported language', function ()
 // ============================================================
 
 it('redirects /news to saved session locale regardless of Accept-Language header', function () {
-    $this->withSession(['news_locale' => 'pt-pt'])
+    $this->withSession(['locale' => 'pt-pt'])
         ->get('/news', ['Accept-Language' => 'en-US,en;q=0.9'])
         ->assertRedirect('/pt-pt/noticias');
 });
 
 it('redirects /news to saved en session locale even with pt-BR header', function () {
-    $this->withSession(['news_locale' => 'en'])
+    $this->withSession(['locale' => 'en'])
         ->get('/news', ['Accept-Language' => 'pt-BR,pt;q=0.9'])
         ->assertRedirect('/en/news');
 });

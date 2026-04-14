@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureUserOwnership;
 use App\Http\Middleware\PreventCaching;
+use App\Http\Middleware\SetAppLocale;
 use App\Http\Middleware\SetNewsLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -14,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            SetAppLocale::class,
+        ]);
+
         $middleware->alias([
             'prevent-caching' => PreventCaching::class,
             'user.ownership' => EnsureUserOwnership::class,
