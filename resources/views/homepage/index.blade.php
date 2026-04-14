@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Games Outbreak')
+@section('title', 'News-First Release Radar')
 
 @section('body-class', 'neon-body')
 

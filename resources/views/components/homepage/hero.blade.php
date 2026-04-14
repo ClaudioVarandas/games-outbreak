@@ -28,7 +28,7 @@
 
                 <div class="mt-auto flex flex-wrap gap-3 pt-8">
                     <a href="{{ $newsLocale->articleUrl($featured) }}" class="neon-btn">
-                        {{ __('Read Feature') }}
+                        {{ __('Read') }}
                     </a>
 
                     <a href="{{ $newsLocale->indexUrl() }}" class="neon-btn-ghost">
