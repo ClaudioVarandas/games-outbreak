@@ -1,6 +1,7 @@
 @props([
     'featured',
     'items' => collect(),
+    'newsLocale' => \App\Enums\NewsLocaleEnum::fromAppLocale(),
 ])
 
 <section class="neon-panel neon-hero mb-4">
@@ -26,11 +27,11 @@
                 </div>
 
                 <div class="mt-auto flex flex-wrap gap-3 pt-8">
-                    <a href="{{ route('news-articles.show', ['pt-pt', $featured->slug_pt_pt]) }}" class="neon-btn">
+                    <a href="{{ $newsLocale->articleUrl($featured) }}" class="neon-btn">
                         Read Feature
                     </a>
 
-                    <a href="{{ route('news-articles.index', 'pt-pt') }}" class="neon-btn-ghost">
+                    <a href="{{ $newsLocale->indexUrl() }}" class="neon-btn-ghost">
                         View All News
                     </a>
                 </div>
@@ -39,7 +40,7 @@
 
         <div class="grid gap-3">
             @foreach($items as $item)
-                <x-homepage.hero-news-item :item="$item" />
+                <x-homepage.hero-news-item :item="$item" :newsLocale="$newsLocale" />
             @endforeach
         </div>
     </div>

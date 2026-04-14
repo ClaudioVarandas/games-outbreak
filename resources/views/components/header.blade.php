@@ -44,7 +44,7 @@
                 <div class="flex items-center gap-2 xl:justify-end">
                     <div class="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
                     @if($newsVisible)
-                        <a href="{{ \App\Enums\NewsLocaleEnum::fromAppLocale()->indexUrl() }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition">
+                        <a href="{{ route('news-articles.default') }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition">
                             News
                         </a>
                     @endif
@@ -57,6 +57,51 @@
                         Events
                     </a>
                     </div>
+
+                    {{-- Locale + auth: separated from nav by a divider --}}
+                    <div class="flex items-center gap-3 border-l border-white/10 pl-4">
+
+                    @if($newsVisible)
+                        @php
+                            $headerNewsLocale = $currentNewsLocale ?? null;
+                            if (! $headerNewsLocale && session('news_locale')) {
+                                try {
+                                    $headerNewsLocale = \App\Enums\NewsLocaleEnum::fromPrefix(session('news_locale'));
+                                } catch (\Throwable) {}
+                            }
+                            $headerNewsLocale ??= \App\Enums\NewsLocaleEnum::fromAppLocale();
+                        @endphp
+                        <div x-data="{ open: false }" class="relative shrink-0" @click.outside="open = false">
+                            <button
+                                type="button"
+                                class="inline-flex min-h-9 items-center rounded-full border border-slate-600/60 px-3 text-[0.7rem] font-bold uppercase tracking-[0.1em] text-slate-400 transition hover:border-slate-400 hover:text-slate-200"
+                                @click="open = !open"
+                                aria-label="Switch news language">
+                                {{ strtoupper($headerNewsLocale->slugPrefix()) }}
+                            </button>
+
+                            <div
+                                x-show="open"
+                                x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="opacity-0 scale-95"
+                                x-transition:enter-end="opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-75"
+                                x-transition:leave-start="opacity-100 scale-100"
+                                x-transition:leave-end="opacity-0 scale-95"
+                                class="absolute right-0 mt-2 w-36 overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-900/95 text-sm text-slate-100 shadow-2xl"
+                                style="display: none;">
+                                @foreach (\App\Enums\NewsLocaleEnum::cases() as $l)
+                                    <a href="{{ $l->indexUrl() }}"
+                                       class="flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest transition hover:bg-white/5 {{ $headerNewsLocale === $l ? 'text-orange-300' : 'text-slate-400' }}">
+                                        {{ strtoupper($l->slugPrefix()) }}
+                                        @if ($headerNewsLocale === $l)
+                                            <span class="ml-auto text-orange-400">✓</span>
+                                        @endif
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
 
                     @auth
                         <div x-data="{ open: false }" class="relative shrink-0" @click.outside="open = false">
@@ -93,8 +138,11 @@
                                         <span>User Lists</span>
                                     </a>
                                     @if($newsVisible)
+                                        <a href="{{ route('admin.news-imports.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
+                                            <span>News Imports</span>
+                                        </a>
                                         <a href="{{ route('admin.news-articles.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
-                                            <span>News</span>
+                                            <span>News Articles</span>
                                         </a>
                                     @endif
                                 @endif

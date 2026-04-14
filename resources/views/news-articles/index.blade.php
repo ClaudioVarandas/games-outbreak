@@ -8,17 +8,8 @@
 <div class="theme-neon overflow-x-hidden">
     <div class="page-shell py-10">
 
-        {{-- Section heading + locale switcher --}}
-        <div class="mb-8 flex items-center justify-between">
+        <div class="mb-8">
             <x-homepage.section-heading icon="newspaper" title="Notícias" />
-            <div class="flex gap-2">
-                @foreach (\App\Enums\NewsLocaleEnum::cases() as $l)
-                    <a href="{{ $l->indexUrl() }}"
-                       class="neon-pill inline-flex items-center rounded-full px-3 py-1 text-[0.7rem] font-bold uppercase tracking-[0.08em] transition {{ $locale === $l ? 'bg-orange-500/20 text-orange-300 border-orange-500/40' : 'text-slate-400' }}">
-                        {{ $l->shortLabel() }}
-                    </a>
-                @endforeach
-            </div>
         </div>
 
         {{-- Article list --}}

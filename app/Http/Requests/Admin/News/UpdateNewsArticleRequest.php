@@ -19,7 +19,7 @@ class UpdateNewsArticleRequest extends FormRequest
     {
         return [
             'status' => ['sometimes', new Enum(NewsArticleStatusEnum::class)],
-            'featured_image_url' => ['nullable', 'url', 'max:2000'],
+            'featured_image_url' => ['nullable', 'string', 'max:2000'],
             'scheduled_at' => ['nullable', 'date', 'after:now'],
             'localizations' => ['required', 'array', 'min:1'],
             'localizations.*.locale' => ['required', 'string'],

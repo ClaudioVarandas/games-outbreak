@@ -3,7 +3,7 @@
 @section('title', 'News Articles (Admin)')
 
 @section('content')
-    <div class="container mx-auto px-4 py-8">
+    <div class="page-shell py-8">
         <div class="flex items-center justify-between mb-8">
             <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100">News Articles</h1>
         </div>
@@ -29,10 +29,10 @@
             <table class="w-full">
                 <thead class="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source</th>
+                        <th class="px-3 py-3 w-20"></th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Original Title</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">PT Title</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created</th>
                         <th class="px-6 py-3"></th>
                     </tr>
@@ -40,15 +40,20 @@
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                     @forelse ($articles as $article)
                         <tr>
+                            <td class="px-3 py-2 w-20">
+                                @if ($article->featured_image_url)
+                                    <img src="{{ $article->featured_image_url }}" alt=""
+                                         class="h-14 w-20 rounded object-cover">
+                                @else
+                                    <div class="h-14 w-20 rounded bg-gray-100 dark:bg-gray-700"></div>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 max-w-xs truncate">{{ $article->original_title }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $article->source_name }}</td>
                             <td class="px-6 py-4">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $article->status->colorClass() }}">
                                     {{ $article->status->label() }}
                                 </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $article->source_name }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 max-w-xs truncate">{{ $article->original_title }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">
-                                {{ $article->localization('pt-PT')?->title ?? '—' }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $article->created_at->diffForHumans() }}</td>
                             <td class="px-6 py-4 text-right">

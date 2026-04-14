@@ -3,7 +3,7 @@
 @section('title', 'Import News URL (Admin)')
 
 @section('content')
-    <div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="page-shell py-8">
         <div class="flex items-center gap-4 mb-8">
             <a href="{{ route('admin.news-imports.index') }}"
                class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">

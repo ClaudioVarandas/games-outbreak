@@ -3,7 +3,7 @@
 @section('title', 'News Imports (Admin)')
 
 @section('content')
-    <div class="container mx-auto px-4 py-8">
+    <div class="page-shell py-8">
         <div class="flex items-center justify-between mb-8">
             <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100">News Imports</h1>
             <a href="{{ route('admin.news-imports.create') }}"

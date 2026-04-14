@@ -19,7 +19,7 @@
                 <div class="rounded-2xl border border-cyan-300/10 bg-white/5 p-5 text-center md:text-left">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Credits</p>
                     <p class="mt-3 text-sm leading-6 text-slate-200">
-                        Made with <span class="text-orange-300">care</span> by
+                        Made with <span class="text-orange-300">love</span> by
                         <span class="text-orange-300">Cláudio Varandas</span>
                         using open source technologies.
                     </p>

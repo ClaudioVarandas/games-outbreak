@@ -8,7 +8,7 @@
     <div class="theme-neon overflow-x-hidden">
         <div class="page-shell pt-2">
             @if($newsEnabled && $featuredNews)
-                <x-homepage.hero :featured="$featuredNews" :items="$topNews" />
+                <x-homepage.hero :featured="$featuredNews" :items="$topNews" :newsLocale="$newsLocale" />
             @endif
 
             <main class="neon-section pb-4">

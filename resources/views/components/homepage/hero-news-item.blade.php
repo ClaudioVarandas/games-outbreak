@@ -1,8 +1,9 @@
 @props([
     'item',
+    'newsLocale' => \App\Enums\NewsLocaleEnum::fromAppLocale(),
 ])
 
-<a href="{{ route('news-articles.show', ['pt-pt', $item->slug_pt_pt]) }}" class="neon-card grid grid-cols-[96px_minmax(0,1fr)] gap-3 p-3">
+<a href="{{ $newsLocale->articleUrl($item) }}" class="neon-card grid grid-cols-[96px_minmax(0,1fr)] gap-3 p-3">
     <div class="aspect-square overflow-hidden rounded-2xl bg-slate-900/60">
         @if($item->featured_image_url)
             <img src="{{ $item->featured_image_url }}" alt="{{ $item->localizations->first()?->title }}" class="h-full w-full object-cover" loading="lazy">

@@ -94,6 +94,21 @@ class HomepageController extends Controller
             ->toArray();
     }
 
+    private function resolveNewsLocale(Request $request): NewsLocaleEnum
+    {
+        $savedSlug = session('news_locale');
+
+        if ($savedSlug) {
+            try {
+                return NewsLocaleEnum::fromPrefix($savedSlug);
+            } catch (\Throwable) {
+                // stale value — fall through
+            }
+        }
+
+        return NewsLocaleEnum::fromBrowserLocale($request->header('Accept-Language'));
+    }
+
     private function getLatestAddedGames(): Collection
     {
         return Game::with('platforms')
@@ -105,7 +120,7 @@ class HomepageController extends Controller
     /**
      * Display the homepage with featured game releases.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         $seasonedLists = $this->getSeasonedLists();
         $thisWeekGames = $this->getThisWeekGames();
@@ -114,9 +129,14 @@ class HomepageController extends Controller
         $platformEnums = PlatformEnum::getActivePlatforms();
         $eventBanners = $this->getEventBanners();
         $newsEnabled = EnsureNewsFeatureEnabled::isVisibleTo(auth()->user());
+
+        $newsLocale = $this->resolveNewsLocale($request);
+
         $homepageNews = $newsEnabled
             ? NewsArticle::published()
-                ->with(['localizations' => fn ($q) => $q->where('locale', NewsLocaleEnum::PtPt->value)])
+                ->whereNotNull($newsLocale->slugColumn())
+                ->whereHas('localizations', fn ($q) => $q->where('locale', $newsLocale->value))
+                ->with(['localizations' => fn ($q) => $q->where('locale', $newsLocale->value)])
                 ->orderByDesc('published_at')
                 ->limit(5)
                 ->get()
@@ -135,6 +155,7 @@ class HomepageController extends Controller
             'platformEnums',
             'eventBanners',
             'newsEnabled',
+            'newsLocale',
             'featuredNews',
             'topNews',
             'currentYear',

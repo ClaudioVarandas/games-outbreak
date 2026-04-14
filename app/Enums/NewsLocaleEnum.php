@@ -117,4 +117,37 @@ enum NewsLocaleEnum: string
             default => self::En,
         };
     }
+
+    /** Resolve from Accept-Language header value, falling back to app locale. */
+    public static function fromBrowserLocale(?string $acceptLanguage): self
+    {
+        if (! $acceptLanguage) {
+            return self::fromAppLocale();
+        }
+
+        $map = [
+            'en' => self::En,
+            'en-us' => self::En,
+            'en-gb' => self::En,
+            'pt' => self::PtPt,
+            'pt-pt' => self::PtPt,
+            'pt-br' => self::PtBr,
+        ];
+
+        foreach (array_map('trim', explode(',', $acceptLanguage)) as $tag) {
+            $lang = strtolower(trim(explode(';', $tag)[0]));
+
+            if (isset($map[$lang])) {
+                return $map[$lang];
+            }
+
+            $base = explode('-', $lang)[0];
+
+            if (isset($map[$base])) {
+                return $map[$base];
+            }
+        }
+
+        return self::fromAppLocale();
+    }
 }

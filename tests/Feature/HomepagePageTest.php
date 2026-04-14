@@ -55,7 +55,7 @@ it('shows the homepage hero when news is enabled and published news exists', fun
         NewsArticleLocalization::factory()->for($a, 'article')->create(['locale' => NewsLocaleEnum::PtPt]);
     });
 
-    $response = $this->get(route('homepage'));
+    $response = $this->withSession(['news_locale' => 'pt-pt'])->get(route('homepage'));
 
     $response->assertSuccessful();
     $response->assertSeeText('Featured News');

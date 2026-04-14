@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\EnsureUserOwnership;
+use App\Http\Middleware\PreventCaching;
+use App\Http\Middleware\SetNewsLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,8 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'prevent-caching' => \App\Http\Middleware\PreventCaching::class,
-            'user.ownership' => \App\Http\Middleware\EnsureUserOwnership::class,
+            'prevent-caching' => PreventCaching::class,
+            'user.ownership' => EnsureUserOwnership::class,
+            'set-news-locale' => SetNewsLocale::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

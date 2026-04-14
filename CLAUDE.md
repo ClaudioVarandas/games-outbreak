@@ -384,3 +384,81 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 - Always use Tailwind CSS v3; verify you're using only classes supported by this version.
 </laravel-boost-guidelines>
 
+## News Localisation System
+
+### Supported locales
+
+`NewsLocaleEnum` (`app/Enums/NewsLocaleEnum.php`) is the single source of truth. Three cases:
+
+| Case | BCP-47 value | URL prefix | Path segment | Short label |
+|------|-------------|------------|--------------|-------------|
+| `En` | `en` | `en` | `news` | EN |
+| `PtPt` | `pt-PT` | `pt-pt` | `noticias` | PT |
+| `PtBr` | `pt-BR` | `pt-br` | `noticias` | BR |
+
+Always use enum cases or their methods — never raw locale strings.
+
+### URL structure
+
+```
+/en/news              EN index
+/en/news/{slug}       EN article
+/pt-pt/noticias       PT-PT index
+/pt-pt/noticias/{slug}
+/pt-br/noticias       PT-BR index
+/pt-br/noticias/{slug}
+/news                 redirect (no locale)
+```
+
+- EN routes use a fixed `en/news` prefix (no route param).
+- PT routes use `{localePrefix}/noticias` where `localePrefix` is constrained to `pt-pt|pt-br`.
+- Do **not** change this structure — it is intentional.
+
+### `SetNewsLocale` middleware (`app/Http/Middleware/SetNewsLocale.php`)
+
+Applied to **both** public news route groups (EN + PT). On each news page request it:
+
+1. Extracts locale: `{localePrefix}` route param (PT) or URI prefix detection (EN).
+2. `app()->setLocale($newsLocale->value)` — sets Laravel runtime locale.
+3. `session(['news_locale' => $newsLocale->slugPrefix()])` — persists URL-safe slug.
+4. `view()->share('currentNewsLocale', $newsLocale)` — available as `$currentNewsLocale` in all views for that request.
+
+Do **not** apply this middleware globally or to non-news routes.
+
+### `/news` redirect logic (priority order)
+
+1. `session('news_locale')` → `NewsLocaleEnum::fromPrefix()` — user's last explicit choice.
+2. `Accept-Language` header → `NewsLocaleEnum::fromBrowserLocale()` — browser preference.
+3. `NewsLocaleEnum::fromAppLocale()` — `app.locale` config fallback.
+
+### Header locale switcher (`resources/views/components/header.blade.php`)
+
+The switcher is visible on **all pages** (not just news). It resolves the current locale with a 3-tier fallback (since `$currentNewsLocale` is only shared on news routes):
+
+```php
+$headerNewsLocale = $currentNewsLocale                          // middleware (news pages)
+    ?? NewsLocaleEnum::fromPrefix(session('news_locale'))       // session (previous visit)
+    ?? NewsLocaleEnum::fromAppLocale();                         // config default
+```
+
+Clicking a dropdown option navigates to `$l->indexUrl()`, which triggers the middleware and updates the session.
+
+### Key `NewsLocaleEnum` methods
+
+- `slugPrefix()` — URL-safe prefix: `'en'`, `'pt-pt'`, `'pt-br'`
+- `slugColumn()` — DB column: `'slug_en'`, `'slug_pt_pt'`, `'slug_pt_br'`
+- `indexUrl()` — full URL for the locale's news listing
+- `articleUrl(NewsArticle $article)` — full URL for a specific article
+- `fromPrefix(string)` — resolve from URL prefix; 404s on unknown
+- `fromAppLocale()` — resolve from `app.locale` config
+- `fromBrowserLocale(?string)` — parse `Accept-Language` header
+
+### Article slugs
+
+Each `NewsArticle` has separate slug columns per locale: `slug_en`, `slug_pt_pt`, `slug_pt_br`. A locale's article URL is only valid when that slug column is non-null. When displaying locale options for a specific article, check `$article->{$l->slugColumn()}` before linking.
+
+### Tests
+
+- Feature: `tests/Feature/News/SetNewsLocaleMiddlewareTest.php` — middleware, session persistence, `/news` redirect, header switcher labels
+- Unit: `tests/Unit/NewsLocaleEnumTest.php` — `fromBrowserLocale()` parsing
+

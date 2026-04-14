@@ -2,6 +2,8 @@
 
 use App\Enums\NewsLocaleEnum;
 use App\Http\Controllers\Admin\News\NewsArticleController as AdminNewsArticleController;
+use App\Http\Controllers\Admin\News\NewsArticleImageUploadController as AdminNewsArticleImageUploadController;
+use App\Http\Controllers\Admin\News\NewsArticleRemoveFeaturedImageController as AdminNewsArticleRemoveFeaturedImageController;
 use App\Http\Controllers\Admin\News\NewsImportController as AdminNewsImportController;
 use App\Http\Controllers\AdminGenreController;
 use App\Http\Controllers\AdminListController;
@@ -18,6 +20,7 @@ use App\Http\Controllers\UserListController;
 use App\Http\Middleware\EnsureAdminUser;
 use App\Http\Middleware\EnsureNewsFeatureEnabled;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomepageController::class, 'index'])->name('homepage');
@@ -60,7 +63,7 @@ Route::get('/game/{game:slug}/similar-games-html', [GamesController::class, 'sim
 // ============================================================================
 
 // EN news routes
-Route::middleware([EnsureNewsFeatureEnabled::class])
+Route::middleware([EnsureNewsFeatureEnabled::class, 'set-news-locale'])
     ->prefix('en/news')
     ->name('news-articles.en.')
     ->group(function () {
@@ -69,7 +72,7 @@ Route::middleware([EnsureNewsFeatureEnabled::class])
     });
 
 // PT news routes (pt-pt/noticias, pt-br/noticias)
-Route::middleware([EnsureNewsFeatureEnabled::class])
+Route::middleware([EnsureNewsFeatureEnabled::class, 'set-news-locale'])
     ->prefix('{localePrefix}/noticias')
     ->where(['localePrefix' => 'pt-pt|pt-br'])
     ->name('news-articles.')
@@ -78,9 +81,23 @@ Route::middleware([EnsureNewsFeatureEnabled::class])
         Route::get('/{slug}', [NewsArticleController::class, 'show'])->name('show');
     });
 
-// Default redirect — /news → locale from app.locale
+// Default redirect — /news → saved locale, then browser locale, then app.locale
 Route::middleware([EnsureNewsFeatureEnabled::class])
-    ->get('/news', fn () => redirect(NewsLocaleEnum::fromAppLocale()->indexUrl()))
+    ->get('/news', function (Request $request) {
+        $savedSlug = session('news_locale');
+
+        if ($savedSlug) {
+            try {
+                return redirect(NewsLocaleEnum::fromPrefix($savedSlug)->indexUrl());
+            } catch (Throwable) {
+                // stale session value — fall through
+            }
+        }
+
+        return redirect(
+            NewsLocaleEnum::fromBrowserLocale($request->header('Accept-Language'))->indexUrl()
+        );
+    })
     ->name('news-articles.default');
 
 // Public list view (read-only)
@@ -238,6 +255,8 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
             ->group(function () {
                 Route::get('/', [AdminNewsArticleController::class, 'index'])->name('index');
                 Route::get('/{newsArticle}/edit', [AdminNewsArticleController::class, 'edit'])->name('edit');
+                Route::post('/{newsArticle}/upload-image', AdminNewsArticleImageUploadController::class)->name('upload-image');
+                Route::delete('/{newsArticle}/featured-image', AdminNewsArticleRemoveFeaturedImageController::class)->name('featured-image.destroy');
                 Route::patch('/{newsArticle}', [AdminNewsArticleController::class, 'update'])->name('update');
                 Route::post('/{newsArticle}/publish', [AdminNewsArticleController::class, 'publish'])->name('publish');
                 Route::post('/{newsArticle}/schedule', [AdminNewsArticleController::class, 'schedule'])->name('schedule');
