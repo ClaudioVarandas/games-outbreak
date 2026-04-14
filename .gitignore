@@ -24,3 +24,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 .worktrees/
+
+.codex
+.superpowers

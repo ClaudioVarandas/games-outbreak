@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Games Outbreak Homepage Mockup</title>
+    <style>
+        :root {
+            --bg: #121522;
+            --panel: rgba(24, 28, 46, 0.84);
+            --panel-strong: rgba(30, 35, 58, 0.94);
+            --line: rgba(99, 243, 255, 0.18);
+            --line-strong: rgba(99, 243, 255, 0.34);
+            --text: #ecf8ff;
+            --muted: #8ea7b8;
+            --cyan: #63f3ff;
+            --pink: #ff8a2a;
+            --lime: #7c3aed;
+            --shadow: 0 0 0 1px rgba(99, 243, 255, 0.08), 0 22px 70px rgba(0, 0, 0, 0.48);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            overflow-x: hidden;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(255, 138, 42, 0.14), transparent 24%),
+                radial-gradient(circle at top right, rgba(109, 40, 217, 0.18), transparent 30%),
+                linear-gradient(180deg, #1b2030 0%, #23293d 50%, #171c2b 100%);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 88%);
+            opacity: 0.5;
+        }
+
+        a { color: inherit; text-decoration: none; }
+
+        .page-shell {
+            width: min(1380px, calc(100% - 32px));
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 24px 0 80px;
+        }
+
+        .topbar, .hero, .section-card, .footer {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+        }
+
+        .topbar {
+            display: grid;
+            min-width: 0;
+            grid-template-columns: auto minmax(280px, 1fr) auto;
+            align-items: center;
+            gap: 18px;
+            padding: 14px 18px;
+            border-radius: 20px;
+            margin-bottom: 18px;
+        }
+
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .brand-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #ff8a2a, #6d28d9);
+            box-shadow: 0 0 26px rgba(99, 243, 255, 0.34);
+            flex-shrink: 0;
+        }
+
+        .brand h1, .nav-links, .search-shell input, .wire-label, .footer { letter-spacing: 0.04em; }
+        .brand h1 { margin: 0; font-size: 1rem; text-transform: uppercase; }
+        .brand p, .muted, .footer, .wire-note { margin: 0; color: var(--muted); font-size: 0.84rem; }
+
+        .search-shell { position: relative; width: 100%; }
+        .search-shell::before {
+            content: "⌕";
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--cyan);
+            font-size: 1rem;
+            pointer-events: none;
+        }
+
+        .search-shell input {
+            width: 100%;
+            height: 50px;
+            border-radius: 999px;
+            border: 1px solid rgba(99, 243, 255, 0.28);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            padding: 0 18px 0 44px;
+            outline: none;
+            box-shadow: inset 0 0 0 1px rgba(99, 243, 255, 0.05), 0 0 24px rgba(99, 243, 255, 0.07);
+        }
+
+        .search-shell input::placeholder { color: #9cb2c0; }
+        .nav-links { display: flex; align-items: center; justify-content: flex-start; gap: 10px; flex-wrap: wrap; }
+
+        .nav-chip, .user-btn, .tiny-pill, .solid-btn, .ghost-btn {
+            border-radius: 999px;
+            border: 1px solid rgba(99, 243, 255, 0.22);
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .nav-chip, .tiny-pill, .user-btn { text-transform: uppercase; font-size: 0.76rem; }
+        .nav-chip, .user-btn {
+            min-height: 40px;
+            padding: 0 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-btn {
+            width: 42px;
+            padding: 0;
+            font-size: 1rem;
+            box-shadow: 0 0 16px rgba(109, 40, 217, 0.28);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 30px;
+            margin-bottom: 22px;
+            padding: 38px 24px;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 50% 20%, rgba(99, 243, 255, 0.14), transparent 30%),
+                radial-gradient(circle at 50% 80%, rgba(255, 138, 42, 0.12), transparent 36%);
+            pointer-events: none;
+        }
+
+        .hero-grid {
+            position: relative;
+            min-width: 0;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.9fr);
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .hero-feature, .hero-feed {
+            border-radius: 24px;
+            background:
+                linear-gradient(140deg, rgba(255, 138, 42, 0.1), transparent 34%),
+                linear-gradient(220deg, rgba(109, 40, 217, 0.16), transparent 34%),
+                rgba(255, 255, 255, 0.02);
+            border: 1px dashed rgba(255, 255, 255, 0.14);
+        }
+
+        .hero-feature {
+            min-height: 420px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-feature::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(180deg, rgba(5, 8, 18, 0.12) 0%, rgba(5, 8, 18, 0.4) 45%, rgba(5, 8, 18, 0.88) 100%),
+                linear-gradient(120deg, rgba(109, 40, 217, 0.22), transparent 34%),
+                linear-gradient(320deg, rgba(255, 138, 42, 0.14), transparent 36%);
+            pointer-events: none;
+        }
+
+        .hero-image {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 30% 25%, rgba(109, 40, 217, 0.28), transparent 18%),
+                radial-gradient(circle at 72% 30%, rgba(255, 138, 42, 0.2), transparent 22%),
+                linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+        }
+
+        .hero-feature-content {
+            position: relative;
+            z-index: 1;
+            max-width: 72%;
+            padding-top: 8px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .hero-text-group { display: flex; flex-direction: column; }
+        .hero-actions { margin-top: auto; }
+        .hero-feed { padding: 14px; display: grid; gap: 12px; align-content: stretch; }
+
+        .hero-news-item {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            grid-template-columns: 96px 1fr;
+            gap: 12px;
+            align-items: center;
+            border-radius: 18px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(99, 243, 255, 0.1);
+        }
+
+        .hero-news-item:hover {
+            transform: translateY(-4px) scale(1.005);
+            border-color: rgba(109, 40, 217, 0.34);
+            box-shadow:
+                0 0 0 1px rgba(255, 138, 42, 0.12),
+                0 0 14px rgba(255, 138, 42, 0.14),
+                0 0 24px rgba(109, 40, 217, 0.18),
+                0 10px 22px rgba(109, 40, 217, 0.16);
+        }
+
+        .hero-news-item::before {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(255,138,42,0.0), rgba(255,138,42,0.14), rgba(109,40,217,0.18), rgba(109,40,217,0.0));
+            opacity: 0;
+            transition: opacity 0.28s ease;
+            pointer-events: none;
+        }
+
+        .hero-news-item:hover::before {
+            opacity: 1;
+        }
+
+        .hero-news-item::after {
+            content: "";
+            position: absolute;
+            top: -120%;
+            left: -40%;
+            width: 42%;
+            height: 260%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+            transform: rotate(18deg);
+            opacity: 0;
+            transition: transform 0.5s ease, opacity 0.28s ease;
+            pointer-events: none;
+        }
+
+        .hero-news-item:hover::after {
+            opacity: 1;
+            transform: translateX(260%) rotate(18deg);
+        }
+
+        .hero-news-thumb,
+        .hero-news-copy {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-news-thumb, .poster, .event-thumb, .release-poster, .thumb, .latest-thumb, .news-thumb, .skeleton-line {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.09), rgba(255,255,255,0.05));
+        }
+
+        .hero-news-thumb { width: 96px; height: 96px; border-radius: 14px; }
+        .hero-news-copy { min-width: 0; }
+        .hero-news-copy .tiny-pill { margin-top: 0; margin-bottom: 8px; }
+        .hero-news-copy .skeleton-line:last-child { margin-bottom: 0; }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--cyan);
+            text-transform: uppercase;
+            font-size: 0.74rem;
+            margin-bottom: 16px;
+            letter-spacing: 0.12em;
+        }
+
+        .eyebrow::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 12px var(--cyan);
+        }
+
+        .hero h2 {
+            margin: 0 0 14px;
+            font-size: clamp(2.2rem, 4.6vw, 4.5rem);
+            line-height: 0.92;
+            text-transform: uppercase;
+            max-width: 9ch;
+        }
+
+        .hero p { max-width: 58ch; margin: 0 0 22px; color: #c8d8e5; line-height: 1.68; }
+        .hero-actions { display: flex; gap: 12px; justify-content: flex-start; flex-wrap: wrap; }
+
+        .solid-btn, .ghost-btn {
+            min-height: 46px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 18px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .solid-btn {
+            background: linear-gradient(135deg, #ff8a2a, #6d28d9);
+            border-color: transparent;
+            box-shadow: 0 0 22px rgba(109, 40, 217, 0.26);
+        }
+
+        .layout { display: block; }
+        .main-column { display: grid; gap: 22px; min-width: 0; }
+        .section-card { border-radius: 28px; padding: 22px; min-width: 0; }
+
+        .section-headline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .title-with-icon { display: inline-flex; align-items: center; gap: 10px; }
+        .section-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            background: linear-gradient(135deg, #ff8a2a, #6d28d9);
+            box-shadow: 0 0 14px rgba(109, 40, 217, 0.22);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .section-headline h2 { margin: 0; text-transform: uppercase; font-size: 1.35rem; }
+        .section-headline a, .wire-label { font-size: 0.78rem; text-transform: uppercase; color: var(--cyan); }
+
+        .wireframe-band, .list-card, .event-card, .release-slide, .latest-table-row {
+            border: 1px dashed rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .wireframe-band {
+            border-radius: 18px;
+            padding: 14px;
+            background: rgba(212, 255, 87, 0.04);
+            border-color: rgba(212, 255, 87, 0.2);
+            margin-bottom: 18px;
+        }
+
+        .choices-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .events-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+
+        .list-card, .event-card, .release-slide, .latest-table-row {
+            border-radius: 22px;
+            padding: 9px;
+        }
+
+        .list-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .list-card:hover {
+            transform: translateY(-4px) scale(1.005);
+            border-color: rgba(109, 40, 217, 0.34);
+            box-shadow:
+                0 0 0 1px rgba(255, 138, 42, 0.12),
+                0 0 14px rgba(255, 138, 42, 0.14),
+                0 0 24px rgba(109, 40, 217, 0.18),
+                0 10px 22px rgba(109, 40, 217, 0.16);
+        }
+
+        .list-card::before {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(255,138,42,0.0), rgba(255,138,42,0.14), rgba(109,40,217,0.18), rgba(109,40,217,0.0));
+            opacity: 0;
+            transition: opacity 0.28s ease;
+            pointer-events: none;
+        }
+
+        .list-card:hover::before { opacity: 1; }
+        .list-card::after {
+            content: "";
+            position: absolute;
+            top: -120%;
+            left: -40%;
+            width: 42%;
+            height: 260%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+            transform: rotate(18deg);
+            opacity: 0;
+            transition: transform 0.5s ease, opacity 0.28s ease;
+            pointer-events: none;
+        }
+
+        .list-card:hover::after { opacity: 1; transform: translateX(260%) rotate(18deg); }
+        .card-media { position: relative; overflow: hidden; border-radius: 14px; margin-bottom: 10px; }
+        .card-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(8,10,18,0.88) 100%); pointer-events: none; }
+
+        .release-card-body { display: grid; gap: 7px; }
+        .release-title {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            line-height: 1.3;
+            color: #f7fbff;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .release-card-meta { display: grid; grid-template-columns: 1fr; gap: 7px; }
+        .release-info-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .release-platform-row, .latest-platforms-cell { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+        .platform-pill, .type-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 24px;
+            padding: 0 8px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .platform-pill { background: rgba(255,255,255,0.05); color: #edf7ff; }
+        .type-pill { color: #fff; }
+        .type-main { background: rgba(255, 138, 42, 0.18); color: #ffbe7b; }
+        .type-dlc { background: rgba(59, 130, 246, 0.18); color: #93c5fd; }
+        .type-expansion { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; }
+        .type-bundle { background: rgba(236, 72, 153, 0.18); color: #f9a8d4; }
+        .type-standalone { background: rgba(16, 185, 129, 0.18); color: #86efac; }
+        .type-mod { background: rgba(234, 179, 8, 0.18); color: #fde68a; }
+        .type-episode { background: rgba(6, 182, 212, 0.18); color: #a5f3fc; }
+        .type-season { background: rgba(244, 114, 182, 0.18); color: #fbcfe8; }
+        .type-remake { background: rgba(249, 115, 22, 0.18); color: #fdba74; }
+        .type-remaster { background: rgba(99, 102, 241, 0.2); color: #c7d2fe; }
+
+        .release-date-text, .latest-release-text, .latest-added-text {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #dfe9f7;
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .poster, .event-thumb, .release-poster, .thumb, .latest-thumb, .news-thumb { border-radius: 14px; }
+        .poster { width: 100%; height: 240px; transition: transform 0.35s ease; }
+        .list-card:hover .poster, .list-card:hover .release-poster { transform: scale(1.05); }
+        .event-thumb { width: 100%; height: 220px; margin-bottom: 14px; }
+        .release-poster { width: 100%; height: 260px; transition: transform 0.35s ease; }
+        .latest-thumb { width: 58px; height: 58px; flex-shrink: 0; }
+        .skeleton-line { height: 10px; border-radius: 999px; margin-bottom: 10px; }
+        .skeleton-line.short { width: 42%; }
+        .skeleton-line.med { width: 68%; }
+        .skeleton-line.long { width: 90%; }
+
+        .release-carousel-shell { position: relative; min-width: 0; overflow: hidden; }
+        .release-carousel {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: 210px;
+            gap: 12px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            padding-bottom: 8px;
+            scrollbar-width: none;
+        }
+
+        .release-carousel::-webkit-scrollbar { display: none; }
+        .release-slide { display: block; scroll-snap-align: start; }
+
+        .carousel-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 38px;
+            height: 38px;
+            border-radius: 999px;
+            border: 1px solid rgba(99, 243, 255, 0.18);
+            background: rgba(17, 21, 36, 0.9);
+            color: var(--text);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 3;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 14px rgba(109, 40, 217, 0.14);
+        }
+
+        .carousel-arrow.left { left: -4px; }
+        .carousel-arrow.right { right: -4px; }
+
+        .release-carousel-shell::before,
+        .release-carousel-shell::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 8px;
+            width: 46px;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .release-carousel-shell::before { left: 0; background: linear-gradient(90deg, rgba(24, 28, 46, 0.92), rgba(24, 28, 46, 0)); }
+        .release-carousel-shell::after { right: 0; background: linear-gradient(270deg, rgba(24, 28, 46, 0.92), rgba(24, 28, 46, 0)); }
+
+        .latest-table { display: grid; gap: 10px; }
+        .latest-table-head,
+        .latest-table-row {
+            display: grid;
+            grid-template-columns: minmax(0, 2.2fr) minmax(140px, 1.2fr) minmax(120px, 0.9fr) minmax(120px, 0.9fr);
+            gap: 14px;
+            align-items: center;
+        }
+
+        .latest-table-head {
+            padding: 0 10px 6px;
+            color: var(--muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .latest-table-row {
+            border-radius: 18px;
+            padding: 12px 14px;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .latest-game-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .latest-game-meta { min-width: 0; display: grid; gap: 6px; }
+        .latest-game-title {
+            margin: 0;
+            font-size: 0.88rem;
+            font-weight: 700;
+            line-height: 1.25;
+            color: #f7fbff;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .footer {
+            margin-top: 26px;
+            border-radius: 24px;
+            padding: 24px 22px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .footer-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 18px; }
+        .footer-block {
+            border: 1px dashed rgba(255,255,255,0.12);
+            border-radius: 18px;
+            padding: 16px;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .footer-title {
+            margin: 0 0 10px;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            color: var(--cyan);
+            letter-spacing: 0.08em;
+        }
+
+        .footer-block p, .footer-block a { color: var(--muted); font-size: 0.88rem; line-height: 1.7; }
+        .footer-block a { color: var(--text); border-bottom: 1px solid rgba(99, 243, 255, 0.2); }
+        .footer-bottom { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding-top: 4px; }
+
+        @media (max-width: 1200px) {
+            .release-carousel { grid-auto-columns: 210px; }
+        }
+
+        @media (max-width: 1180px) {
+            .topbar { grid-template-columns: 1fr; }
+            .nav-links { justify-content: flex-start; }
+            .footer-grid, .hero-grid { grid-template-columns: 1fr; }
+            .hero-feature-content { max-width: 100%; }
+        }
+
+        @media (max-width: 700px) {
+            .page-shell { width: min(100% - 18px, 1380px); }
+            .choices-grid, .events-grid { grid-template-columns: 1fr; }
+            .release-carousel { grid-auto-columns: 78%; }
+            .carousel-arrow { display: none; }
+            .release-carousel-shell::before, .release-carousel-shell::after { width: 18px; }
+            .latest-table-head { display: none; }
+            .latest-table-row { grid-template-columns: 1fr; gap: 10px; }
+            .hero { padding-top: 62px; }
+            .hero h2 { max-width: 12ch; }
+            .hero-news-item { grid-template-columns: 72px 1fr; }
+            .hero-news-thumb { width: 72px; height: 72px; }
+        }
+    </style>
+</head>
+<body>
+<div class="page-shell">
+    <header class="topbar">
+        <div class="brand"><div class="brand-badge"></div><div><h1>Games Outbreak Replacement</h1><p>Cyberpunk homepage wireframe in HTML/CSS</p></div></div>
+        <div class="search-shell"><input type="text" placeholder="Search games, platforms, genres..." /></div>
+        <nav class="nav-links" aria-label="Primary"><span class="nav-chip">News</span><span class="nav-chip">Curated Lists</span><span class="nav-chip">Events</span><span class="user-btn" aria-label="Login or register">⌁</span></nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-grid">
+            <article class="hero-feature">
+                <div class="hero-image"></div>
+                <div class="hero-feature-content">
+                    <div class="hero-text-group"><div class="eyebrow">Featured news</div><h2>Neon City Burns Again</h2><p>Lead story spotlight with large visual, headline, short teaser, and a strong CTA. This becomes the main news highlight of the homepage.</p></div>
+                    <div class="hero-actions"><span class="solid-btn">Read feature</span><span class="ghost-btn">View all news</span></div>
+                </div>
+            </article>
+            <aside class="hero-feed" aria-label="More top news">
+                <article class="hero-news-item"><div class="hero-news-thumb"></div><div class="hero-news-copy"><span class="tiny-pill">News</span><div class="skeleton-line long"></div><div class="skeleton-line med"></div></div></article>
+                <article class="hero-news-item"><div class="hero-news-thumb"></div><div class="hero-news-copy"><span class="tiny-pill">News</span><div class="skeleton-line long"></div><div class="skeleton-line short"></div></div></article>
+                <article class="hero-news-item"><div class="hero-news-thumb"></div><div class="hero-news-copy"><span class="tiny-pill">News</span><div class="skeleton-line med"></div><div class="skeleton-line long"></div></div></article>
+                <article class="hero-news-item"><div class="hero-news-thumb"></div><div class="hero-news-copy"><span class="tiny-pill">News</span><div class="skeleton-line long"></div><div class="skeleton-line med"></div></div></article>
+            </aside>
+        </div>
+    </section>
+
+    <div class="layout"><main class="main-column">
+        <section class="section-card">
+            <div class="section-headline"><div class="title-with-icon"><span class="section-icon">🎮</span><h2>This Week’s Choices</h2></div><a href="#">See all →</a></div>
+            <div class="wireframe-band"><p class="wire-note">This section stays a fixed grid, not a carousel. Ten curated picks visible as a compact editorial wall.</p></div>
+            <div class="choices-grid">
+                <article class="list-card"><div class="card-media"><div class="poster"></div></div><div class="release-card-body"><h3 class="release-title">CYBER DRIFT ZERO</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-main">Main Game</span><span class="release-date-text">24 APRIL</span></div><div class="release-platform-row"><span class="platform-pill">PC</span><span class="platform-pill">PS5</span><span class="platform-pill">Xbox X/S</span></div></div></div></article>
+                <article class="list-card"><div class="card-media"><div class="poster"></div></div><div class="release-card-body"><h3 class="release-title">NEON WARDEN</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-expansion">Expansion</span><span class="release-date-text">02 MAY</span></div><div class="release-platform-row"><span class="platform-pill">PC</span><span class="platform-pill">Switch 2</span></div></div></div></article>
+                <article class="list-card"><div class="card-media"><div class="poster"></div></div><div class="release-card-body"><h3 class="release-title">VOID HUNTER X</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-standalone">Standalone</span><span class="release-date-text">11 MAY</span></div><div class="release-platform-row"><span class="platform-pill">PS5</span><span class="platform-pill">Xbox X/S</span><span class="platform-pill">PC</span></div></div></div></article>
+                <article class="list-card"><div class="card-media"><div class="poster"></div></div><div class="release-card-body"><h3 class="release-title">PIXEL ROGUE DX</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-remaster">Remaster</span><span class="release-date-text">19 MAY</span></div><div class="release-platform-row"><span class="platform-pill">Switch</span><span class="platform-pill">PC</span></div></div></div></article>
+                <article class="list-card"><div class="card-media"><div class="poster"></div></div><div class="release-card-body"><h3 class="release-title">SOLAR BREAKER</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-dlc">DLC</span><span class="release-date-text">27 MAY</span></div><div class="release-platform-row"><span class="platform-pill">PC</span><span class="platform-pill">macOS</span><span class="platform-pill">Linux</span></div></div></div></article>
+                <article class="list-card"><div class="card-media"><div class="poster"></div></div><div class="release-card-body"><h3 class="release-title">NOVA SHARD</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-episode">Episode</span><span class="release-date-text">03 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">PC</span><span class="platform-pill">PS5</span></div></div></div></article>
+                <article class="list-card"><div class="card-media"><div class="poster"></div></div><div class="release-card-body"><h3 class="release-title">GLITCH RUNNER</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-mod">Mod</span><span class="release-date-text">08 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">PC</span><span class="platform-pill">Linux</span></div></div></div></article>
+                <article class="list-card"><div class="card-media"><div class="poster"></div></div><div class="release-card-body"><h3 class="release-title">ORBIT FALL</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-remake">Remake</span><span class="release-date-text">15 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">Switch 2</span><span class="platform-pill">Xbox X/S</span><span class="platform-pill">PC</span></div></div></div></article>
+                <article class="list-card"><div class="card-media"><div class="poster"></div></div><div class="release-card-body"><h3 class="release-title">CHROME NOMADS</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-season">Season</span><span class="release-date-text">21 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">PS5</span><span class="platform-pill">PC</span><span class="platform-pill">iOS</span></div></div></div></article>
+                <article class="list-card"><div class="card-media"><div class="poster"></div></div><div class="release-card-body"><h3 class="release-title">BLACK SIGNAL</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-bundle">Bundle</span><span class="release-date-text">29 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">PS4</span><span class="platform-pill">Xbox One</span><span class="platform-pill">Switch</span></div></div></div></article>
+            </div>
+        </section>
+
+        <section class="section-card">
+            <div class="section-headline"><div class="title-with-icon"><span class="section-icon">📡</span><h2>Events</h2></div><a href="#">View timeline →</a></div>
+            <div class="events-grid">
+                <article class="event-card"><div class="event-thumb"></div><div class="skeleton-line med"></div><div class="skeleton-line long"></div><span class="tiny-pill">Upcoming</span></article>
+                <article class="event-card"><div class="event-thumb"></div><div class="skeleton-line med"></div><div class="skeleton-line long"></div><span class="tiny-pill">Upcoming</span></article>
+                <article class="event-card"><div class="event-thumb"></div><div class="skeleton-line med"></div><div class="skeleton-line long"></div><span class="tiny-pill">Past Event</span></article>
+            </div>
+        </section>
+
+        <section class="section-card">
+            <div class="section-headline"><div class="title-with-icon"><span class="section-icon">🚀</span><h2>All Upcoming Releases</h2></div><a href="#">See all →</a></div>
+            <div class="wireframe-band"><p class="wire-note">This section behaves like a compact release carousel, inspired by the original site’s dense strip, but adapted to the new visual language.</p></div>
+            <div class="release-carousel-shell">
+                <button class="carousel-arrow left" type="button" aria-label="Previous upcoming releases" onclick="scrollReleaseCarousel(-1)">‹</button>
+                <div class="release-carousel" id="releaseCarousel">
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">PHANTOM REBOOT</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-main">Main Game</span><span class="release-date-text">14 APRIL</span></div><div class="release-platform-row"><span class="platform-pill">PC</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">SHADOW CIRCUIT</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-remake">Remake</span><span class="release-date-text">22 APRIL</span></div><div class="release-platform-row"><span class="platform-pill">PS5</span><span class="platform-pill">PC</span><span class="platform-pill">Xbox X/S</span><span class="platform-pill">Switch 2</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">LUNAR STRIKE OMEGA</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-season">Season</span><span class="release-date-text">05 MAY</span></div><div class="release-platform-row"><span class="platform-pill">Switch</span><span class="platform-pill">iOS</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">IRON ECLIPSE</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-bundle">Bundle</span><span class="release-date-text">17 MAY</span></div><div class="release-platform-row"><span class="platform-pill">Xbox One</span><span class="platform-pill">PS4</span><span class="platform-pill">Android</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">NEON RIFT LEGACY</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-expansion">Expansion</span><span class="release-date-text">21 MAY</span></div><div class="release-platform-row"><span class="platform-pill">PC</span><span class="platform-pill">macOS</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">VOID PROTOCOL</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-standalone">Standalone</span><span class="release-date-text">28 MAY</span></div><div class="release-platform-row"><span class="platform-pill">PS5</span><span class="platform-pill">PC</span><span class="platform-pill">Xbox X/S</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">CHROME NOMADS</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-dlc">DLC</span><span class="release-date-text">03 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">Switch 2</span><span class="platform-pill">PC</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">PIXEL TITANS X</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-remaster">Remaster</span><span class="release-date-text">09 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">Switch</span><span class="platform-pill">iOS</span><span class="platform-pill">Android</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">BLACK SUN REMNANT</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-remake">Remake</span><span class="release-date-text">14 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">PS5</span><span class="platform-pill">Xbox X/S</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">GLITCH HAVEN</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-mod">Mod</span><span class="release-date-text">18 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">PC</span><span class="platform-pill">Linux</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">STARFORGE EPISODE ZERO</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-episode">Episode</span><span class="release-date-text">22 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">PC</span><span class="platform-pill">PS5</span><span class="platform-pill">macOS</span></div></div></div></article>
+                    <article class="list-card release-slide"><div class="card-media"><div class="release-poster"></div></div><div class="release-card-body"><h3 class="release-title">OMEGA CIRCUIT SEASON ONE</h3><div class="release-card-meta"><div class="release-info-row"><span class="type-pill type-season">Season</span><span class="release-date-text">29 JUNE</span></div><div class="release-platform-row"><span class="platform-pill">Xbox One</span><span class="platform-pill">PS4</span><span class="platform-pill">Switch</span></div></div></div></article>
+                </div>
+                <button class="carousel-arrow right" type="button" aria-label="Next upcoming releases" onclick="scrollReleaseCarousel(1)">›</button>
+            </div>
+        </section>
+
+        <section class="section-card">
+            <div class="section-headline"><div class="title-with-icon"><span class="section-icon">✨</span><h2>Latest Added Games</h2></div><a href="#">Fresh database entries →</a></div>
+            <div class="latest-table">
+                <div class="latest-table-head"><span>Game</span><span>Platforms</span><span>Release Date</span><span>Added</span></div>
+                <article class="latest-table-row"><div class="latest-game-cell"><div class="latest-thumb"></div><div class="latest-game-meta"><h3 class="latest-game-title">HIDDEN CATS INVADE VENICE</h3><span class="type-pill type-main">Main Game</span></div></div><div class="latest-platforms-cell"><span class="platform-pill">PC</span></div><span class="latest-release-text">17 SEP 2024</span><span class="latest-added-text">5 MIN AGO</span></article>
+                <article class="latest-table-row"><div class="latest-game-cell"><div class="latest-thumb"></div><div class="latest-game-meta"><h3 class="latest-game-title">STICKER KITTENS</h3><span class="type-pill type-main">Main Game</span></div></div><div class="latest-platforms-cell"><span class="platform-pill">PC</span></div><span class="latest-release-text">TBA</span><span class="latest-added-text">5 MIN AGO</span></article>
+                <article class="latest-table-row"><div class="latest-game-cell"><div class="latest-thumb"></div><div class="latest-game-meta"><h3 class="latest-game-title">TASTE OF THE SEA</h3><span class="type-pill type-main">Main Game</span></div></div><div class="latest-platforms-cell"><span class="platform-pill">PC</span></div><span class="latest-release-text">11 DEC 2025</span><span class="latest-added-text">45 MIN AGO</span></article>
+                <article class="latest-table-row"><div class="latest-game-cell"><div class="latest-thumb"></div><div class="latest-game-meta"><h3 class="latest-game-title">F1 2018</h3><span class="type-pill type-main">Main Game</span></div></div><div class="latest-platforms-cell"><span class="platform-pill">PC</span><span class="platform-pill">PS4</span></div><span class="latest-release-text">24 AUG 2018</span><span class="latest-added-text">47 MIN AGO</span></article>
+                <article class="latest-table-row"><div class="latest-game-cell"><div class="latest-thumb"></div><div class="latest-game-meta"><h3 class="latest-game-title">SLEEPING DOGS</h3><span class="type-pill type-main">Main Game</span></div></div><div class="latest-platforms-cell"><span class="platform-pill">PC</span></div><span class="latest-release-text">13 AUG 2012</span><span class="latest-added-text">1 HOUR AGO</span></article>
+                <article class="latest-table-row"><div class="latest-game-cell"><div class="latest-thumb"></div><div class="latest-game-meta"><h3 class="latest-game-title">STAR LOVER</h3><span class="type-pill type-main">Main Game</span></div></div><div class="latest-platforms-cell"><span class="platform-pill">Android</span><span class="platform-pill">iOS</span></div><span class="latest-release-text">28 JUL 2022</span><span class="latest-added-text">2 HOURS AGO</span></article>
+            </div>
+        </section>
+    </main></div>
+
+    <footer class="footer">
+        <div class="footer-grid">
+            <div class="footer-block"><p class="footer-title">Copyright</p><p>© 2026 Games Outbreak. All rights reserved.</p></div>
+            <div class="footer-block"><p class="footer-title">Powered By</p><p>Powered by: <a href="#">IGDB</a> &nbsp;•&nbsp; <a href="#">steamspy</a></p></div>
+            <div class="footer-block"><p class="footer-title">Credits</p><p>Made with ❤️ by Cláudio Varandas using open source technologies.</p></div>
+        </div>
+        <div class="footer-bottom"><span>Old footer content, rebuilt into the new neon wireframe language.</span><span class="muted">Structure reference only, visuals are fully original.</span></div>
+    </footer>
+</div>
+</body>
