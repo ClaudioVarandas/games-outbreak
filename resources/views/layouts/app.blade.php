@@ -11,6 +11,16 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <title>@yield('title') | Games Outbreak</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PXQKLNW241"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-PXQKLNW241');
+    </script>
+    <!-- End Google tag (gtag.js) -->
     @stack('head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
