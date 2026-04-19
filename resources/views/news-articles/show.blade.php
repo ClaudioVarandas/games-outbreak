@@ -64,12 +64,13 @@
 
                 {{-- Source link --}}
                 @if ($article->source_url)
-                    <div class="mt-10 border-t border-white/10 pt-6">
+                    <div class="mt-10 flex flex-wrap items-center gap-2 border-t border-white/10 pt-6">
+                        <span class="text-sm text-slate-400">{{ __('Source:') }}</span>
                         <a href="{{ $article->source_url }}"
                            target="_blank"
                            rel="noopener noreferrer"
                            class="text-sm text-orange-400 transition-colors hover:text-orange-300">
-                            Fonte original: {{ $article->source_name }} →
+                            {{ $article->source_name }} →
                         </a>
                     </div>
                 @endif

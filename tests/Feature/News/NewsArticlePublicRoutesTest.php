@@ -26,6 +26,19 @@ it('shows published articles at en locale index', function () {
     $this->get('/en/news')->assertOk()->assertSee('Game Announced');
 });
 
+it('renders summary_short on each row of the en index', function () {
+    $article = NewsArticle::factory()->published()->create(['slug_en' => 'neon-rpg']);
+    NewsArticleLocalization::factory()->for($article, 'article')->create([
+        'locale' => NewsLocaleEnum::En,
+        'title' => 'Neon RPG',
+        'summary_short' => 'Breakthrough neon RPG hits next month.',
+    ]);
+
+    $this->get('/en/news')
+        ->assertOk()
+        ->assertSeeText('Breakthrough neon RPG hits next month.');
+});
+
 it('shows a specific article at its en slug', function () {
     $article = NewsArticle::factory()->published()->create(['slug_en' => 'game-test-slug']);
     NewsArticleLocalization::factory()->for($article, 'article')->create([

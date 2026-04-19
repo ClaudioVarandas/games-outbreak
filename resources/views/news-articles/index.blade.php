@@ -40,7 +40,7 @@
                                     <span class="text-orange-400">{{ $article->source_name }}</span>
                                     <span class="text-white/20">·</span>
                                 @endif
-                                <span class="text-slate-500">{{ $article->published_at?->diffForHumans() }}</span>
+                                <span class="text-cyan-400">{{ $article->published_at?->diffForHumans() }}</span>
                             </p>
 
                             <h2 class="text-[0.95rem] font-bold uppercase leading-snug tracking-[0.04em] text-slate-100 transition-colors group-hover:text-cyan-300">
@@ -48,8 +48,14 @@
                             </h2>
 
                             @if ($loc->summary_short)
-                                <p class="mt-2 line-clamp-2 text-[0.8rem] leading-relaxed text-slate-400">
+                                <p class="mt-2 text-[0.8rem] leading-relaxed text-slate-400">
                                     {{ $loc->summary_short }}
+                                </p>
+                            @endif
+
+                            @if ($loc->summary_medium)
+                                <p class="mt-2 text-[0.8rem] leading-relaxed text-slate-300">
+                                    {{ $loc->summary_medium }}
                                 </p>
                             @endif
                         </div>
