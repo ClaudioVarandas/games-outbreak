@@ -20,6 +20,14 @@ class ReleasesController extends Controller
             abort(404);
         }
 
+        $only = $request->query('only');
+        if ($only !== null && $only !== 'tba') {
+            abort(404);
+        }
+        if ($only === 'tba' && $month !== null) {
+            abort(404);
+        }
+
         $yearlyList = GameList::yearly()
             ->where('is_system', true)
             ->whereYear('start_at', $year)
@@ -48,6 +56,14 @@ class ReleasesController extends Controller
         // Group games by month
         $gamesByMonth = $yearlyList ? $yearlyList->groupGamesByMonth($month) : [];
 
+        if ($only === 'tba') {
+            $gamesByMonth = array_filter(
+                $gamesByMonth,
+                static fn ($k) => $k === 'tba',
+                ARRAY_FILTER_USE_KEY,
+            );
+        }
+
         // Get genres for filter
         $genres = Genre::visible()
             ->where('is_pending_review', false)
@@ -66,6 +82,7 @@ class ReleasesController extends Controller
             'yearlyList',
             'year',
             'month',
+            'only',
             'gamesByMonth',
             'availableYears',
             'prevYear',
