@@ -11,26 +11,13 @@
         @if($yearlyList)
             {{-- Filter Bar --}}
             <div class="neon-section-frame mb-6">
-                {{-- Title + Year Nav --}}
-                <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h2 class="neon-section-heading__title">{{ __('Game Releases') }}</h2>
-                        <h1 class="text-3xl font-bold uppercase tracking-wide text-slate-100">
-                            @if($month)
-                                {{ \Carbon\Carbon::create($year, $month)->format('F') }} {{ $year }}
-                            @else
-                                Year {{ $year }}
-                            @endif
-                        </h1>
-                        @if($yearlyList->description)
-                            <p class="mt-1 text-sm text-slate-400">{{ $yearlyList->description }}</p>
-                        @endif
-                    </div>
+                {{-- Title + Controls: 2-col grid split in half on desktop --}}
+                <div class="mb-6 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-y-2 sm:items-center">
+                    {{-- Row 1 left: Game Releases --}}
+                    <h2 class="neon-section-heading__title min-w-0">{{ __('Game Releases') }}</h2>
 
-                    {{-- Right column: [Year nav + ALL|TBA] row, then Month strip row --}}
-                    <div class="flex w-full flex-col items-end gap-2 sm:w-auto">
-                        {{-- Row 1: Year nav + ALL|TBA --}}
-                        <div class="flex flex-nowrap items-center justify-end gap-2">
+                    {{-- Row 1 right: Year nav + ALL|TBA --}}
+                    <div class="order-3 flex flex-nowrap items-center justify-end gap-2 sm:order-none sm:justify-self-end">
                             {{-- Year Navigation --}}
                             <div class="neon-btn-ghost inline-flex items-center divide-x divide-white/10 rounded-full overflow-hidden">
                                 @if($prevYear)
@@ -62,44 +49,63 @@
                                 @endif
                             </div>
 
-                            {{-- ALL | TBA --}}
-                            <div class="neon-btn-ghost inline-flex items-center divide-x divide-white/10 rounded-full overflow-hidden">
-                                @if ($month === null && $only === null)
-                                    <span class="neon-eyebrow px-1 py-[2px] text-[0.5rem]">{{ __('All') }}</span>
-                                @else
-                                    <a href="{{ route('releases.year', $year) }}"
-                                       class="inline-flex items-center px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
-                                        {{ __('All') }}
-                                    </a>
-                                @endif
+                        {{-- ALL | TBA --}}
+                        <div class="neon-btn-ghost inline-flex items-center divide-x divide-white/10 rounded-full overflow-hidden">
+                            @php
+                                $allHref = route('releases.year', $year);
+                                if ($year === now()->year) {
+                                    $allHref .= '?all=1';
+                                }
+                            @endphp
+                            @if ($month === null && $only === null)
+                                <span class="neon-eyebrow px-1 py-[2px] text-[0.5rem]">{{ __('All') }}</span>
+                            @else
+                                <a href="{{ $allHref }}"
+                                   class="inline-flex items-center px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
+                                    {{ __('All') }}
+                                </a>
+                            @endif
 
-                                @if ($only === 'tba')
-                                    <span class="neon-eyebrow px-1 py-[2px] text-[0.5rem]">TBA</span>
-                                @else
-                                    <a href="{{ route('releases.year', $year) }}?only=tba"
-                                       class="inline-flex items-center px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
-                                        TBA
-                                    </a>
-                                @endif
-                            </div>
+                            @if ($only === 'tba')
+                                <span class="neon-eyebrow px-1 py-[2px] text-[0.5rem]">TBA</span>
+                            @else
+                                <a href="{{ route('releases.year', $year) }}?only=tba"
+                                   class="inline-flex items-center px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
+                                    TBA
+                                </a>
+                            @endif
                         </div>
+                    </div>
 
-                        {{-- Row 2: Month strip (scrollable on mobile) --}}
-                        <div class="max-w-full self-stretch overflow-x-auto sm:self-end sm:overflow-visible">
-                            <div class="neon-btn-ghost inline-flex items-center divide-x divide-white/10 rounded-full overflow-hidden whitespace-nowrap">
-                                @for ($m = 1; $m <= 12; $m++)
-                                    @if ($month === $m)
-                                        <span class="neon-eyebrow px-1 py-[2px] text-[0.5rem]">
-                                            {{ \Carbon\Carbon::create($year, $m)->format('M') }}
-                                        </span>
-                                    @else
-                                        <a href="{{ route('releases.year.month', [$year, $m]) }}"
-                                           class="inline-flex items-center px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
-                                            {{ \Carbon\Carbon::create($year, $m)->format('M') }}
-                                        </a>
-                                    @endif
-                                @endfor
-                            </div>
+                    {{-- Row 2 left: current view title (April 2026 / Year 2026) --}}
+                    <div class="order-2 min-w-0 sm:order-none">
+                        <h1 class="text-3xl font-bold uppercase tracking-wide text-slate-100">
+                            @if($month)
+                                {{ \Carbon\Carbon::create($year, $month)->format('F') }} {{ $year }}
+                            @else
+                                Year {{ $year }}
+                            @endif
+                        </h1>
+                        @if($yearlyList->description)
+                            <p class="mt-1 text-sm text-slate-400">{{ $yearlyList->description }}</p>
+                        @endif
+                    </div>
+
+                    {{-- Row 2 right: Month strip (scrollable on mobile) --}}
+                    <div class="order-4 max-w-full self-stretch overflow-x-auto sm:order-none sm:justify-self-end sm:self-center sm:overflow-visible">
+                        <div class="neon-btn-ghost inline-flex items-center divide-x divide-white/10 rounded-full overflow-hidden whitespace-nowrap">
+                            @for ($m = 1; $m <= 12; $m++)
+                                @if ($month === $m)
+                                    <span class="neon-eyebrow px-1 py-[2px] text-[0.5rem]">
+                                        {{ \Carbon\Carbon::create($year, $m)->format('M') }}
+                                    </span>
+                                @else
+                                    <a href="{{ route('releases.year.month', [$year, $m]) }}"
+                                       class="inline-flex items-center px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
+                                        {{ \Carbon\Carbon::create($year, $m)->format('M') }}
+                                    </a>
+                                @endif
+                            @endfor
                         </div>
                     </div>
                 </div>

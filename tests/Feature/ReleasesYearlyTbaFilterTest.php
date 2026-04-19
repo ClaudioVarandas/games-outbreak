@@ -28,7 +28,7 @@ beforeEach(function () {
 });
 
 it('shows all sections on the unfiltered yearly page', function () {
-    $this->get('/releases/2026')
+    $this->get('/releases/2026?all=1')
         ->assertOk()
         ->assertSee('Dated Release Alpha')
         ->assertSee('TBA Release Omega');
@@ -47,4 +47,35 @@ it('returns 404 for an unknown only value', function () {
 
 it('returns 404 when only=tba is combined with a month segment', function () {
     $this->get('/releases/2026/4?only=tba')->assertNotFound();
+});
+
+it('redirects current year without filters to the current month view', function () {
+    $currentYear = now()->year;
+    $currentMonth = now()->month;
+
+    $this->get("/releases/{$currentYear}")
+        ->assertRedirect("/releases/{$currentYear}/{$currentMonth}");
+});
+
+it('does not redirect a past year', function () {
+    $pastYear = now()->year - 1;
+
+    GameList::factory()->system()->yearly()->active()->create([
+        'start_at' => Carbon::create($pastYear, 1, 1),
+        'end_at' => Carbon::create($pastYear, 12, 31),
+    ]);
+
+    $this->get("/releases/{$pastYear}")->assertOk();
+});
+
+it('does not redirect when all=1 bypass is set for the current year', function () {
+    $currentYear = now()->year;
+
+    $this->get("/releases/{$currentYear}?all=1")->assertOk();
+});
+
+it('does not redirect when only=tba is set for the current year', function () {
+    $currentYear = now()->year;
+
+    $this->get("/releases/{$currentYear}?only=tba")->assertOk();
 });

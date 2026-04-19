@@ -332,7 +332,7 @@ describe('Frontend Display Logic', function () {
             'release_date' => now()->addMonth(),
         ]);
 
-        $response = $this->get(route('releases.year', now()->year));
+        $response = $this->get(route('releases.year', now()->year).'?all=1');
 
         $response->assertSuccessful();
     });
@@ -347,7 +347,7 @@ describe('Frontend Display Logic', function () {
             'release_date' => now()->addMonth(),
         ]);
 
-        $response = $this->get(route('releases.year', ['year' => now()->year, 'genre' => 'other']));
+        $response = $this->get(route('releases.year', ['year' => now()->year, 'genre' => 'other']).'&all=1');
 
         $response->assertSuccessful();
     });

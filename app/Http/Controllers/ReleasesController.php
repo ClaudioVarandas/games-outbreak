@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use App\Enums\PlatformEnum;
 use App\Models\GameList;
 use App\Models\Genre;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ReleasesController extends Controller
 {
-    public function index(Request $request, int $year, ?int $month = null): View
+    public function index(Request $request, int $year, ?int $month = null): View|RedirectResponse
     {
         if ($year < 2020 || $year > 2100) {
             abort(404);
@@ -26,6 +27,10 @@ class ReleasesController extends Controller
         }
         if ($only === 'tba' && $month !== null) {
             abort(404);
+        }
+
+        if ($month === null && $only === null && ! $request->boolean('all') && $year === now()->year) {
+            return redirect()->route('releases.year.month', [$year, now()->month]);
         }
 
         $yearlyList = GameList::yearly()
