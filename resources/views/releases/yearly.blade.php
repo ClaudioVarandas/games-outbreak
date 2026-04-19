@@ -27,70 +27,74 @@
                         @endif
                     </div>
 
-                    {{-- Right column: Year nav + month strip --}}
-                    <div class="flex flex-col items-end gap-2">
-                        {{-- Year Navigation --}}
-                        <div class="neon-btn-ghost inline-flex items-center divide-x divide-white/10 rounded-full overflow-hidden self-end">
-                            @if($prevYear)
-                                <a href="{{ route('releases.year', $prevYear) }}"
-                                   class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
-                                    <x-heroicon-o-arrow-left class="h-3 w-3" />
-                                    {{ $prevYear }}
-                                </a>
-                            @else
-                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.08em] text-slate-600 cursor-not-allowed">
-                                    <x-heroicon-o-arrow-left class="h-3 w-3" />
-                                    {{ $year - 1 }}
-                                </span>
-                            @endif
+                    {{-- Right column: [Year nav + ALL|TBA] row, then Month strip row --}}
+                    <div class="flex w-full flex-col items-end gap-2 sm:w-auto">
+                        {{-- Row 1: Year nav + ALL|TBA --}}
+                        <div class="flex flex-nowrap items-center justify-end gap-2">
+                            {{-- Year Navigation --}}
+                            <div class="neon-btn-ghost inline-flex items-center divide-x divide-white/10 rounded-full overflow-hidden">
+                                @if($prevYear)
+                                    <a href="{{ route('releases.year', $prevYear) }}"
+                                       class="inline-flex items-center gap-1 px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
+                                        <x-heroicon-o-arrow-left class="h-2.5 w-2.5" />
+                                        {{ $prevYear }}
+                                    </a>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-600 cursor-not-allowed">
+                                        <x-heroicon-o-arrow-left class="h-2.5 w-2.5" />
+                                        {{ $year - 1 }}
+                                    </span>
+                                @endif
 
-                            <span class="neon-eyebrow px-1.5 py-0.5 text-[0.55rem]">{{ $year }}</span>
+                                <span class="neon-eyebrow px-1 py-[2px] text-[0.5rem]">{{ $year }}</span>
 
-                            @if($nextYear)
-                                <a href="{{ route('releases.year', $nextYear) }}"
-                                   class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
-                                    {{ $nextYear }}
-                                    <x-heroicon-o-arrow-right class="h-3 w-3" />
-                                </a>
-                            @else
-                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.08em] text-slate-600 cursor-not-allowed">
-                                    {{ $year + 1 }}
-                                    <x-heroicon-o-arrow-right class="h-3 w-3" />
-                                </span>
-                            @endif
-                        </div>
+                                @if($nextYear)
+                                    <a href="{{ route('releases.year', $nextYear) }}"
+                                       class="inline-flex items-center gap-1 px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
+                                        {{ $nextYear }}
+                                        <x-heroicon-o-arrow-right class="h-2.5 w-2.5" />
+                                    </a>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-600 cursor-not-allowed">
+                                        {{ $year + 1 }}
+                                        <x-heroicon-o-arrow-right class="h-2.5 w-2.5" />
+                                    </span>
+                                @endif
+                            </div>
 
-                        {{-- Month Strip: [ ALL | TBA ]  [ Jan | ... | Dec ] --}}
-                        <div class="flex flex-wrap items-center justify-end gap-2">
+                            {{-- ALL | TBA --}}
                             <div class="neon-btn-ghost inline-flex items-center divide-x divide-white/10 rounded-full overflow-hidden">
                                 @if ($month === null && $only === null)
-                                    <span class="neon-eyebrow px-1.5 py-0.5 text-[0.55rem]">{{ __('All') }}</span>
+                                    <span class="neon-eyebrow px-1 py-[2px] text-[0.5rem]">{{ __('All') }}</span>
                                 @else
                                     <a href="{{ route('releases.year', $year) }}"
-                                       class="inline-flex items-center px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
+                                       class="inline-flex items-center px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
                                         {{ __('All') }}
                                     </a>
                                 @endif
 
                                 @if ($only === 'tba')
-                                    <span class="neon-eyebrow px-1.5 py-0.5 text-[0.55rem]">TBA</span>
+                                    <span class="neon-eyebrow px-1 py-[2px] text-[0.5rem]">TBA</span>
                                 @else
                                     <a href="{{ route('releases.year', $year) }}?only=tba"
-                                       class="inline-flex items-center px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
+                                       class="inline-flex items-center px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
                                         TBA
                                     </a>
                                 @endif
                             </div>
+                        </div>
 
-                            <div class="neon-btn-ghost inline-flex items-center divide-x divide-white/10 rounded-full overflow-hidden">
+                        {{-- Row 2: Month strip (scrollable on mobile) --}}
+                        <div class="max-w-full self-stretch overflow-x-auto sm:self-end sm:overflow-visible">
+                            <div class="neon-btn-ghost inline-flex items-center divide-x divide-white/10 rounded-full overflow-hidden whitespace-nowrap">
                                 @for ($m = 1; $m <= 12; $m++)
                                     @if ($month === $m)
-                                        <span class="neon-eyebrow px-1.5 py-0.5 text-[0.55rem]">
+                                        <span class="neon-eyebrow px-1 py-[2px] text-[0.5rem]">
                                             {{ \Carbon\Carbon::create($year, $m)->format('M') }}
                                         </span>
                                     @else
                                         <a href="{{ route('releases.year.month', [$year, $m]) }}"
-                                           class="inline-flex items-center px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
+                                           class="inline-flex items-center px-1 py-[2px] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-slate-200 hover:text-cyan-300 transition-colors">
                                             {{ \Carbon\Carbon::create($year, $m)->format('M') }}
                                         </a>
                                     @endif
@@ -104,20 +108,45 @@
 
                 <div class="flex flex-wrap items-center gap-3">
 
-                    {{-- Type Pills --}}
+                    {{-- Mobile row 1: Highlights/Indies on the left, Grid/List on the right --}}
+                    <div class="flex w-full items-center justify-between gap-3 sm:hidden">
+                        <div class="flex items-center gap-2">
+                            <button type="button" @click="typeFilter = typeFilter === 'highlights' ? 'all' : 'highlights'"
+                                    :class="typeFilter === 'highlights' ? 'border-yellow-400/60 text-yellow-300 bg-yellow-400/10' : 'text-slate-400 hover:text-slate-200'"
+                                    class="neon-btn-ghost rounded-full px-3 py-1 text-[0.7rem] font-bold uppercase tracking-[0.08em] transition">
+                                {{ __('Highlights') }}
+                            </button>
+                            <button type="button" @click="typeFilter = typeFilter === 'indies' ? 'all' : 'indies'"
+                                    :class="typeFilter === 'indies' ? 'border-orange-400/60 text-orange-300 bg-orange-400/10' : 'text-slate-400 hover:text-slate-200'"
+                                    class="neon-btn-ghost rounded-full px-3 py-1 text-[0.7rem] font-bold uppercase tracking-[0.08em] transition">
+                                {{ __('Indies') }}
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button type="button" @click="viewMode = 'grid'"
+                                    :class="viewMode === 'grid' ? 'border-cyan-400/60 text-cyan-300 bg-cyan-400/10' : 'text-slate-400 hover:text-slate-200'"
+                                    class="neon-btn-ghost rounded-lg p-1.5 transition" title="Grid view">
+                                <x-heroicon-o-squares-2x2 class="h-4 w-4" />
+                            </button>
+                            <button type="button" @click="viewMode = 'list'"
+                                    :class="viewMode === 'list' ? 'border-cyan-400/60 text-cyan-300 bg-cyan-400/10' : 'text-slate-400 hover:text-slate-200'"
+                                    class="neon-btn-ghost rounded-lg p-1.5 transition" title="List view">
+                                <x-heroicon-o-bars-3 class="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Desktop Type Pills --}}
                     <button type="button" @click="typeFilter = typeFilter === 'highlights' ? 'all' : 'highlights'"
                             :class="typeFilter === 'highlights' ? 'border-yellow-400/60 text-yellow-300 bg-yellow-400/10' : 'text-slate-400 hover:text-slate-200'"
-                            class="neon-btn-ghost rounded-full px-4 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition">
+                            class="hidden neon-btn-ghost rounded-full px-4 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition sm:inline-flex">
                         {{ __('Highlights') }}
                     </button>
                     <button type="button" @click="typeFilter = typeFilter === 'indies' ? 'all' : 'indies'"
                             :class="typeFilter === 'indies' ? 'border-orange-400/60 text-orange-300 bg-orange-400/10' : 'text-slate-400 hover:text-slate-200'"
-                            class="neon-btn-ghost rounded-full px-4 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition">
+                            class="hidden neon-btn-ghost rounded-full px-4 py-1.5 text-[0.72rem] font-bold uppercase tracking-[0.08em] transition sm:inline-flex">
                         {{ __('Indies') }}
                     </button>
-
-                    {{-- Platform Group (hidden) --}}
-                    {{-- <select x-model="platformGroupFilter" ...></select> --}}
 
                     {{-- Genre Multi-Select (hidden) --}}
                     <div class="hidden">
@@ -131,21 +160,21 @@
                         </select>
                     </div>
 
-                    {{-- Search --}}
-                    <div class="flex flex-1 justify-center">
-                    <div class="relative">
-                        <input type="text"
-                               x-model="searchQuery"
-                               placeholder="{{ __('Search games...') }}"
-                               class="w-56 rounded-full border border-white/10 bg-slate-900/60 py-1.5 pl-9 pr-4 text-[0.72rem] text-slate-200 placeholder-slate-500 focus:border-cyan-400/50 focus:outline-none focus:ring-0 md:w-80">
-                        <x-heroicon-o-magnifying-glass class="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-                    </div>
+                    {{-- Search — centered full-width row on mobile, flex-1 centered on desktop --}}
+                    <div class="flex w-full justify-center sm:w-auto sm:flex-1">
+                        <div class="relative">
+                            <input type="text"
+                                   x-model="searchQuery"
+                                   placeholder="{{ __('Search games...') }}"
+                                   class="w-56 rounded-full border border-white/10 bg-slate-900/60 py-1.5 pl-9 pr-4 text-[0.72rem] text-slate-200 placeholder-slate-500 focus:border-cyan-400/50 focus:outline-none focus:ring-0 md:w-80">
+                            <x-heroicon-o-magnifying-glass class="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                        </div>
                     </div>
 
                     <div class="hidden h-4 w-px bg-white/10 sm:block"></div>
 
-                    {{-- View Toggle --}}
-                    <div class="flex items-center gap-1 @if($month) ml-auto @endif">
+                    {{-- Desktop View Toggle --}}
+                    <div class="hidden items-center gap-1 sm:flex @if($month) ml-auto @endif">
                         <button type="button" @click="viewMode = 'grid'"
                                 :class="viewMode === 'grid' ? 'border-cyan-400/60 text-cyan-300 bg-cyan-400/10' : 'text-slate-400 hover:text-slate-200'"
                                 class="neon-btn-ghost rounded-lg p-2 transition" title="Grid view">
@@ -210,7 +239,7 @@
                                 <a href="{{ route('releases.year.month', [$year, $monthData['month_number']]) }}"
                                    class="inline-flex items-center gap-1 text-[0.72rem] font-semibold uppercase tracking-[0.06em] text-cyan-400 hover:text-cyan-300 transition-colors">
                                     View month
-                                    <x-heroicon-o-arrow-right class="h-3 w-3" />
+                                    <x-heroicon-o-arrow-right class="h-2.5 w-2.5" />
                                 </a>
                             @endif
                         </div>
