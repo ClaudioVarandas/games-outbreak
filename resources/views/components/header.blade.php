@@ -15,9 +15,9 @@
             <div class="flex flex-col gap-3 xl:grid xl:grid-cols-[auto_minmax(320px,1fr)_auto] xl:items-center xl:gap-4">
 
                 {{-- Row 1 (mobile) / Col 1 (desktop): logo + mobile controls --}}
-                <div class="flex items-center justify-between gap-3">
-                    <a href="{{ route('homepage') }}" class="flex min-w-0 flex-1 items-center gap-3 transition hover:opacity-85">
-                        <div class="site-header__brand-mark flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl">
+                <div class="flex items-center justify-between gap-2 sm:gap-3">
+                    <a href="{{ route('homepage') }}" class="flex min-w-0 flex-1 items-center gap-2 transition hover:opacity-85 sm:gap-3">
+                        <div class="site-header__brand-mark flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl sm:h-11 sm:w-11">
                             <img
                                 src="{{ asset('images/games-outbreak-logo.png') }}"
                                 alt="Games Outbreak"
@@ -28,13 +28,16 @@
                             </span>
                         </div>
                         <div class="min-w-0">
-                            <p class="truncate text-sm font-bold uppercase tracking-[0.08em] text-slate-100">Games Outbreak</p>
+                            <p class="text-sm font-bold uppercase leading-tight tracking-[0.08em] text-slate-100">
+                                <span class="block sm:inline">Games</span>
+                                <span class="block sm:inline">Outbreak</span>
+                            </p>
                             <p class="hidden truncate text-xs uppercase tracking-[0.08em] text-slate-400 sm:block">{{ __('News-first release radar') }}</p>
                         </div>
                     </a>
 
                     {{-- Mobile-only: locale + auth + search (hidden on desktop — desktop uses Col 3) --}}
-                    <div class="flex shrink-0 items-center gap-2 xl:hidden">
+                    <div class="flex shrink-0 items-center gap-1.5 sm:gap-2 xl:hidden">
 
                         {{-- Locale switcher --}}
                         <div x-data="{ open: false }" class="relative shrink-0" @click.outside="open = false">
