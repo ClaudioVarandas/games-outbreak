@@ -97,7 +97,7 @@ it('includes games released on the last day of the week at any time of day', fun
     expect($response['thisWeekGames']->pluck('id'))->toContain($game->id);
 });
 
-it('limits this weeks choices to ten games', function () {
+it('limits this weeks choices to eighteen games', function () {
     config(['features.news' => false]);
 
     $yearlyList = GameList::factory()->system()->yearly()->active()->create([
@@ -107,7 +107,7 @@ it('limits this weeks choices to ten games', function () {
 
     $releaseDate = now()->startOfWeek()->addDays(2)->toDateString();
 
-    Game::factory()->count(12)->create()->each(function (Game $game) use ($yearlyList, $releaseDate) {
+    Game::factory()->count(20)->create()->each(function (Game $game) use ($yearlyList, $releaseDate) {
         $yearlyList->games()->attach($game->id, [
             'release_date' => $releaseDate,
         ]);
@@ -116,7 +116,7 @@ it('limits this weeks choices to ten games', function () {
     $response = $this->get(route('homepage'));
 
     $response->assertSuccessful();
-    expect($response['thisWeekGames'])->toHaveCount(10);
+    expect($response['thisWeekGames'])->toHaveCount(18);
 });
 
 it('keeps the latest added list capped at twelve games', function () {
