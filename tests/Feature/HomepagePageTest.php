@@ -74,6 +74,29 @@ it('omits the homepage hero when news is enabled but no published articles exist
     $response->assertDontSeeText('Featured News');
 });
 
+it('includes games released on the last day of the week at any time of day', function () {
+    config(['features.news' => false]);
+
+    $yearlyList = GameList::factory()->system()->yearly()->active()->create([
+        'start_at' => now()->startOfYear(),
+        'end_at' => now()->endOfYear(),
+    ]);
+
+    $sundayAfternoon = now()->startOfWeek(Carbon\Carbon::MONDAY)
+        ->endOfWeek(Carbon\Carbon::SUNDAY)
+        ->setTime(15, 30);
+
+    $game = Game::factory()->create();
+    $yearlyList->games()->attach($game->id, [
+        'release_date' => $sundayAfternoon->toDateTimeString(),
+    ]);
+
+    $response = $this->get(route('homepage'));
+
+    $response->assertSuccessful();
+    expect($response['thisWeekGames']->pluck('id'))->toContain($game->id);
+});
+
 it('limits this weeks choices to ten games', function () {
     config(['features.news' => false]);
 

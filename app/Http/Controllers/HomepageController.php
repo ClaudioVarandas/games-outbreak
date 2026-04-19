@@ -49,7 +49,7 @@ class HomepageController extends Controller
         return $yearlyList->games()
             ->with('platforms')
             ->reorder()
-            ->wherePivotBetween('release_date', [$startOfWeek->toDateString(), $endOfWeek->toDateString()])
+            ->wherePivotBetween('release_date', [$startOfWeek->toDateTimeString(), $endOfWeek->toDateTimeString()])
             ->limit(10)
             ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
             ->get();
