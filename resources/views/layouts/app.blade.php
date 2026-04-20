@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="@yield('html-lang', str_replace('_', '-', app()->getLocale()))" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +11,10 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <title>@yield('title') | Games Outbreak</title>
+    @hasSection('meta-description')
+        <meta name="description" content="@yield('meta-description')">
+    @endif
+    @stack('seo')
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PXQKLNW241"></script>
     <script>

@@ -1,21 +1,71 @@
 @extends('layouts.app')
 
+@php
+    use App\Enums\NewsLocaleEnum;
+
+    $pageTitle = __('News');
+    $pageDescription = __('Latest gaming news, curated and localized — covering releases, industry updates, and behind-the-scenes coverage.');
+    $canonicalUrl = $articles->currentPage() > 1
+        ? $articles->url($articles->currentPage())
+        : $locale->indexUrl();
+
+    $breadcrumbSchema = [
+        '@context' => 'https://schema.org',
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Games Outbreak', 'item' => url('/')],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => $pageTitle, 'item' => $locale->indexUrl()],
+        ],
+    ];
+@endphp
+
 @section('body-class', 'neon-body theme-neon')
 
-@section('title', 'Notícias')
+@section('html-lang', $locale->value)
+
+@section('title', $pageTitle)
+
+@section('meta-description', $pageDescription)
+
+@push('seo')
+    <link rel="canonical" href="{{ $canonicalUrl }}">
+    @foreach (NewsLocaleEnum::cases() as $alt)
+        <link rel="alternate" hreflang="{{ $alt->value }}" href="{{ $alt->indexUrl() }}">
+    @endforeach
+    <link rel="alternate" hreflang="x-default" href="{{ NewsLocaleEnum::En->indexUrl() }}">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $pageDescription }}">
+    <meta property="og:url" content="{{ $canonicalUrl }}">
+    <meta property="og:site_name" content="Games Outbreak">
+    <meta property="og:locale" content="{{ str_replace('-', '_', $locale->value) }}">
+    @foreach (NewsLocaleEnum::cases() as $alt)
+        @if ($alt !== $locale)
+            <meta property="og:locale:alternate" content="{{ str_replace('-', '_', $alt->value) }}">
+        @endif
+    @endforeach
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
+    <meta name="twitter:description" content="{{ $pageDescription }}">
+
+    <script type="application/ld+json">{!! json_encode($breadcrumbSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
 <div class="theme-neon overflow-x-hidden">
     <div class="page-shell py-10">
 
         <div class="mb-8">
-            <x-homepage.section-heading icon="newspaper" title="Notícias" />
+            <x-homepage.section-heading icon="newspaper" :title="$pageTitle" />
         </div>
 
         {{-- Article list --}}
         @forelse ($articles as $article)
             @php $loc = $article->localizations->first(); @endphp
             @if ($loc)
+                <article>
                 <a href="{{ $locale->articleUrl($article) }}"
                    class="neon-card group mb-4 flex flex-col overflow-hidden p-[9px] sm:flex-row sm:items-start sm:gap-4">
 
@@ -40,7 +90,11 @@
                                     <span class="text-orange-400">{{ $article->source_name }}</span>
                                     <span class="text-white/20">·</span>
                                 @endif
-                                <span class="text-cyan-400">{{ $article->published_at?->diffForHumans() }}</span>
+                                @if ($article->published_at)
+                                    <time datetime="{{ $article->published_at->toIso8601String() }}" class="text-cyan-400">
+                                        {{ $article->published_at->diffForHumans() }}
+                                    </time>
+                                @endif
                             </p>
 
                             <h2 class="text-[0.95rem] font-bold uppercase leading-snug tracking-[0.04em] text-slate-100 transition-colors group-hover:text-cyan-300">
@@ -61,6 +115,7 @@
                         </div>
                     </div>
                 </a>
+                </article>
             @endif
         @empty
             <div class="neon-panel px-6 py-14 text-center">
