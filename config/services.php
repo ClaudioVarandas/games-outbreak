@@ -57,4 +57,18 @@ return [
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
     ],
     'news_ai_provider' => env('NEWS_AI_PROVIDER', 'anthropic'),
+
+    'telegram' => [
+        'enabled' => env('TELEGRAM_BROADCAST_ENABLED', false),
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'chat_id' => env('TELEGRAM_CHAT_ID'),
+    ],
+
+    'x' => [
+        'enabled' => env('X_BROADCAST_ENABLED', false),
+        'api_key' => env('X_API_KEY'),
+        'api_secret' => env('X_API_SECRET'),
+        'access_token' => env('X_ACCESS_TOKEN'),
+        'access_token_secret' => env('X_ACCESS_TOKEN_SECRET'),
+    ],
 ];

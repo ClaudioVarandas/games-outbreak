@@ -9,6 +9,7 @@ use App\Http\Middleware\EnsureNewsFeatureEnabled;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Models\NewsArticle;
+use App\Services\WeeklyChoicesCollector;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -25,33 +26,6 @@ class HomepageController extends Controller
             ->where('is_active', true)
             ->where('is_public', true)
             ->orderBy('created_at', 'desc')
-            ->get();
-    }
-
-    /**
-     * Get games releasing this week from the yearly list.
-     */
-    private function getThisWeekGames(): Collection
-    {
-        $startOfWeek = Carbon::today()->startOfWeek(Carbon::MONDAY);
-        $endOfWeek = $startOfWeek->copy()->endOfWeek(Carbon::SUNDAY);
-
-        $yearlyList = GameList::yearly()
-            ->where('is_system', true)
-            ->where('is_active', true)
-            ->whereYear('start_at', now()->year)
-            ->first();
-
-        if (! $yearlyList) {
-            return collect();
-        }
-
-        return $yearlyList->games()
-            ->with('platforms')
-            ->reorder()
-            ->wherePivotBetween('release_date', [$startOfWeek->toDateTimeString(), $endOfWeek->toDateTimeString()])
-            ->limit(18)
-            ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
             ->get();
     }
 
@@ -120,10 +94,10 @@ class HomepageController extends Controller
     /**
      * Display the homepage with featured game releases.
      */
-    public function index(Request $request): View
+    public function index(Request $request, WeeklyChoicesCollector $weeklyChoices): View
     {
         $seasonedLists = $this->getSeasonedLists();
-        $thisWeekGames = $this->getThisWeekGames();
+        $thisWeekGames = $weeklyChoices->forCurrentWeek()->games;
         $weeklyUpcomingGames = $this->getWeeklyUpcomingGames();
         $latestAddedGames = $this->getLatestAddedGames();
         $platformEnums = PlatformEnum::getActivePlatforms();

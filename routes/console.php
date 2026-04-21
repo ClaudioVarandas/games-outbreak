@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\BroadcastWeeklyChoicesJob;
 use App\Jobs\News\PublishScheduledNewsJob;
 use Illuminate\Support\Facades\Schedule;
 
@@ -64,5 +65,15 @@ Schedule::job(new PublishScheduledNewsJob)
 Schedule::command('highlights:sync')
     ->weeklyOn(1, '4:00')
     ->name('highlights-sync')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// === BROADCAST SCHEDULES ===
+
+// Weekly "This Week's Choices" broadcast — Sundays 21:00 Europe/Lisbon
+Schedule::job(new BroadcastWeeklyChoicesJob)
+    ->weeklyOn(0, '21:00')
+    ->timezone('Europe/Lisbon')
+    ->name('broadcast-weekly-choices')
     ->withoutOverlapping()
     ->onOneServer();

@@ -5,6 +5,9 @@ namespace App\Providers;
 use App\Contracts\ContentExtractorInterface;
 use App\Contracts\NewsGenerationServiceInterface;
 use App\Services\AnthropicNewsGenerationService;
+use App\Services\Broadcasts\Channels\TelegramChannel;
+use App\Services\Broadcasts\Channels\XChannel;
+use App\Services\Broadcasts\WeeklyChoicesBroadcaster;
 use App\Services\IgdbService;
 use App\Services\JinaReaderService;
 use App\Services\OpenAiNewsGenerationService;
@@ -29,6 +32,12 @@ class AppServiceProvider extends ServiceProvider
                 default => new AnthropicNewsGenerationService($converter),
             };
         });
+
+        $this->app->tag([TelegramChannel::class, XChannel::class], 'broadcasts.channels');
+
+        $this->app->when(WeeklyChoicesBroadcaster::class)
+            ->needs('$channels')
+            ->giveTagged('broadcasts.channels');
     }
 
     /**
