@@ -27,7 +27,7 @@ class NewsArticleTelegramFormatter
 
         return new TelegramBroadcastPayload(
             caption: $caption,
-            photoUrl: $article->featured_image_url ?: null,
+            photoUrl: TelegramBroadcastPayload::resolvePhotoUrl($article->featured_image_url),
         );
     }
 

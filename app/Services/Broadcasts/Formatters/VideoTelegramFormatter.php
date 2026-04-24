@@ -44,7 +44,9 @@ class VideoTelegramFormatter
 
         return new TelegramBroadcastPayload(
             caption: $caption,
-            photoUrl: $video->thumbnail_url ?: $video->thumbnailMaxRes() ?: $video->thumbnailHq(),
+            photoUrl: TelegramBroadcastPayload::resolvePhotoUrl(
+                $video->thumbnail_url ?: $video->thumbnailMaxRes() ?: $video->thumbnailHq()
+            ),
         );
     }
 }
