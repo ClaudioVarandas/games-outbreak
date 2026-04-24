@@ -117,12 +117,23 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+                            <div class="flex flex-wrap items-center gap-2 mb-2" id="catColorPresets">
+                                @foreach (\App\Enums\VideoCategoryColorPresetEnum::cases() as $preset)
+                                    <button type="button"
+                                            data-color="{{ $preset->value }}"
+                                            title="{{ $preset->label() }} ({{ $preset->value }})"
+                                            class="h-7 w-7 rounded-full border border-gray-300 dark:border-gray-500 transition hover:scale-110 hover:ring-2 hover:ring-offset-1 hover:ring-offset-white dark:hover:ring-offset-gray-800 focus:outline-none focus:ring-2"
+                                            style="background: {{ $preset->value }}"
+                                            aria-label="{{ $preset->label() }}"></button>
+                                @endforeach
+                            </div>
                             <div class="flex items-center gap-2">
                                 <input type="color" id="catColorPicker" value="#b581ff"
                                        class="h-9 w-12 rounded border border-gray-300 dark:border-gray-600">
                                 <input type="text" name="color" id="catColorHex" value="#b581ff" maxlength="7" pattern="^#[0-9a-fA-F]{6}$"
                                        class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white font-mono text-sm">
                             </div>
+                            <p class="text-xs text-gray-500 mt-1">Pick a preset or choose a custom color.</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
@@ -229,6 +240,11 @@
         }
 
         // sync color picker and hex text input
+        function setCatColor(hex) {
+            if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+            document.getElementById('catColorHex').value = hex;
+            document.getElementById('catColorPicker').value = hex;
+        }
         document.getElementById('catColorPicker').addEventListener('input', (e) => {
             document.getElementById('catColorHex').value = e.target.value;
         });
@@ -237,6 +253,11 @@
             if (/^#[0-9a-fA-F]{6}$/.test(v)) {
                 document.getElementById('catColorPicker').value = v;
             }
+        });
+        document.getElementById('catColorPresets').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-color]');
+            if (!btn) return;
+            setCatColor(btn.dataset.color);
         });
 
         // close on backdrop click + ESC

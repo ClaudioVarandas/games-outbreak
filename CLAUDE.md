@@ -579,3 +579,42 @@ is only valid when that slug column is non-null. When displaying locale options 
 - Feature: `tests/Feature/News/SetNewsLocaleMiddlewareTest.php` — middleware, session persistence, `/news` redirect,
   header switcher labels
 - Unit: `tests/Unit/NewsLocaleEnumTest.php` — `fromBrowserLocale()` parsing
+
+## Project-Specific Conventions
+
+### Keep config-like data out of Blade
+
+Fixed lists of options, presets, choices, colors, icons, labels, etc. **must not** be declared inline in Blade with
+`@php` blocks or repeated arrays. They belong on the backend — preferred in a PHP backed enum (`app/Enums/`), or in
+`config/*.php` when they are truly runtime configuration.
+
+The Blade view should iterate the enum's `::cases()` or read the config, never hold the data itself:
+
+```php
+// app/Enums/VideoCategoryColorPresetEnum.php
+enum VideoCategoryColorPresetEnum: string
+{
+    case NeonOrange = '#ff8a2a';
+    case NeonCyan   = '#63f3ff';
+    // ...
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::NeonOrange => 'Neon Orange',
+            self::NeonCyan   => 'Neon Cyan',
+            // ...
+        };
+    }
+}
+```
+
+```blade
+{{-- resources/views/admin/video-categories/index.blade.php --}}
+@foreach (\App\Enums\VideoCategoryColorPresetEnum::cases() as $preset)
+    <button data-color="{{ $preset->value }}" title="{{ $preset->label() }}">…</button>
+@endforeach
+```
+
+**Why:** testable, typed, reusable across controllers/jobs/tests; avoids drift between multiple Blade views holding the
+same list; avoids sprinkling domain constants across the view layer.
