@@ -27,7 +27,7 @@ class AnthropicNewsGenerationService implements NewsGenerationServiceInterface
             'content-type' => 'application/json',
         ])->timeout(60)->post('https://api.anthropic.com/v1/messages', [
             'model' => config('services.anthropic.model'),
-            'max_tokens' => 4096,
+            'max_tokens' => 8192,
             'messages' => [
                 ['role' => 'user', 'content' => $this->buildPrompt($article)],
             ],
@@ -38,11 +38,31 @@ class AnthropicNewsGenerationService implements NewsGenerationServiceInterface
             throw new RuntimeException('AI generation failed. Status: '.$response->status());
         }
 
+        $stopReason = $response->json('stop_reason');
+        $usage = $response->json('usage');
         $raw = $response->json('content.0.text', '');
-        $data = json_decode($raw, true);
+
+        if ($stopReason === 'max_tokens') {
+            Log::error('Anthropic response truncated (stop_reason=max_tokens)', ['usage' => $usage, 'raw' => $raw]);
+            throw new RuntimeException('AI response truncated — raise max_tokens.');
+        }
+
+        $stripped = trim((string) $raw);
+        if (str_starts_with($stripped, '```')) {
+            $stripped = preg_replace('/^```(?:json)?\s*/i', '', $stripped);
+            $stripped = preg_replace('/\s*```$/', '', $stripped);
+        }
+
+        $data = json_decode($stripped, true);
 
         if (! is_array($data) || ! isset($data['en'], $data['pt-PT'], $data['pt-BR'])) {
-            Log::error('Anthropic unexpected response format', ['raw' => $raw]);
+            Log::error('Anthropic unexpected response format', [
+                'stop_reason' => $stopReason,
+                'usage' => $usage,
+                'raw' => $raw,
+                'json_error' => json_last_error_msg(),
+                'decoded_keys' => is_array($data) ? array_keys($data) : null,
+            ]);
             throw new RuntimeException('AI returned unexpected response format.');
         }
 

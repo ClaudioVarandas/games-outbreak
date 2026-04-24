@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Contracts\ContentExtractorInterface;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -35,7 +36,11 @@ class JinaReaderService implements ContentExtractorInterface
                 $headers['Authorization'] = 'Bearer '.$apiKey;
             }
 
-            $response = Http::timeout(30)
+            $response = Http::timeout(60)
+                ->connectTimeout(10)
+                ->retry(2, 2000, function ($exception) {
+                    return $exception instanceof ConnectionException;
+                }, throw: false)
                 ->withHeaders($headers)
                 ->get($this->baseUrl.$url);
 
@@ -83,6 +88,13 @@ class JinaReaderService implements ContentExtractorInterface
             ];
         } catch (RuntimeException $e) {
             throw $e;
+        } catch (ConnectionException $e) {
+            Log::warning('Jina Reader timeout / connection error', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new RuntimeException('Content service timed out — source may be slow or unreachable. Try again.');
         } catch (\Exception $e) {
             Log::warning('Jina Reader extraction failed', [
                 'url' => $url,

@@ -26,15 +26,11 @@ class OpenAiNewsGenerationService implements NewsGenerationServiceInterface
             'Content-Type' => 'application/json',
         ])->timeout(60)->post('https://api.openai.com/v1/chat/completions', [
             'model' => config('services.openai.model'),
-            'max_completion_tokens' => 4096,
+            'max_completion_tokens' => 8192,
+            'response_format' => ['type' => 'json_object'],
             'messages' => [
                 ['role' => 'user', 'content' => $this->buildPrompt($article)],
             ],
-        ]);
-
-        Log::debug('OpenAI raw HTTP response', [
-            'status' => $response->status(),
-            'body' => $response->body(),
         ]);
 
         if ($response->failed()) {
@@ -42,27 +38,31 @@ class OpenAiNewsGenerationService implements NewsGenerationServiceInterface
             throw new RuntimeException('AI generation failed. Status: '.$response->status());
         }
 
+        $finishReason = $response->json('choices.0.finish_reason');
+        $usage = $response->json('usage');
         $raw = $response->json('choices.0.message.content', '');
 
-        Log::debug('OpenAI message content (raw)', ['raw' => $raw]);
+        if ($finishReason === 'length') {
+            Log::error('OpenAI response truncated (finish_reason=length)', ['usage' => $usage, 'raw' => $raw]);
+            throw new RuntimeException('AI response truncated — raise max_completion_tokens.');
+        }
 
-        // Strip markdown code fences if model wrapped the JSON
         $stripped = trim((string) $raw);
         if (str_starts_with($stripped, '```')) {
             $stripped = preg_replace('/^```(?:json)?\s*/i', '', $stripped);
             $stripped = preg_replace('/\s*```$/', '', $stripped);
-            Log::debug('OpenAI content after fence strip', ['stripped' => $stripped]);
         }
 
         $data = json_decode($stripped, true);
 
-        Log::debug('OpenAI decoded data', [
-            'keys' => is_array($data) ? array_keys($data) : null,
-            'json_error' => json_last_error_msg(),
-        ]);
-
         if (! is_array($data) || ! isset($data['en'], $data['pt-PT'], $data['pt-BR'])) {
-            Log::error('OpenAI unexpected response format', ['raw' => $raw, 'stripped' => $stripped, 'decoded_keys' => is_array($data) ? array_keys($data) : null]);
+            Log::error('OpenAI unexpected response format', [
+                'finish_reason' => $finishReason,
+                'usage' => $usage,
+                'raw' => $raw,
+                'json_error' => json_last_error_msg(),
+                'decoded_keys' => is_array($data) ? array_keys($data) : null,
+            ]);
             throw new RuntimeException('AI returned unexpected response format.');
         }
 
