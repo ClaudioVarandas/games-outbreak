@@ -28,12 +28,6 @@
     </div>
 
     <div class="min-w-0">
-        @if ($video->category)
-            <div class="mb-1">
-                <x-videos.category-badge :video="$video" variant="inline" />
-            </div>
-        @endif
-
         @if ($video->channel_name || $video->published_at)
             <p class="mb-1 flex flex-wrap items-center gap-1.5 text-[0.6rem] font-semibold uppercase tracking-[0.08em]">
                 @if ($video->channel_name)
@@ -53,5 +47,11 @@
         <h4 class="m-0 text-sm font-semibold leading-snug text-white line-clamp-2 group-hover:text-cyan-300">
             {{ $video->title }}
         </h4>
+
+        @if ($video->category)
+            <div class="mt-1.5">
+                <x-videos.category-badge :video="$video" variant="inline" />
+            </div>
+        @endif
     </div>
 </button>
