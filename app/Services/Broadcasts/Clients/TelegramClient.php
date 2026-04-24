@@ -24,4 +24,21 @@ class TelegramClient
                 'disable_web_page_preview' => $disableWebPagePreview,
             ]);
     }
+
+    public function sendPhoto(
+        string $botToken,
+        string $chatId,
+        string $photoUrl,
+        string $caption,
+        string $parseMode = 'MarkdownV2',
+    ): void {
+        Http::asJson()
+            ->throw()
+            ->post("https://api.telegram.org/bot{$botToken}/sendPhoto", [
+                'chat_id' => $chatId,
+                'photo' => $photoUrl,
+                'caption' => $caption,
+                'parse_mode' => $parseMode,
+            ]);
+    }
 }

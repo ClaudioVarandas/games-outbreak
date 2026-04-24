@@ -33,6 +33,8 @@ class Video extends Model
         'raw_api_response',
         'user_id',
         'video_category_id',
+        'should_broadcast',
+        'broadcasted_at',
     ];
 
     protected function casts(): array
@@ -44,6 +46,8 @@ class Video extends Model
             'is_featured' => 'bool',
             'is_active' => 'bool',
             'duration_seconds' => 'integer',
+            'should_broadcast' => 'bool',
+            'broadcasted_at' => 'datetime',
         ];
     }
 

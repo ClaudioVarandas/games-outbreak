@@ -33,6 +33,8 @@ class NewsArticle extends Model
         'slug_pt_br',
         'scheduled_at',
         'published_at',
+        'should_broadcast',
+        'broadcasted_at',
     ];
 
     protected function casts(): array
@@ -42,6 +44,8 @@ class NewsArticle extends Model
             'original_published_at' => 'datetime',
             'scheduled_at' => 'datetime',
             'published_at' => 'datetime',
+            'broadcasted_at' => 'datetime',
+            'should_broadcast' => 'bool',
         ];
     }
 

@@ -24,6 +24,8 @@ class NewsArticleFactory extends Factory
             'original_title' => fake()->sentence(8),
             'original_language' => 'en',
             'featured_image_url' => fake()->imageUrl(),
+            'should_broadcast' => true,
+            'broadcasted_at' => null,
         ];
     }
 

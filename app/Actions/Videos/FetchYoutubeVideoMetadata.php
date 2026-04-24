@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Log;
 class FetchYoutubeVideoMetadata
 {
     public function __construct(
-        private readonly YoutubeDataService $youtube
+        private readonly YoutubeDataService $youtube,
+        private readonly MaybeBroadcastVideo $maybeBroadcast,
     ) {}
 
     public function handle(Video $video): void
@@ -40,6 +41,8 @@ class FetchYoutubeVideoMetadata
                 'published_at' => $data['published_at'],
                 'raw_api_response' => $data['raw'],
             ]);
+
+            $this->maybeBroadcast->handle($video->fresh());
         } catch (\Throwable $e) {
             Log::warning('YouTube video metadata fetch failed', [
                 'video_id' => $video->id,

@@ -90,6 +90,28 @@
             </dl>
 
             <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <form method="POST" action="{{ route('admin.videos.toggle-should-broadcast', $video) }}" class="flex items-center gap-3">
+                    @csrf
+                    @method('PATCH')
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Telegram broadcast:</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs {{ $video->should_broadcast ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">
+                        {{ $video->should_broadcast ? 'Enabled' : 'Disabled' }}
+                    </span>
+                    @if ($video->broadcasted_at)
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                            sent {{ $video->broadcasted_at->diffForHumans() }}
+                        </span>
+                    @else
+                        <span class="text-xs text-gray-500 dark:text-gray-400">not yet broadcast</span>
+                    @endif
+                    <button type="submit"
+                            class="ml-auto inline-flex items-center bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold py-1.5 px-3 rounded">
+                        {{ $video->should_broadcast ? 'Disable' : 'Enable' }}
+                    </button>
+                </form>
+            </div>
+
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <form method="POST" action="{{ route('admin.videos.update-category', $video) }}" class="flex flex-wrap items-end gap-3">
                     @csrf
                     @method('PATCH')

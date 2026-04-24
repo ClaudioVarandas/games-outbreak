@@ -23,6 +23,7 @@ class StoreVideoImportRequest extends FormRequest
                 'max:2000',
                 'regex:/(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)/i',
             ],
+            'should_broadcast' => ['sometimes', 'boolean'],
         ];
     }
 

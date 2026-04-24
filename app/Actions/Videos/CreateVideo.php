@@ -9,14 +9,21 @@ use App\Models\Video;
 
 class CreateVideo
 {
-    public function handle(string $url, ?string $youtubeId, int $userId, VideoImportStatusEnum $status = VideoImportStatusEnum::Pending, ?string $failureReason = null): Video
-    {
+    public function handle(
+        string $url,
+        ?string $youtubeId,
+        int $userId,
+        VideoImportStatusEnum $status = VideoImportStatusEnum::Pending,
+        ?string $failureReason = null,
+        bool $shouldBroadcast = true,
+    ): Video {
         return Video::create([
             'url' => $url,
             'youtube_id' => $youtubeId,
             'status' => $status,
             'failure_reason' => $failureReason,
             'user_id' => $userId,
+            'should_broadcast' => $shouldBroadcast,
         ]);
     }
 }

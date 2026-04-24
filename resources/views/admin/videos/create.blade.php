@@ -33,6 +33,15 @@
             </div>
 
             <div>
+                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input type="checkbox" name="should_broadcast" value="1"
+                           {{ old('should_broadcast', '1') ? 'checked' : '' }}
+                           class="rounded border-gray-300 dark:border-gray-600">
+                    <span>Broadcast to Telegram when the video is Ready</span>
+                </label>
+            </div>
+
+            <div>
                 <button type="submit"
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
                     Queue Import

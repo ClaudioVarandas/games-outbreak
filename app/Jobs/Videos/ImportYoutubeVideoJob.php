@@ -22,7 +22,8 @@ class ImportYoutubeVideoJob implements ShouldQueue
 
     public function __construct(
         public readonly string $url,
-        public readonly int $userId
+        public readonly int $userId,
+        public readonly bool $shouldBroadcast = true,
     ) {}
 
     public function handle(
@@ -39,6 +40,7 @@ class ImportYoutubeVideoJob implements ShouldQueue
                 userId: $this->userId,
                 status: VideoImportStatusEnum::Failed,
                 failureReason: 'Could not extract a YouTube video ID from the URL.',
+                shouldBroadcast: $this->shouldBroadcast,
             );
 
             return;
@@ -54,6 +56,7 @@ class ImportYoutubeVideoJob implements ShouldQueue
             url: $this->url,
             youtubeId: $youtubeId,
             userId: $this->userId,
+            shouldBroadcast: $this->shouldBroadcast,
         );
 
         $fetchMetadata->handle($video);

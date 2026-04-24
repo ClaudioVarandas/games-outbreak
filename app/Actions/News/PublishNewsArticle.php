@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\News;
 
 use App\Enums\NewsArticleStatusEnum;
+use App\Jobs\Broadcasts\BroadcastNewsArticleJob;
 use App\Models\NewsArticle;
 
 class PublishNewsArticle
@@ -16,5 +17,9 @@ class PublishNewsArticle
             'published_at' => $article->published_at ?? now(),
             'scheduled_at' => null,
         ]);
+
+        if ($article->should_broadcast && $article->broadcasted_at === null) {
+            BroadcastNewsArticleJob::dispatch($article->id);
+        }
     }
 }

@@ -94,8 +94,12 @@ class NewsArticleController extends Controller
             ->with('success', 'Article saved.');
     }
 
-    public function publish(NewsArticle $newsArticle, PublishNewsArticle $action): RedirectResponse
+    public function publish(Request $request, NewsArticle $newsArticle, PublishNewsArticle $action): RedirectResponse
     {
+        $newsArticle->update([
+            'should_broadcast' => $request->boolean('should_broadcast'),
+        ]);
+
         $action->handle($newsArticle);
 
         return redirect()->route('admin.news-articles.edit', $newsArticle)

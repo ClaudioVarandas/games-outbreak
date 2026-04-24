@@ -12,6 +12,8 @@ use Illuminate\Support\Carbon;
 
 class TelegramMessageFormatter
 {
+    use EscapesMarkdownV2;
+
     public function format(WeeklyChoicesPayload $payload): string
     {
         if ($payload->isEmpty()) {
@@ -111,16 +113,5 @@ class TelegramMessageFormatter
         }
 
         return null;
-    }
-
-    private function escape(string $value): string
-    {
-        $specials = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-
-        return str_replace(
-            $specials,
-            array_map(fn (string $ch) => '\\'.$ch, $specials),
-            $value,
-        );
     }
 }

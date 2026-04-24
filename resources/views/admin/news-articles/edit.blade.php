@@ -157,8 +157,19 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 space-y-3">
                     <h2 class="font-semibold text-gray-800 dark:text-gray-100 text-sm">Actions</h2>
 
-                    <form method="POST" action="{{ route('admin.news-articles.publish', $article) }}">
+                    <form method="POST" action="{{ route('admin.news-articles.publish', $article) }}" class="space-y-2">
                         @csrf
+                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <input type="checkbox" name="should_broadcast" value="1"
+                                   {{ old('should_broadcast', $article->should_broadcast) ? 'checked' : '' }}
+                                   class="rounded border-gray-300 dark:border-gray-600">
+                            <span>Broadcast to Telegram</span>
+                        </label>
+                        @if ($article->broadcasted_at)
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                Already broadcast {{ $article->broadcasted_at->diffForHumans() }}.
+                            </p>
+                        @endif
                         <button type="submit"
                                 class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded text-sm">
                             Publish Now

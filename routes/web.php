@@ -284,6 +284,7 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
                 Route::get('/{video}', [AdminVideoImportController::class, 'show'])->name('show');
                 Route::patch('/{video}/toggle-featured', [AdminVideoImportController::class, 'toggleFeatured'])->name('toggle-featured');
                 Route::patch('/{video}/toggle-active', [AdminVideoImportController::class, 'toggleActive'])->name('toggle-active');
+                Route::patch('/{video}/toggle-should-broadcast', [AdminVideoImportController::class, 'toggleShouldBroadcast'])->name('toggle-should-broadcast');
                 Route::patch('/{video}/update-category', [AdminVideoImportController::class, 'updateCategory'])->name('update-category');
                 Route::delete('/{video}', [AdminVideoImportController::class, 'destroy'])->name('destroy');
             });

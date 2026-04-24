@@ -24,6 +24,8 @@ class VideoFactory extends Factory
             'status' => VideoImportStatusEnum::Pending,
             'is_featured' => false,
             'is_active' => true,
+            'should_broadcast' => true,
+            'broadcasted_at' => null,
             'user_id' => User::factory(),
         ];
     }

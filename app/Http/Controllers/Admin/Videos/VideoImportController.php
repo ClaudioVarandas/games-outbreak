@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin\Videos;
 
+use App\Actions\Videos\MaybeBroadcastVideo;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Videos\StoreVideoImportRequest;
 use App\Http\Requests\Admin\Videos\UpdateVideoCategoryAssignmentRequest;
@@ -37,7 +38,11 @@ class VideoImportController extends Controller
 
     public function store(StoreVideoImportRequest $request): RedirectResponse
     {
-        ImportYoutubeVideoJob::dispatch($request->validated('url'), auth()->id());
+        ImportYoutubeVideoJob::dispatch(
+            $request->validated('url'),
+            auth()->id(),
+            $request->boolean('should_broadcast', true),
+        );
 
         return redirect()->route('admin.videos.index')
             ->with('success', 'Video import queued. It will appear once YouTube metadata is fetched.');
@@ -83,13 +88,28 @@ class VideoImportController extends Controller
             : 'Video unmarked as featured.');
     }
 
-    public function toggleActive(Video $video): RedirectResponse
+    public function toggleActive(Video $video, MaybeBroadcastVideo $maybeBroadcast): RedirectResponse
     {
         $video->update(['is_active' => ! $video->is_active]);
 
-        return back()->with('success', $video->fresh()->is_active
+        $fresh = $video->fresh();
+
+        if ($fresh->is_active) {
+            $maybeBroadcast->handle($fresh);
+        }
+
+        return back()->with('success', $fresh->is_active
             ? 'Video activated.'
             : 'Video hidden.');
+    }
+
+    public function toggleShouldBroadcast(Video $video): RedirectResponse
+    {
+        $video->update(['should_broadcast' => ! $video->should_broadcast]);
+
+        return back()->with('success', $video->fresh()->should_broadcast
+            ? 'Broadcast enabled for this video.'
+            : 'Broadcast disabled for this video.');
     }
 
     public function destroy(Video $video): RedirectResponse
