@@ -26,6 +26,7 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Title / URL</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Channel</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Category</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Duration</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Flags</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Imported By</th>
@@ -55,6 +56,13 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $video->channel_name ?? '—' }}</td>
+                            <td class="px-4 py-3">
+                                @if ($video->category)
+                                    <x-videos.category-badge :video="$video" variant="inline" />
+                                @else
+                                    <span class="text-sm text-gray-400">—</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $video->durationFormatted() ?? '—' }}</td>
                             <td class="px-4 py-3 text-xs">
                                 @if ($video->is_featured)
@@ -73,7 +81,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">No videos yet.</td>
+                            <td colspan="10" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">No videos yet.</td>
                         </tr>
                     @endforelse
                 </tbody>

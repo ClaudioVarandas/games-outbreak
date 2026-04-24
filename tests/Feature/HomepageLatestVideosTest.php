@@ -38,3 +38,34 @@ it('places the section between This Week\'s Choices and Events', function () {
 
     expect($videosPos)->toBeGreaterThan($thisWeekPos ?: 0);
 });
+
+it('renders the category badge and days-ago meta on the homepage', function () {
+    Video::factory()
+        ->ready()
+        ->featured()
+        ->forCategory('trailers')
+        ->create([
+            'title' => 'Hero Trailer',
+            'channel_name' => 'Rockstar',
+            'published_at' => now()->subDays(3),
+        ]);
+
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('TRAILERS', false)
+        ->assertSee('neon-category-pill', false)
+        ->assertSee('days ago', false)
+        ->assertSee('Rockstar', false);
+});
+
+it('omits the category badge when no category is assigned', function () {
+    Video::factory()
+        ->ready()
+        ->featured()
+        ->create(['title' => 'No Cat Trailer']);
+
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('No Cat Trailer')
+        ->assertDontSee('neon-category-pill', false);
+});

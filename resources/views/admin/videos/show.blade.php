@@ -19,7 +19,7 @@
         @endif
 
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-6">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $video->status->colorClass() }}">
                     {{ $video->status->label() }}
                 </span>
@@ -28,6 +28,9 @@
                 @endif
                 @if (! $video->is_active)
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Hidden</span>
+                @endif
+                @if ($video->category)
+                    <x-videos.category-badge :video="$video" variant="inline" />
                 @endif
             </div>
 
@@ -85,6 +88,29 @@
                     </div>
                 @endif
             </dl>
+
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <form method="POST" action="{{ route('admin.videos.update-category', $video) }}" class="flex flex-wrap items-end gap-3">
+                    @csrf
+                    @method('PATCH')
+                    <div class="flex-1 min-w-64">
+                        <label for="video_category_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                        <select name="video_category_id" id="video_category_id"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            <option value="">— none —</option>
+                            @foreach ($categories as $cat)
+                                <option value="{{ $cat->id }}" @selected($video->video_category_id === $cat->id)>
+                                    {{ $cat->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <button type="submit"
+                            class="inline-flex items-center bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
+                        Save Category
+                    </button>
+                </form>
+            </div>
 
             <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <form method="POST" action="{{ route('admin.videos.toggle-featured', $video) }}">

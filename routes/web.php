@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\News\NewsArticleController as AdminNewsArticleCon
 use App\Http\Controllers\Admin\News\NewsArticleImageUploadController as AdminNewsArticleImageUploadController;
 use App\Http\Controllers\Admin\News\NewsArticleRemoveFeaturedImageController as AdminNewsArticleRemoveFeaturedImageController;
 use App\Http\Controllers\Admin\News\NewsImportController as AdminNewsImportController;
+use App\Http\Controllers\Admin\Videos\VideoCategoryController as AdminVideoCategoryController;
 use App\Http\Controllers\Admin\Videos\VideoImportController as AdminVideoImportController;
 use App\Http\Controllers\AdminGenreController;
 use App\Http\Controllers\AdminListController;
@@ -283,7 +284,18 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
                 Route::get('/{video}', [AdminVideoImportController::class, 'show'])->name('show');
                 Route::patch('/{video}/toggle-featured', [AdminVideoImportController::class, 'toggleFeatured'])->name('toggle-featured');
                 Route::patch('/{video}/toggle-active', [AdminVideoImportController::class, 'toggleActive'])->name('toggle-active');
+                Route::patch('/{video}/update-category', [AdminVideoImportController::class, 'updateCategory'])->name('update-category');
                 Route::delete('/{video}', [AdminVideoImportController::class, 'destroy'])->name('destroy');
+            });
+
+        // Video categories CRUD
+        Route::prefix('video-categories')
+            ->name('video-categories.')
+            ->group(function () {
+                Route::get('/', [AdminVideoCategoryController::class, 'index'])->name('index');
+                Route::post('/', [AdminVideoCategoryController::class, 'store'])->name('store');
+                Route::patch('/{videoCategory}', [AdminVideoCategoryController::class, 'update'])->name('update');
+                Route::delete('/{videoCategory}', [AdminVideoCategoryController::class, 'destroy'])->name('destroy');
             });
     });
 

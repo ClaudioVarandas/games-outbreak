@@ -32,6 +32,7 @@ class Video extends Model
         'failure_reason',
         'raw_api_response',
         'user_id',
+        'video_category_id',
     ];
 
     protected function casts(): array
@@ -49,6 +50,11 @@ class Video extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(VideoCategory::class, 'video_category_id');
     }
 
     public function scopeReady(Builder $query): Builder

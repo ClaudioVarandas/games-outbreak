@@ -19,6 +19,8 @@
             {{ __('Featured') }}
         </span>
 
+        <x-videos.category-badge :video="$video" variant="corner" />
+
         <span class="absolute inset-0 flex items-center justify-center">
             <span class="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-gradient-to-br from-[var(--neon-orange)] to-[var(--neon-purple)] shadow-[0_0_30px_rgba(124,58,237,0.55)] transition-transform duration-300 group-hover:scale-110">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="#ffffff" aria-hidden="true">
@@ -36,14 +38,25 @@
 
     <div class="flex items-end justify-between gap-4 px-2 pb-1 pt-3.5">
         <div class="min-w-0 flex-1">
+            @if ($video->channel_name || $video->published_at)
+                <p class="mb-1.5 flex flex-wrap items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.08em]">
+                    @if ($video->channel_name)
+                        <span class="text-orange-400">{{ $video->channel_name }}</span>
+                    @endif
+                    @if ($video->channel_name && $video->published_at)
+                        <span class="text-white/20">·</span>
+                    @endif
+                    @if ($video->published_at)
+                        <time datetime="{{ $video->published_at->toIso8601String() }}" class="text-cyan-400">
+                            {{ $video->published_at->diffForHumans() }}
+                        </time>
+                    @endif
+                </p>
+            @endif
+
             <h3 class="text-lg font-bold leading-tight tracking-tight text-white line-clamp-2 group-hover:text-cyan-300">
                 {{ $video->title }}
             </h3>
-            @if ($video->channel_name)
-                <p class="mt-1.5 font-mono text-[11px] uppercase tracking-[0.15em] font-medium text-cyan-400">
-                    &#9656; {{ $video->channel_name }}
-                </p>
-            @endif
         </div>
     </div>
 </button>

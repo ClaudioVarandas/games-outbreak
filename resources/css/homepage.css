@@ -605,3 +605,42 @@ body.neon-body {
     }
 
 }
+
+/* ── Video category pill ── */
+.neon-category-pill {
+    --c: #b581ff;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 9999px;
+    padding: 0.22rem 0.6rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--c);
+    /* Fallback for browsers without color-mix */
+    background: rgba(181, 129, 255, 0.2);
+    border: 1px solid rgba(181, 129, 255, 0.38);
+    box-shadow: 0 0 10px rgba(181, 129, 255, 0.25);
+    background: color-mix(in srgb, var(--c) 22%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c) 42%, transparent);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--c) 30%, transparent);
+    backdrop-filter: blur(6px);
+}
+
+.neon-category-pill--corner {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 5;
+}
+
+.neon-category-pill--inline {
+    padding: 0.14rem 0.5rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+}

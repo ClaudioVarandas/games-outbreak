@@ -13,6 +13,7 @@ class VideoController extends Controller
     {
         $videos = Video::query()
             ->publicVisible()
+            ->with('category')
             ->orderByDesc('published_at')
             ->paginate(20);
 

@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Admin\Videos;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Videos\StoreVideoImportRequest;
+use App\Http\Requests\Admin\Videos\UpdateVideoCategoryAssignmentRequest;
 use App\Jobs\Videos\ImportYoutubeVideoJob;
 use App\Models\Video;
+use App\Models\VideoCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -16,7 +18,7 @@ class VideoImportController extends Controller
 {
     public function index(): View
     {
-        $videos = Video::with('user')
+        $videos = Video::with(['user', 'category'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -43,9 +45,24 @@ class VideoImportController extends Controller
 
     public function show(Video $video): View
     {
-        $video->load('user');
+        $video->load(['user', 'category']);
+        $categories = VideoCategory::active()->ordered()->get();
 
-        return view('admin.videos.show', ['video' => $video]);
+        return view('admin.videos.show', [
+            'video' => $video,
+            'categories' => $categories,
+        ]);
+    }
+
+    public function updateCategory(UpdateVideoCategoryAssignmentRequest $request, Video $video): RedirectResponse
+    {
+        $video->update([
+            'video_category_id' => $request->validated('video_category_id'),
+        ]);
+
+        return back()->with('success', $video->fresh()->video_category_id
+            ? 'Category assigned.'
+            : 'Category cleared.');
     }
 
     public function toggleFeatured(Video $video): RedirectResponse

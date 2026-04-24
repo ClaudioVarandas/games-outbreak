@@ -75,6 +75,8 @@
                                 {{ $video->durationFormatted() }}
                             </span>
                         @endif
+
+                        <x-videos.category-badge :video="$video" variant="corner" />
                     </div>
 
                     <div class="relative mt-3 flex flex-1 flex-col justify-between sm:mt-0 sm:py-1">

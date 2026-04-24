@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\VideoImportStatusEnum;
 use App\Models\User;
 use App\Models\Video;
+use App\Models\VideoCategory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -57,5 +58,26 @@ class VideoFactory extends Factory
     public function inactive(): static
     {
         return $this->state(['is_active' => false]);
+    }
+
+    public function forCategory(string $slug = 'trailers'): static
+    {
+        return $this->state(function () use ($slug) {
+            $defaults = [
+                'trailers' => ['name' => 'Trailers', 'color' => '#ff8a2a', 'icon' => 'film'],
+                'gameplay' => ['name' => 'Gameplay', 'color' => '#63f3ff', 'icon' => 'play'],
+                'reviews' => ['name' => 'Reviews', 'color' => '#c4b5fd', 'icon' => 'star'],
+                'tech' => ['name' => 'Tech', 'color' => '#86efac', 'icon' => 'cpu-chip'],
+            ];
+
+            $attrs = $defaults[$slug] ?? ['name' => ucfirst($slug), 'color' => '#b581ff', 'icon' => null];
+
+            $category = VideoCategory::firstOrCreate(
+                ['slug' => $slug],
+                array_merge($attrs, ['is_active' => true]),
+            );
+
+            return ['video_category_id' => $category->id];
+        });
     }
 }

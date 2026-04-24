@@ -28,13 +28,30 @@
     </div>
 
     <div class="min-w-0">
+        @if ($video->category)
+            <div class="mb-1">
+                <x-videos.category-badge :video="$video" variant="inline" />
+            </div>
+        @endif
+
+        @if ($video->channel_name || $video->published_at)
+            <p class="mb-1 flex flex-wrap items-center gap-1.5 text-[0.6rem] font-semibold uppercase tracking-[0.08em]">
+                @if ($video->channel_name)
+                    <span class="text-orange-400">{{ $video->channel_name }}</span>
+                @endif
+                @if ($video->channel_name && $video->published_at)
+                    <span class="text-white/20">·</span>
+                @endif
+                @if ($video->published_at)
+                    <time datetime="{{ $video->published_at->toIso8601String() }}" class="text-cyan-400">
+                        {{ $video->published_at->diffForHumans() }}
+                    </time>
+                @endif
+            </p>
+        @endif
+
         <h4 class="m-0 text-sm font-semibold leading-snug text-white line-clamp-2 group-hover:text-cyan-300">
             {{ $video->title }}
         </h4>
-        @if ($video->channel_name)
-            <div class="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] font-medium text-cyan-400">
-                &#9656; {{ $video->channel_name }}
-            </div>
-        @endif
     </div>
 </button>

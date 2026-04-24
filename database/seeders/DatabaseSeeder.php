@@ -23,5 +23,7 @@ class DatabaseSeeder extends Seeder
             'password' => 'bananas',
             'is_admin' => true,
         ]);
+
+        $this->call(VideoCategorySeeder::class);
     }
 }

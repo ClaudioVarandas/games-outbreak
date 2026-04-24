@@ -99,6 +99,7 @@ class HomepageController extends Controller
     {
         $pool = Video::query()
             ->publicVisible()
+            ->with('category')
             ->orderByDesc('published_at')
             ->limit(6)
             ->get();

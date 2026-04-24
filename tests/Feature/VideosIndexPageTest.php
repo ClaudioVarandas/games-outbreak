@@ -42,3 +42,13 @@ it('paginates at 20 per page', function () {
         ->assertOk()
         ->assertSee('page=2');
 });
+
+it('renders the category badge on public cards', function () {
+    Video::factory()->ready()->forCategory('gameplay')->create(['title' => 'Gameplay Clip']);
+
+    $this->get('/videos')
+        ->assertOk()
+        ->assertSee('Gameplay Clip')
+        ->assertSee('GAMEPLAY', false)
+        ->assertSee('neon-category-pill', false);
+});
