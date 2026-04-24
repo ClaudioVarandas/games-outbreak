@@ -255,7 +255,9 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
             ->group(function () {
                 Route::get('/', [AdminNewsImportController::class, 'index'])->name('index');
                 Route::get('/create', [AdminNewsImportController::class, 'create'])->name('create');
+                Route::get('/statuses', [AdminNewsImportController::class, 'statuses'])->name('statuses');
                 Route::post('/', [AdminNewsImportController::class, 'store'])->name('store');
+                Route::post('/{newsImport}/retry', [AdminNewsImportController::class, 'retry'])->name('retry');
                 Route::get('/{newsImport}', [AdminNewsImportController::class, 'show'])->name('show');
             });
 
