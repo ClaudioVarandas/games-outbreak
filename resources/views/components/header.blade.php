@@ -114,6 +114,9 @@
                                                 <span>News Articles</span>
                                             </a>
                                         @endif
+                                        <a href="{{ route('admin.videos.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
+                                            <span>Videos</span>
+                                        </a>
                                     @endif
 
                                     <div class="border-t border-cyan-300/10">
@@ -252,6 +255,9 @@
                                                 <span>News Articles</span>
                                             </a>
                                         @endif
+                                        <a href="{{ route('admin.videos.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
+                                            <span>Videos</span>
+                                        </a>
                                     @endif
 
                                     <div class="border-t border-cyan-300/10">

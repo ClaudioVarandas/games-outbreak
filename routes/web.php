@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\News\NewsArticleController as AdminNewsArticleCon
 use App\Http\Controllers\Admin\News\NewsArticleImageUploadController as AdminNewsArticleImageUploadController;
 use App\Http\Controllers\Admin\News\NewsArticleRemoveFeaturedImageController as AdminNewsArticleRemoveFeaturedImageController;
 use App\Http\Controllers\Admin\News\NewsImportController as AdminNewsImportController;
+use App\Http\Controllers\Admin\Videos\VideoImportController as AdminVideoImportController;
 use App\Http\Controllers\AdminGenreController;
 use App\Http\Controllers\AdminListController;
 use App\Http\Controllers\Api\UserGameController as ApiUserGameController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReleasesController;
 use App\Http\Controllers\UserGameController;
 use App\Http\Controllers\UserListController;
+use App\Http\Controllers\VideoController;
 use App\Http\Middleware\EnsureAdminUser;
 use App\Http\Middleware\EnsureNewsFeatureEnabled;
 use App\Models\User;
@@ -107,6 +109,9 @@ Route::middleware([EnsureNewsFeatureEnabled::class])
 
 // Public list view (read-only)
 Route::get('/list/{type}/{slug}', [GameListController::class, 'showBySlug'])->name('lists.show');
+
+// Videos (public — language-neutral)
+Route::get('/videos', [VideoController::class, 'index'])->name('videos.index');
 
 // ============================================================================
 // User Game Collection API (AJAX from game cards/popovers)
@@ -266,6 +271,19 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
                 Route::post('/{newsArticle}/publish', [AdminNewsArticleController::class, 'publish'])->name('publish');
                 Route::post('/{newsArticle}/schedule', [AdminNewsArticleController::class, 'schedule'])->name('schedule');
                 Route::delete('/{newsArticle}', [AdminNewsArticleController::class, 'destroy'])->name('destroy');
+            });
+
+        // Videos import pipeline
+        Route::prefix('videos')
+            ->name('videos.')
+            ->group(function () {
+                Route::get('/', [AdminVideoImportController::class, 'index'])->name('index');
+                Route::get('/create', [AdminVideoImportController::class, 'create'])->name('create');
+                Route::post('/', [AdminVideoImportController::class, 'store'])->name('store');
+                Route::get('/{video}', [AdminVideoImportController::class, 'show'])->name('show');
+                Route::patch('/{video}/toggle-featured', [AdminVideoImportController::class, 'toggleFeatured'])->name('toggle-featured');
+                Route::patch('/{video}/toggle-active', [AdminVideoImportController::class, 'toggleActive'])->name('toggle-active');
+                Route::delete('/{video}', [AdminVideoImportController::class, 'destroy'])->name('destroy');
             });
     });
 

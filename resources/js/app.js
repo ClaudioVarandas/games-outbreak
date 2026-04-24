@@ -4,6 +4,7 @@ import GlobalSearch from './components/GlobalSearch.vue';
 import AddGameToList from './components/AddGameToList.vue';
 import UserGameSearch from './components/UserGameSearch.vue';
 import './components/AuthModals.js';
+import './video-lightbox.js';
 import 'tom-select/dist/css/tom-select.css';
 
 // Wait for DOM to be ready before mounting Vue

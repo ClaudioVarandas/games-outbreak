@@ -18,6 +18,10 @@
                     :currentYear="$currentYear"
                     :currentMonth="$currentMonth" />
 
+                <x-homepage.latest-videos
+                    :featured="$featuredVideo"
+                    :videos="$latestVideos" />
+
                 <x-homepage.events-grid :banners="$eventBanners" />
 
                 <x-homepage.upcoming-releases

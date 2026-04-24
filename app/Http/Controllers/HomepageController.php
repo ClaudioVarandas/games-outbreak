@@ -9,6 +9,7 @@ use App\Http\Middleware\EnsureNewsFeatureEnabled;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Models\NewsArticle;
+use App\Models\Video;
 use App\Services\WeeklyChoicesCollector;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -92,6 +93,26 @@ class HomepageController extends Controller
     }
 
     /**
+     * @return array{featured: ?Video, videos: Collection<int, Video>}
+     */
+    private function getLatestVideos(): array
+    {
+        $pool = Video::query()
+            ->publicVisible()
+            ->orderByDesc('published_at')
+            ->limit(6)
+            ->get();
+
+        $featured = $pool->firstWhere('is_featured', true) ?? $pool->first();
+        $videos = $pool
+            ->reject(fn (Video $v) => $featured && $v->id === $featured->id)
+            ->take(5)
+            ->values();
+
+        return ['featured' => $featured, 'videos' => $videos];
+    }
+
+    /**
      * Display the homepage with featured game releases.
      */
     public function index(Request $request, WeeklyChoicesCollector $weeklyChoices): View
@@ -121,6 +142,8 @@ class HomepageController extends Controller
         $currentYear = now()->year;
         $currentMonth = now()->month;
 
+        ['featured' => $featuredVideo, 'videos' => $latestVideos] = $this->getLatestVideos();
+
         return view('homepage.index', compact(
             'seasonedLists',
             'thisWeekGames',
@@ -133,7 +156,9 @@ class HomepageController extends Controller
             'featuredNews',
             'topNews',
             'currentYear',
-            'currentMonth'
+            'currentMonth',
+            'featuredVideo',
+            'latestVideos'
         ));
     }
 

@@ -54,6 +54,53 @@ php artisan user:create-admin --email=admin@example.com --password=secure_passwo
 - Run command directly on server via SSH for production
 - Password is automatically hashed using Laravel's bcrypt
 
+### News pipeline (Jina + AI provider)
+
+The News admin (`/admin/news-imports`) turns a pasted article URL into localised news articles (EN / pt-PT / pt-BR)
+via an async pipeline. Requires:
+
+1. **Jina Reader** — extracts article title, body, summary and image from the pasted URL. Sign up at jina.ai for a
+   free key and add:
+   ```
+   JINA_API_KEY=your_key_here
+   ```
+2. **AI provider** for localisation — pick one and set:
+   ```
+   NEWS_AI_PROVIDER=anthropic          # or: openai
+   ANTHROPIC_API_KEY=your_key_here     # (if anthropic)
+   ANTHROPIC_MODEL=claude-haiku-4-5-20251001
+   # OR
+   OPENAI_API_KEY=your_key_here        # (if openai)
+   OPENAI_MODEL=gpt-4o-mini
+   ```
+3. **Feature flags** — the news feature defaults to admin-only preview mode:
+   ```
+   FEATURE_NEWS=admin                  # true = public, admin = admin-only, false = disabled
+   FEATURE_NEWS_URL_IMPORT=true        # show Import URL button in admin
+   FEATURE_NEWS_IMPORT_PIPELINE=false  # enable the full queued pipeline (false = store imports only)
+   ```
+4. `php artisan config:clear`, then run `php artisan queue:work` so jobs process.
+
+### YouTube Data API (Videos import)
+
+The Videos admin (`/admin/videos`) uses YouTube Data API v3 to fetch title, channel, duration, thumbnails and
+published date from a pasted URL.
+
+1. Create a Google Cloud project and enable **YouTube Data API v3**.
+2. Generate an API key (no OAuth needed — public data only).
+3. Add it to `.env`:
+   ```
+   YOUTUBE_API_KEY=your_key_here
+   ```
+4. Clear config: `php artisan config:clear`.
+5. Make sure the queue worker is running so imports actually process:
+   ```
+   php artisan queue:work
+   ```
+
+Without the key, imports fail with `YOUTUBE_API_KEY is not configured.` visible in the admin detail page. Tests fake
+the HTTP client and never hit Google.
+
 
 
 ## Goal
@@ -67,6 +114,10 @@ This project is a web application for managing game lists and tracking game stat
 - **Backlog**: a dedicated list for games you plan to play
 - **Wishlist**: a dedicated list for games you want to buy
 - Quickly add/remove games to/from **Backlog** and **Wishlist** with one-click icons on each game card
+- **News imports** — admins paste an article URL; the pipeline extracts and localises it (EN / pt-PT / pt-BR)
+- **Videos** — admins paste a YouTube URL; a queued job fetches metadata via YouTube Data API v3 and stores a
+  curated video record. One toggleable "featured" video plus the latest imports render as a homepage section and
+  on a public `/videos` page with an in-page lightbox
 - Admin panel for managing users, games, and lists
 
 ## Game Lists
@@ -235,3 +286,221 @@ PC 15/10/2025 [+2]
 • 15/11/2025 [Next-Gen Patch]
 ```
 
+
+## News System
+
+Multi-locale news (EN / pt-PT / pt-BR) with a URL-import pipeline that extracts article content and generates a
+localised article per supported locale. Feature-flag gated via `config/features.php`.
+
+### Supported locales
+
+`NewsLocaleEnum` (`app/Enums/NewsLocaleEnum.php`) is the single source of truth:
+
+| Case   | BCP-47 value | URL prefix | Path segment |
+|--------|--------------|------------|--------------|
+| `En`   | `en`         | `en`       | `news`       |
+| `PtPt` | `pt-PT`      | `pt-pt`    | `noticias`   |
+| `PtBr` | `pt-BR`      | `pt-br`    | `noticias`   |
+
+Always use enum cases or their methods — never raw locale strings.
+
+### URL structure
+
+```
+/en/news                 EN index
+/en/news/{slug}          EN article
+/pt-pt/noticias          PT-PT index
+/pt-pt/noticias/{slug}
+/pt-br/noticias          PT-BR index
+/pt-br/noticias/{slug}
+/news                    redirect to the best locale
+```
+
+- EN routes use a fixed `en/news` prefix (no route param).
+- PT routes use `{localePrefix}/noticias` where `localePrefix` is constrained to `pt-pt|pt-br`.
+- `/news` redirects using: `session('news_locale')` → `Accept-Language` header → `app.locale` config.
+
+### `SetNewsLocale` middleware
+
+Applied to **both** public news route groups. On each news page request it:
+
+1. Resolves the current `NewsLocaleEnum` from the URL.
+2. Calls `app()->setLocale($newsLocale->value)` — sets Laravel runtime locale for `__()` translations.
+3. Persists `session(['news_locale' => $newsLocale->slugPrefix()])` — used for the `/news` redirect and the header
+   switcher.
+4. Shares `$currentNewsLocale` with all views rendered for that request.
+
+Do **not** apply this middleware globally or to non-news routes.
+
+### Header locale switcher
+
+The switcher is visible on **all pages** (not just news) and uses a 3-tier fallback (since `$currentNewsLocale` is
+only shared on news routes):
+
+```php
+$headerNewsLocale = $currentNewsLocale                          // middleware (news pages)
+    ?? NewsLocaleEnum::fromPrefix(session('news_locale'))       // session (previous visit)
+    ?? NewsLocaleEnum::fromAppLocale();                         // config default
+```
+
+Clicking a locale navigates to `$l->indexUrl()`, which triggers the middleware and updates the session.
+
+### Article slugs
+
+Each `NewsArticle` has separate slug columns per locale: `slug_en`, `slug_pt_pt`, `slug_pt_br`. A locale's article
+URL is only valid when that slug column is non-null — check `$article->{$l->slugColumn()}` before linking.
+
+### Import pipeline
+
+Admin pastes an article URL on `/admin/news-imports/create` →
+`StoreNewsImportRequest` (auth + URL + private-IP guards) →
+`ImportNewsUrlJob` (queued) → chain:
+
+1. `CreateNewsImport` action → `NewsImport` row in Pending with the source domain extracted.
+2. `ExtractNewsArticleJob` → `ExtractNewsArticle` action calls `ContentExtractorInterface::extract($url)`. Default
+   implementation is `JinaReaderService` (uses `JINA_API_KEY`). Populates `raw_title`, `raw_body`, `raw_excerpt`,
+   `raw_image_url`. On failure marks Failed with reason.
+3. `GenerateNewsContentJob` → `GenerateLocalizedNewsContent` action calls the configured AI provider
+   (`NEWS_AI_PROVIDER`: `anthropic` → `AnthropicNewsGenerationService`, `openai` → `OpenAiNewsGenerationService`) to
+   produce per-locale title / summary / body. Writes `news_article_localizations` rows keyed by
+   `(news_article_id, locale)`.
+4. Admin reviews the generated article on `/admin/news-articles`, edits via Tiptap editor, then publishes or
+   schedules it.
+5. `PublishScheduledNewsJob` (scheduled) — flips any due `scheduled_at` articles to `published`.
+
+### Feature flags (`config/features.php`)
+
+- `FEATURE_NEWS` — master toggle: `true` (public), `admin` (admin-only preview, default), `false` (disabled / 404).
+- `FEATURE_NEWS_URL_IMPORT` — shows the *Import URL* button in the admin (default `true`).
+- `FEATURE_NEWS_IMPORT_PIPELINE` — enables the queued extract + AI-generate pipeline (default `false`). When off,
+  `NewsImport` rows are stored but never extracted.
+
+`EnsureNewsFeatureEnabled::isVisibleTo($user)` gates visibility on both sides (404 for anonymous users when the
+feature is in `admin` mode).
+
+### External services
+
+- **Jina Reader** — content extractor. Key: `JINA_API_KEY`. Bound in `AppServiceProvider` as
+  `ContentExtractorInterface → JinaReaderService`.
+- **Anthropic or OpenAI** — localised content generator. Driver selected by `config('services.news_ai_provider')`.
+  Keys: `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`. Models configurable via `ANTHROPIC_MODEL` / `OPENAI_MODEL`.
+
+### Tests
+
+- Feature: `tests/Feature/News/SetNewsLocaleMiddlewareTest.php` — middleware, session persistence, `/news` redirect,
+  header switcher labels
+- Feature: `tests/Feature/News/NewsImportPipelineIntegrationTest.php` — full pipeline end-to-end with fakes
+- Feature: `tests/Feature/News/ExtractNewsArticleTest.php`, `GenerateLocalizedNewsContentTest.php`,
+  `PublishNewsArticleTest.php`, `NewsJobsTest.php`, `NewsModelsTest.php`
+- Feature: `tests/Feature/News/NewsArticlePublicRoutesTest.php`, `NewsArticleSeoTest.php` — public routes +
+  canonical / hreflang / OG / JSON-LD
+- Feature: `tests/Feature/Admin/NewsImportControllerTest.php`, `NewsArticleControllerTest.php`
+- Unit: `tests/Unit/NewsLocaleEnumTest.php` — `fromBrowserLocale()` parsing
+
+## Videos System
+
+Curated YouTube videos surfaced in a homepage section and on a public `/videos` index. Videos are
+**language-neutral** — one record serves all locales; no per-locale slugs or localizations table.
+
+### Domain model
+
+`Video` model / `videos` table — see `app/Models/Video.php` and the migration.
+
+- `youtube_id` (nullable, unique) — extracted from the pasted URL via regex
+- `title`, `channel_name`, `channel_id`, `duration_seconds`, `thumbnail_url`, `description`, `published_at` — fetched
+  from YouTube Data API v3
+- `is_featured` (bool) — admin-toggled; `VideoImportController::toggleFeatured()` enforces that only one video is
+  featured at a time inside a DB transaction
+- `is_active` (bool) — staging toggle; hides the row from public listings without deleting
+- `status` (`VideoImportStatusEnum`: Pending, Fetching, Ready, Failed) + `failure_reason`
+- `raw_api_response` (JSON) — full Data API payload for debugging/re-extract
+- `user_id` — the admin who triggered the import
+
+Key scopes on `Video`:
+
+- `ready()` — status = Ready
+- `active()` — is_active = true
+- `publicVisible()` — ready + active, used on homepage and `/videos`
+
+Helpers: `embedUrl(bool $autoplay)`, `watchUrl()`, `thumbnailMaxRes()`, `thumbnailHq()`,
+`durationFormatted()` (returns `M:SS` or `H:MM:SS`), `markAs(VideoImportStatusEnum, ?string $reason)`.
+
+### Import pipeline
+
+Admin pastes a YouTube URL on `/admin/videos/create` →
+`StoreVideoImportRequest` (auth via `isAdmin()`, URL + regex + private-IP guards) →
+`ImportYoutubeVideoJob` (queued, 3 tries, backoff `[10, 30, 90]`) → inside `handle()`:
+
+1. `YoutubeDataService::extractYoutubeId($url)` — regex against
+   `/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/`.
+   No match → `CreateVideo` action writes a Failed row with a reason. The row is visible in the admin list so the
+   failure is not silent.
+2. Dedupe — if a `Video` with the same `youtube_id` exists, skip.
+3. `CreateVideo` action → creates the row in Pending.
+4. `FetchYoutubeVideoMetadata` action → marks Fetching, calls `YoutubeDataService::fetchVideo()`, populates fields,
+   marks Ready. On `Throwable`: logs + marks Failed with the exception message.
+
+`YoutubeDataService::fetchVideo()` calls `https://www.googleapis.com/youtube/v3/videos` with
+`part=snippet,contentDetails` + the API key, throws `RuntimeException` on HTTP failure or empty `items[]`. ISO 8601
+durations (`PT4M46S`, `PT1H2M3S`) are parsed by `parseIsoDuration()`.
+
+### Config
+
+`config/services.php` → `'youtube' => ['api_key' => env('YOUTUBE_API_KEY')]`. The key is required; the service throws
+a `RuntimeException` when it is missing. Set `YOUTUBE_API_KEY` in `.env` before running the queue worker against real
+imports (tests always fake `Http`).
+
+### URLs / routes
+
+- `/videos` — public, no locale prefix (`videos.index`)
+- `/admin/videos`, `/admin/videos/create`, `/admin/videos/{video}` — admin index / create / show
+- `PATCH /admin/videos/{video}/toggle-featured` — enforces single-featured in one transaction
+- `PATCH /admin/videos/{video}/toggle-active` — flips `is_active`
+- `DELETE /admin/videos/{video}`
+
+Admin routes sit inside the existing `auth + EnsureAdminUser + prevent-caching` group. The Videos link in the admin
+dropdown (`resources/views/components/header.blade.php`, desktop + mobile) is **not** gated by the news feature flag.
+
+### Homepage section
+
+`<x-homepage.latest-videos :featured="$featuredVideo" :videos="$latestVideos">` sits between This Week's Choices and
+Events in `resources/views/homepage/index.blade.php`.
+
+`HomepageController::getLatestVideos()` pulls the top 6 public-visible videos by `published_at desc`, picks the
+featured one (or falls back to the newest), and returns the rest (up to 5) as the list. The section renders nothing
+when the pool is empty — no empty-state placeholder on the homepage.
+
+Sub-components:
+
+- `resources/views/components/videos/hero-tile.blade.php` — big hero with featured badge, play overlay, duration
+- `resources/views/components/videos/list-row.blade.php` — 118px thumbnail + 2-line title + channel + duration
+
+Both apply the `theme-neon` palette (`--neon-cyan`, `--neon-orange`, `--neon-purple`) and Inter font — **no bespoke
+`go-*` tokens or Space Grotesk / JetBrains Mono fonts**.
+
+### Lightbox
+
+Shared modal root `<div id="go-video-lightbox">` lives in `resources/views/layouts/app.blade.php` (before
+`@stack('scripts')`). `resources/js/video-lightbox.js` delegates clicks on `[data-video-id]`, builds
+`https://www.youtube.com/embed/{id}?autoplay=1&rel=0&modestbranding=1`, locks body scroll while open, closes on
+backdrop click / ESC / Close button. Imported from `resources/js/app.js`.
+
+### Public `/videos` page
+
+`resources/views/videos/index.blade.php` mirrors the News index structure: `neon-section-frame`, `neon-card` rows,
+pagination at 20/page, breadcrumb JSON-LD, canonical + OG tags. Single locale → no hreflang. Empty state uses
+`neon-panel` + `x-heroicon-o-video-camera`.
+
+### Tests
+
+- Unit: `tests/Unit/VideoImportStatusEnumTest.php` — labels / color class / `isFinal()`
+- Feature: `tests/Feature/Videos/YoutubeDataServiceTest.php` — ID extraction, ISO 8601 parsing, Http::fake for success
+  / empty / HTTP failure. Lives under `Feature/` (not `Unit/`) because Pest's container is only wired there.
+- Feature: `tests/Feature/Videos/FetchYoutubeVideoMetadataTest.php` — Ready / Failed transitions
+- Feature: `tests/Feature/Videos/ImportYoutubeVideoJobTest.php` — full job with `Http::fake`, dedupe, non-YouTube URL
+- Feature: `tests/Feature/Admin/VideoImportControllerTest.php` — auth/forbidden/happy paths, toggle-featured
+  single-row invariant, toggle-active, destroy
+- Feature: `tests/Feature/VideosIndexPageTest.php` — public index visibility (Ready + active only), SEO tags,
+  pagination
+- Feature: `tests/Feature/HomepageLatestVideosTest.php` — section renders when videos exist, hidden when empty,
+  positioned between This Week's Choices and Events

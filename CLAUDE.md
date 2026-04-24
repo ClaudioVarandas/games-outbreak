@@ -579,4 +579,3 @@ is only valid when that slug column is non-null. When displaying locale options 
 - Feature: `tests/Feature/News/SetNewsLocaleMiddlewareTest.php` — middleware, session persistence, `/news` redirect,
   header switcher labels
 - Unit: `tests/Unit/NewsLocaleEnumTest.php` — `fromBrowserLocale()` parsing
-

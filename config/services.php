@@ -71,4 +71,8 @@ return [
         'access_token' => env('X_ACCESS_TOKEN'),
         'access_token_secret' => env('X_ACCESS_TOKEN_SECRET'),
     ],
+
+    'youtube' => [
+        'api_key' => env('YOUTUBE_API_KEY'),
+    ],
 ];
