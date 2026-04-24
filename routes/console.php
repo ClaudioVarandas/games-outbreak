@@ -71,9 +71,9 @@ Schedule::command('highlights:sync')
 // === BROADCAST SCHEDULES ===
 
 // Weekly "This Week's Choices" broadcast — Sundays 21:00 Europe/Lisbon
-Schedule::job(new BroadcastWeeklyChoicesJob)
+/*Schedule::job(new BroadcastWeeklyChoicesJob)
     ->weeklyOn(0, '21:00')
     ->timezone('Europe/Lisbon')
     ->name('broadcast-weekly-choices')
     ->withoutOverlapping()
-    ->onOneServer();
+    ->onOneServer();*/
