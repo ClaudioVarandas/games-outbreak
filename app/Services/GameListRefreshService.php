@@ -18,7 +18,7 @@ class GameListRefreshService
 {
     public function __construct(public IgdbService $igdb) {}
 
-    public function refreshList(GameList $gameList, bool $force = false): void
+    public function refreshList(GameList $gameList, bool $force = false, ?callable $onProgress = null): void
     {
         $gamesToRefresh = $gameList->games;
 
@@ -33,9 +33,17 @@ class GameListRefreshService
             return;
         }
 
+        if ($onProgress) {
+            $onProgress('start', $gamesToRefresh->count(), null);
+        }
+
         foreach ($gamesToRefresh as $game) {
             if (! $game->igdb_id) {
                 Log::warning("GameListRefreshService: Skipping '{$game->name}' - no IGDB ID");
+
+                if ($onProgress) {
+                    $onProgress('advance', null, $game);
+                }
 
                 continue;
             }
@@ -199,6 +207,14 @@ class GameListRefreshService
             } catch (\Exception $e) {
                 Log::error("GameListRefreshService: Failed to refresh '{$game->name}': ".$e->getMessage());
             }
+
+            if ($onProgress) {
+                $onProgress('advance', null, $game);
+            }
+        }
+
+        if ($onProgress) {
+            $onProgress('finish', null, null);
         }
     }
 }

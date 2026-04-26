@@ -36,7 +36,30 @@ class RefreshGameListGames extends Command
             return self::SUCCESS;
         }
 
-        $refreshService->refreshList($gameList, $force);
+        $bar = null;
+
+        $refreshService->refreshList($gameList, $force, function (string $event, ?int $total, $game) use (&$bar) {
+            if ($event === 'start') {
+                $bar = $this->output->createProgressBar($total);
+                $bar->setFormat(' %current%/%max% [%bar%] %percent:3s%%  %message%');
+                $bar->setMessage('');
+                $bar->start();
+
+                return;
+            }
+
+            if ($event === 'advance' && $bar) {
+                $bar->setMessage((string) ($game->name ?? ''));
+                $bar->advance();
+
+                return;
+            }
+
+            if ($event === 'finish' && $bar) {
+                $bar->finish();
+                $this->newLine();
+            }
+        });
 
         $this->info('Game list refresh completed!');
 
