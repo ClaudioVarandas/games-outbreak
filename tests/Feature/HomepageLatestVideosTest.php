@@ -58,6 +58,40 @@ it('renders the category badge and days-ago meta on the homepage', function () {
         ->assertSee('Rockstar', false);
 });
 
+it('always shows the featured video, even if older than recent imports', function () {
+    Video::factory()->ready()->featured()->create([
+        'title' => 'Old Featured Video',
+        'created_at' => now()->subMonths(6),
+        'published_at' => now()->subMonths(6),
+    ]);
+    Video::factory()->ready()->count(10)->create([
+        'created_at' => now()->subDays(1),
+    ]);
+
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('Old Featured Video');
+});
+
+it('orders the latest video tail by created_at desc', function () {
+    Video::factory()->ready()->featured()->create(['title' => 'Pinned Featured']);
+
+    $older = Video::factory()->ready()->create([
+        'title' => 'Older Tail',
+        'created_at' => now()->subDays(3),
+        'published_at' => now(),
+    ]);
+    $newer = Video::factory()->ready()->create([
+        'title' => 'Newer Tail',
+        'created_at' => now()->subHour(),
+        'published_at' => now()->subDays(10),
+    ]);
+
+    $html = $this->get('/')->assertOk()->getContent();
+
+    expect(strpos($html, $newer->title))->toBeLessThan(strpos($html, $older->title));
+});
+
 it('omits the category badge when no category is assigned', function () {
     Video::factory()
         ->ready()

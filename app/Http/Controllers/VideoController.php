@@ -14,7 +14,7 @@ class VideoController extends Controller
         $videos = Video::query()
             ->publicVisible()
             ->with('category')
-            ->orderByDesc('published_at')
+            ->orderByDesc('created_at')
             ->paginate(20);
 
         return view('videos.index', compact('videos'));

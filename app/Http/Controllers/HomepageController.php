@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Enums\ListTypeEnum;
@@ -97,20 +99,36 @@ class HomepageController extends Controller
      */
     private function getLatestVideos(): array
     {
+        $featured = Video::query()
+            ->publicVisible()
+            ->featured()
+            ->with('category')
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($featured) {
+            $videos = Video::query()
+                ->publicVisible()
+                ->with('category')
+                ->where('id', '!=', $featured->id)
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get();
+
+            return ['featured' => $featured, 'videos' => $videos];
+        }
+
         $pool = Video::query()
             ->publicVisible()
             ->with('category')
-            ->orderByDesc('published_at')
+            ->orderByDesc('created_at')
             ->limit(6)
             ->get();
 
-        $featured = $pool->firstWhere('is_featured', true) ?? $pool->first();
-        $videos = $pool
-            ->reject(fn (Video $v) => $featured && $v->id === $featured->id)
-            ->take(5)
-            ->values();
-
-        return ['featured' => $featured, 'videos' => $videos];
+        return [
+            'featured' => $pool->first(),
+            'videos' => $pool->slice(1)->values(),
+        ];
     }
 
     /**

@@ -43,6 +43,23 @@ it('paginates at 20 per page', function () {
         ->assertSee('page=2');
 });
 
+it('orders videos by created_at desc, ignoring published_at', function () {
+    $older = Video::factory()->ready()->create([
+        'title' => 'Older By Created',
+        'created_at' => now()->subDays(2),
+        'published_at' => now(),
+    ]);
+    $newer = Video::factory()->ready()->create([
+        'title' => 'Newer By Created',
+        'created_at' => now(),
+        'published_at' => now()->subDays(5),
+    ]);
+
+    $html = $this->get('/videos')->assertOk()->getContent();
+
+    expect(strpos($html, $newer->title))->toBeLessThan(strpos($html, $older->title));
+});
+
 it('renders the category badge on public cards', function () {
     Video::factory()->ready()->forCategory('gameplay')->create(['title' => 'Gameplay Clip']);
 
