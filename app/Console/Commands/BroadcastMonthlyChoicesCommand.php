@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Jobs\BroadcastMonthlyChoicesJob;
 use App\Services\Broadcasts\MonthlyChoicesBroadcaster;
 use App\Services\MonthlyChoicesCollector;
+use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use InvalidArgumentException;
 
@@ -42,9 +43,11 @@ class BroadcastMonthlyChoicesCommand extends Command
             return self::INVALID;
         }
 
+        $monthStart = null;
+
         if ($monthOverride !== null) {
             try {
-                MonthlyChoicesBroadcaster::parseMonthOverride($monthOverride);
+                $monthStart = MonthlyChoicesBroadcaster::parseMonthOverride($monthOverride);
             } catch (InvalidArgumentException $e) {
                 $this->error($e->getMessage());
 
@@ -54,11 +57,7 @@ class BroadcastMonthlyChoicesCommand extends Command
 
         if ($this->option('dry-run')) {
             $payload = match (true) {
-                $monthOverride !== null => $collector->forMonth(
-                    MonthlyChoicesBroadcaster::parseMonthOverride($monthOverride),
-                    null,
-                    $isPreview,
-                ),
+                $monthStart instanceof CarbonImmutable => $collector->forMonth($monthStart, null, $isPreview),
                 $isCurrent => $collector->forCurrentMonth(null, $isPreview),
                 default => $collector->forUpcomingMonth(null, $isPreview),
             };

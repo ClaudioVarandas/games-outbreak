@@ -125,7 +125,11 @@ class MonthlyTelegramMessageFormatter
 
     private function headerWeight(string $headerTitle, string $monthLabel): int
     {
-        return strlen($headerTitle) + strlen($monthLabel) + 16;
+        // Per-chunk fixed overhead reserved during bin-packing:
+        //   headerTitle\n + _monthLabel<partsLabel>_\n + (blank)\n
+        // partsLabel worst case is " · Part 99/99" (14 chars, no MarkdownV2 escapes).
+        // 19 = 2 underscores + 14 partsLabel + 3 newlines.
+        return strlen($headerTitle) + strlen($monthLabel) + 19;
     }
 
     private function gameLine(Game $game): string
