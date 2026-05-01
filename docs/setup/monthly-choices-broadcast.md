@@ -1,20 +1,23 @@
-# Monthly "Next Month's Choices" broadcast
+# Monthly Choices broadcast
 
 Automated mid-/end-of-month post of curated monthly releases to
 Telegram, sharing the same data source as the homepage's curated
 list. Mirrors the weekly broadcast (see
 [`weekly-choices-broadcast.md`](weekly-choices-broadcast.md)) with
-two distinct fires per month, a switchable window (upcoming or
-current), and automatic chunking of long lists.
+two scheduled fires per month, a switchable window (upcoming,
+current, or arbitrary `YYYY-MM`), automatic chunking of long lists,
+and a header that derives from the window relative to "now".
 
-- **When:**
+- **When (scheduled):**
   - **23rd of each month, 09:00 UTC** — `PREVIEW` post
   - **28th of each month, 09:00 UTC** — final post
-- **What:** Games whose pivot `release_date` falls in the **upcoming**
-  calendar month by default (`startOfMonth->addMonth()` through that
-  month's `endOfMonth`). Pass `--current` to target the **current**
-  calendar month instead — same window math but `startOfMonth` of
-  "now".
+- **What:** Games whose pivot `release_date` falls in a **calendar
+  month window**:
+  - default → upcoming month (`now->startOfMonth()->addMonth()` through
+    that month's `endOfMonth`) — what the schedule fires
+  - `--current` → current month (`now->startOfMonth()` through
+    `endOfMonth`)
+  - `--month=YYYY-MM` → that explicit month
 - **Where from:** The active yearly system `GameList` (same source as
   the weekly broadcast).
 - **Channels:** Telegram only. **X is intentionally not wired** —
@@ -83,18 +86,31 @@ suffix on the subtitle line; only the **last** chunk carries the
 ## Architecture at a glance
 
 ```
-app/Services/MonthlyChoicesCollector.php       forCurrentMonth() / forUpcomingMonth(?, isPreview)
-app/Services/MonthlyChoicesPayload.php         readonly DTO — games + window + ctaUrl + isPreview
+app/Services/MonthlyChoicesCollector.php
+    forCurrentMonth($now, $isPreview)
+    forUpcomingMonth($now, $isPreview)
+    forMonth(CarbonImmutable $monthStart, $now, $isPreview)
+    (200-game safety cap; eager-loads platforms; orderByRaw release_date asc)
+
+app/Services/MonthlyChoicesPayload.php
+    readonly DTO — windowStart + windowEnd + games + ctaUrl + now + isPreview
 
 app/Services/Broadcasts/
-├── MonthlyChoicesBroadcaster.php              orchestrator; per-channel error isolation
+├── MonthlyChoicesBroadcaster.php
+│   orchestrator + parseMonthOverride('YYYY-MM'); per-channel error isolation
 ├── Channels/MonthlyBroadcastChannel.php       interface
 ├── Channels/MonthlyTelegramChannel.php        Telegram impl (reuses TelegramClient)
-├── Formatters/MonthlyTelegramMessageFormatter.php  MarkdownV2; injects PREVIEW marker
+├── Formatters/MonthlyTelegramMessageFormatter.php
+│   MarkdownV2; window-vs-now header; chunks at MAX_CHARS_PER_MESSAGE (3800)
 └── Exceptions/BroadcastFailedException.php    (shared with weekly)
 
-app/Jobs/BroadcastMonthlyChoicesJob.php        ShouldQueue, tries=3, backoff=[60,300,900]
-app/Console/Commands/BroadcastMonthlyChoicesCommand.php  monthly-choices:broadcast
+app/Jobs/BroadcastMonthlyChoicesJob.php
+    ShouldQueue, tries=3, backoff=[60,300,900]
+    ($onlyChannel, $isPreview, $isCurrent, $monthOverride)
+
+app/Console/Commands/BroadcastMonthlyChoicesCommand.php
+    monthly-choices:broadcast --dry-run --channel= --preview --current --month=
+
 routes/console.php                             23rd 09:00 + 28th 09:00 UTC entries
 ```
 
@@ -140,8 +156,10 @@ Defaults differ from the weekly command:
 
 - `--channel=telegram` is the default (vs weekly's `all`) since X is
   not wired for monthly.
-- `--preview` and `--current` are flags, not options — pass each on
-  its own to enable.
+- `--channel=` and `--month=` take values (e.g. `--month=2026-09`);
+  `--preview` and `--current` are flags.
+- `--current` and `--month` are mutually exclusive; combining them
+  exits with code 2.
 
 ## How to test
 
@@ -152,13 +170,19 @@ Renders and prints the output for each registered channel; makes
 
 ```
 php artisan monthly-choices:broadcast --dry-run
+php artisan monthly-choices:broadcast --dry-run --current
+php artisan monthly-choices:broadcast --dry-run --month=2026-09
 ```
 
-Expected output:
-`Upcoming window: YYYY-MM-01 → YYYY-MM-DD · N games`,
-followed by the rendered Telegram block. Adding `--preview` prepends
-the PREVIEW marker to the header and appends ` · PREVIEW` to the
-window summary.
+Expected first line:
+
+- default → `Upcoming window: YYYY-MM-01 → YYYY-MM-DD · N games`
+- `--current` → `Current window: YYYY-MM-01 → YYYY-MM-DD · N games`
+- `--month=YYYY-MM` → `Override window: YYYY-MM-01 → YYYY-MM-DD · N games`
+
+Each is followed by the rendered Telegram block. Adding `--preview`
+prepends the PREVIEW marker to the header and appends ` · PREVIEW`
+to the window summary line.
 
 ### 2. End-to-end Telegram (staging)
 
@@ -204,40 +228,49 @@ php artisan test --compact --filter=Monthly
 
 Covers:
 
-- `MonthlyChoicesCollectorTest` — current vs upcoming month, empty
-  list, 200-game safety cap, year-end rollover (Dec → Jan), preview
-  flag passthrough, `isCurrent` flag passthrough.
-- `MonthlyTelegramMessageFormatterTest` — header in all four flag
-  combinations (PREVIEW/FINAL × current/upcoming), monthly subtitle
-  (`_Month Year_`), MarkdownV2 escaping, empty payload, single-message
-  rendering, multi-chunk rendering with parts label and CTA only on
-  the last chunk.
+- `MonthlyChoicesCollectorTest` — current / upcoming / arbitrary month
+  (`forMonth`), empty list, 200-game safety cap, year-end rollover
+  (Dec → Jan), preview flag passthrough, `now` reference stamped on
+  payload.
+- `MonthlyTelegramMessageFormatterTest` — header derivation across
+  the three window kinds (current / next / arbitrary) × PREVIEW
+  on/off, monthly subtitle (`_Month Year_`), MarkdownV2 escaping,
+  empty payload, single-message rendering, multi-chunk rendering
+  with `· Part X/N` label and CTA only on the last chunk.
 - `BroadcastMonthlyChoicesJobTest` — posts to Telegram, PREVIEW
-  marker flows through, `isCurrent` targets the current month, never
-  hits X, skips silently on empty month, throws when all channels
-  fail, `--channel` scoping, chunked messages all respect the
-  Telegram 4096-char hard limit.
+  marker flows through, `isCurrent` targets the current month,
+  `monthOverride='YYYY-MM'` targets the explicit month with the
+  derived header, never hits X, skips silently on empty month,
+  throws when all channels fail, `--channel` scoping, chunked
+  messages all respect the Telegram 4096-char hard limit.
 - `BroadcastMonthlyChoicesCommandTest` — dry-run prints & sends
   nothing, `--preview` tags output, `--current` switches the window,
-  live sends once, unknown `--channel` exits with code 2,
-  `--channel=telegram` is the default, `--channel=x` rejected while
-  X is unwired.
+  `--month=YYYY-MM` switches the window and tags dry-run output as
+  `Override window`, malformed `--month` (e.g. `2026-13`, `banana`)
+  exits with code 2, `--month` + `--current` together rejected,
+  unknown `--channel` exits with code 2, `--channel=telegram` is the
+  default, `--channel=x` rejected while X is unwired.
 
 ## Behavior notes
 
 - **Empty month** → skip silently;
-  `Log::info('monthly-choices.skipped', {reason: 'empty-window', is_preview: ...})`.
+  `Log::info('monthly-choices.skipped', {reason: 'empty-window', is_preview, is_current, month_override, ...})`.
   No post, no retry.
-- **Both fires on same data** → if the curated list has not changed
-  between the 23rd and 28th, the FINAL message is content-identical
-  to the PREVIEW except for the header.
+- **Both scheduled fires on same data** → if the curated list has
+  not changed between the 23rd and 28th, the FINAL message is
+  content-identical to the PREVIEW except for the header.
 - **All channels fail** → `BroadcastFailedException` bubbles up; job
   retries with backoff; final failure logs
-  `monthly-choices.broadcast.failed`.
+  `monthly-choices.broadcast.failed` with `is_preview`, `is_current`,
+  `month_override` for triage.
 - **Disabled channel** → no-op, no HTTP call, no error.
 - **X channel** → not registered. Adding it later: implement
   `MonthlyXChannel implements MonthlyBroadcastChannel`, then add it
   to the `broadcasts.monthly_channels` tag in `AppServiceProvider`.
+- **Backfilling a missed fire** → run
+  `php artisan monthly-choices:broadcast --month=YYYY-MM` (add
+  `--preview` to mirror the 23rd run). Idempotency is **not**
+  enforced; running twice posts twice.
 
 ## Related
 
