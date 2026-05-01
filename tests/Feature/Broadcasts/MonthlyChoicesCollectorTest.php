@@ -68,10 +68,10 @@ it('points the CTA at the per-month releases page', function () {
     $september = $this->collector->forMonth(CarbonImmutable::create(2026, 9, 1));
     $january2027 = $this->collector->forMonth(CarbonImmutable::create(2027, 1, 1));
 
-    expect($april->ctaUrl)->toEndWith('/releases/2026/04');
-    expect($may->ctaUrl)->toEndWith('/releases/2026/05');
-    expect($september->ctaUrl)->toEndWith('/releases/2026/09');
-    expect($january2027->ctaUrl)->toEndWith('/releases/2027/01');
+    expect($april->ctaUrl)->toEndWith('/releases/2026/4');
+    expect($may->ctaUrl)->toEndWith('/releases/2026/5');
+    expect($september->ctaUrl)->toEndWith('/releases/2026/9');
+    expect($january2027->ctaUrl)->toEndWith('/releases/2027/1');
 });
 
 it('flags the payload as preview when requested', function () {
