@@ -14,9 +14,10 @@ class BroadcastMonthlyChoicesCommand extends Command
     protected $signature = 'monthly-choices:broadcast
                             {--dry-run : Render payload locally without calling any APIs}
                             {--channel=telegram : Limit to one channel (telegram|all). Default: telegram.}
-                            {--preview : Mark this run as the early-month PREVIEW broadcast}';
+                            {--preview : Mark this run as the early-month PREVIEW broadcast}
+                            {--current : Target the current calendar month instead of the upcoming one}';
 
-    protected $description = 'Broadcast next month\'s curated releases to configured channels (Telegram). X not wired yet.';
+    protected $description = 'Broadcast curated monthly releases to configured channels (Telegram). X not wired yet.';
 
     public function handle(
         MonthlyChoicesCollector $collector,
@@ -24,6 +25,7 @@ class BroadcastMonthlyChoicesCommand extends Command
     ): int {
         $channel = $this->option('channel');
         $isPreview = (bool) $this->option('preview');
+        $isCurrent = (bool) $this->option('current');
 
         if ($channel !== null && ! in_array($channel, ['telegram', 'all'], true)) {
             $this->error("Unknown --channel={$channel}. Expected one of: telegram, all.");
@@ -32,9 +34,13 @@ class BroadcastMonthlyChoicesCommand extends Command
         }
 
         if ($this->option('dry-run')) {
-            $payload = $collector->forUpcomingMonth(null, $isPreview);
+            $payload = $isCurrent
+                ? $collector->forCurrentMonth(null, $isPreview)
+                : $collector->forUpcomingMonth(null, $isPreview);
+
             $this->info(sprintf(
-                'Upcoming window: %s → %s · %d games%s',
+                '%s window: %s → %s · %d games%s',
+                $isCurrent ? 'Current' : 'Upcoming',
                 $payload->windowStart->toDateString(),
                 $payload->windowEnd->toDateString(),
                 $payload->count(),
@@ -60,6 +66,7 @@ class BroadcastMonthlyChoicesCommand extends Command
         BroadcastMonthlyChoicesJob::dispatchSync(
             $channel === 'all' ? null : $channel,
             $isPreview,
+            $isCurrent,
         );
 
         $this->info('Broadcast completed.');

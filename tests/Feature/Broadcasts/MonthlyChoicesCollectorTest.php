@@ -40,6 +40,7 @@ it('forCurrentMonth returns only games in the current calendar month', function 
     expect($payload->windowStart->toDateString())->toBe('2026-04-01');
     expect($payload->windowEnd->toDateString())->toBe('2026-04-30');
     expect($payload->isPreview)->toBeFalse();
+    expect($payload->isCurrent)->toBeTrue();
 });
 
 it('forUpcomingMonth returns only games in next calendar month', function () {
@@ -49,6 +50,7 @@ it('forUpcomingMonth returns only games in next calendar month', function () {
     expect($payload->games->first()->name)->toBe('Next-Month Game');
     expect($payload->windowStart->toDateString())->toBe('2026-05-01');
     expect($payload->windowEnd->toDateString())->toBe('2026-05-31');
+    expect($payload->isCurrent)->toBeFalse();
 });
 
 it('flags the payload as preview when requested', function () {
@@ -66,8 +68,8 @@ it('returns empty payload when no yearly list exists for the window year', funct
     expect($payload->count())->toBe(0);
 });
 
-it('respects the 40-game limit', function () {
-    $games = Game::factory()->count(50)->create();
+it('respects the 200-game safety cap', function () {
+    $games = Game::factory()->count(210)->create();
     foreach ($games as $i => $game) {
         $this->list->games()->attach($game->id, [
             'release_date' => Carbon::parse('2026-05-01 00:00:00')->addMinutes($i)->toDateTimeString(),
@@ -76,7 +78,7 @@ it('respects the 40-game limit', function () {
 
     $payload = $this->collector->forUpcomingMonth();
 
-    expect($payload->count())->toBe(40);
+    expect($payload->count())->toBe(200);
 });
 
 it('keys the yearly list off the window start year across year rollover', function () {

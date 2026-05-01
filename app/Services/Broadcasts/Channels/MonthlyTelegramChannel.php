@@ -37,13 +37,15 @@ class MonthlyTelegramChannel implements MonthlyBroadcastChannel
             throw new RuntimeException('Telegram credentials missing (bot_token / chat_id).');
         }
 
-        $this->client->sendMessage(
-            botToken: $botToken,
-            chatId: $chatId,
-            text: $this->formatter->format($payload),
-            parseMode: 'MarkdownV2',
-            disableWebPagePreview: false,
-        );
+        foreach ($this->formatter->formatMessages($payload) as $message) {
+            $this->client->sendMessage(
+                botToken: $botToken,
+                chatId: $chatId,
+                text: $message,
+                parseMode: 'MarkdownV2',
+                disableWebPagePreview: false,
+            );
+        }
     }
 
     public function preview(MonthlyChoicesPayload $payload): string

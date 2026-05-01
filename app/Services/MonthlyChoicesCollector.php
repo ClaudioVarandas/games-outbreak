@@ -10,13 +10,15 @@ use Illuminate\Support\Collection;
 
 class MonthlyChoicesCollector
 {
+    private const SAFETY_LIMIT = 200;
+
     public function forCurrentMonth(?CarbonImmutable $now = null, bool $isPreview = false): MonthlyChoicesPayload
     {
         $now ??= CarbonImmutable::now();
         $start = $now->startOfMonth();
         $end = $start->endOfMonth();
 
-        return $this->collect($start, $end, $isPreview);
+        return $this->collect($start, $end, $isPreview, isCurrent: true);
     }
 
     public function forUpcomingMonth(?CarbonImmutable $now = null, bool $isPreview = false): MonthlyChoicesPayload
@@ -25,10 +27,10 @@ class MonthlyChoicesCollector
         $start = $now->startOfMonth()->addMonth();
         $end = $start->endOfMonth();
 
-        return $this->collect($start, $end, $isPreview);
+        return $this->collect($start, $end, $isPreview, isCurrent: false);
     }
 
-    private function collect(CarbonImmutable $start, CarbonImmutable $end, bool $isPreview): MonthlyChoicesPayload
+    private function collect(CarbonImmutable $start, CarbonImmutable $end, bool $isPreview, bool $isCurrent): MonthlyChoicesPayload
     {
         $yearlyList = GameList::yearly()
             ->where('is_system', true)
@@ -41,7 +43,7 @@ class MonthlyChoicesCollector
                 ->with('platforms')
                 ->reorder()
                 ->wherePivotBetween('release_date', [$start->toDateTimeString(), $end->toDateTimeString()])
-                ->limit(40)
+                ->limit(self::SAFETY_LIMIT)
                 ->orderByRaw('COALESCE(game_list_game.release_date, games.first_release_date) ASC')
                 ->get()
             : new Collection;
@@ -52,6 +54,7 @@ class MonthlyChoicesCollector
             games: $games,
             ctaUrl: route('homepage', [], absolute: true),
             isPreview: $isPreview,
+            isCurrent: $isCurrent,
         );
     }
 }

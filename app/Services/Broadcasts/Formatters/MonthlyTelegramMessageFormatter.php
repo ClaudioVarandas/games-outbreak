@@ -14,32 +14,112 @@ class MonthlyTelegramMessageFormatter
 {
     use EscapesMarkdownV2;
 
+    /**
+     * Telegram sendMessage hard limit is 4096 chars; reserve headroom for
+     * MarkdownV2 escapes, parse_mode round-trips, and minor accounting drift.
+     */
+    public const MAX_CHARS_PER_MESSAGE = 3800;
+
     public function format(MonthlyChoicesPayload $payload): string
     {
-        if ($payload->isEmpty()) {
+        $messages = $this->formatMessages($payload);
+
+        if ($messages === []) {
             return '';
         }
 
-        $monthLabel = $this->escape($payload->windowStart->format('F Y'));
+        return implode("\n\n— — — — —\n\n", $messages);
+    }
 
-        $header = $payload->isPreview
-            ? '*🎮 Games Outbreak — PREVIEW — Next Month\'s Choices*'
-            : '*🎮 Games Outbreak — Next Month\'s Choices*';
-
-        $lines = [
-            $header,
-            '_'.$monthLabel.'_',
-            '',
-        ];
-
-        foreach ($payload->games as $game) {
-            $lines[] = $this->gameLine($game);
+    /**
+     * @return list<string>
+     */
+    public function formatMessages(MonthlyChoicesPayload $payload, int $maxChars = self::MAX_CHARS_PER_MESSAGE): array
+    {
+        if ($payload->isEmpty()) {
+            return [];
         }
 
-        $lines[] = '';
-        $lines[] = '[See the full list →]('.$payload->ctaUrl.')';
+        $headerTitle = $this->headerTitle($payload);
+        $monthLabel = $this->escape($payload->windowStart->format('F Y'));
+        $footerLine = '[See the full list →]('.$payload->ctaUrl.')';
 
-        return implode("\n", $lines);
+        $gameLines = [];
+        foreach ($payload->games as $game) {
+            $gameLines[] = $this->gameLine($game);
+        }
+
+        $bins = $this->binPackLines($gameLines, $headerTitle, $monthLabel, $footerLine, $maxChars);
+        $totalParts = count($bins);
+
+        $messages = [];
+        foreach ($bins as $i => $lines) {
+            $partsLabel = $totalParts > 1 ? ' · Part '.($i + 1).'/'.$totalParts : '';
+
+            $msgLines = [
+                $headerTitle,
+                '_'.$monthLabel.$this->escape($partsLabel).'_',
+                '',
+                ...$lines,
+            ];
+
+            if ($i === $totalParts - 1) {
+                $msgLines[] = '';
+                $msgLines[] = $footerLine;
+            }
+
+            $messages[] = implode("\n", $msgLines);
+        }
+
+        return $messages;
+    }
+
+    private function headerTitle(MonthlyChoicesPayload $payload): string
+    {
+        $base = $payload->isCurrent
+            ? 'This Month\'s Choices'
+            : 'Next Month\'s Choices';
+
+        return $payload->isPreview
+            ? '*🎮 Games Outbreak — PREVIEW — '.$base.'*'
+            : '*🎮 Games Outbreak — '.$base.'*';
+    }
+
+    /**
+     * @param  list<string>  $gameLines
+     * @return list<list<string>>
+     */
+    private function binPackLines(array $gameLines, string $headerTitle, string $monthLabel, string $footerLine, int $maxChars): array
+    {
+        $bins = [];
+        $current = [];
+        $currentLen = 0;
+        $headerLen = $this->headerWeight($headerTitle, $monthLabel);
+        $footerLen = strlen($footerLine) + 2;
+
+        foreach ($gameLines as $line) {
+            $lineWeight = strlen($line) + 1;
+
+            if ($current !== [] && $headerLen + $currentLen + $lineWeight + $footerLen > $maxChars) {
+                $bins[] = $current;
+                $current = [];
+                $currentLen = 0;
+            }
+
+            $current[] = $line;
+            $currentLen += $lineWeight;
+        }
+
+        if ($current !== []) {
+            $bins[] = $current;
+        }
+
+        return $bins;
+    }
+
+    private function headerWeight(string $headerTitle, string $monthLabel): int
+    {
+        return strlen($headerTitle) + strlen($monthLabel) + 16;
     }
 
     private function gameLine(Game $game): string

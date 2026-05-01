@@ -15,6 +15,7 @@ final class MonthlyChoicesPayload
         public readonly Collection $games,
         public readonly string $ctaUrl,
         public readonly bool $isPreview = false,
+        public readonly bool $isCurrent = false,
     ) {}
 
     public function isEmpty(): bool

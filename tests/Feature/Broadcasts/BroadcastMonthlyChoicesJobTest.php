@@ -118,3 +118,50 @@ it('only targets the requested channel when onlyChannel is set', function () {
 
     Http::assertSentCount(1);
 });
+
+it('isCurrent flag targets the current calendar month', function () {
+    $game = Game::factory()->create(['name' => 'Current Month Game', 'slug' => 'current-month-game']);
+    $this->list->games()->attach($game->id, ['release_date' => '2026-04-10 00:00:00']);
+
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    (new BroadcastMonthlyChoicesJob(isCurrent: true))
+        ->handle(app(MonthlyChoicesBroadcaster::class));
+
+    Http::assertSent(function ($request) {
+        return str_contains($request['text'], 'Current Month Game')
+            && str_contains($request['text'], "This Month's Choices")
+            && str_contains($request['text'], '_April 2026_');
+    });
+});
+
+it('chunks oversized payloads into multiple Telegram sendMessage calls', function () {
+    $games = Game::factory()->count(80)->create();
+    foreach ($games as $i => $game) {
+        $this->list->games()->attach($game->id, [
+            'release_date' => Carbon::parse('2026-05-01 00:00:00')->addMinutes($i)->toDateTimeString(),
+        ]);
+    }
+
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    (new BroadcastMonthlyChoicesJob)->handle(app(MonthlyChoicesBroadcaster::class));
+
+    expect(Http::recorded())->not->toBeEmpty();
+
+    $count = 0;
+    Http::assertSent(function ($request) use (&$count) {
+        if (str_contains($request->url(), 'sendMessage')) {
+            expect(strlen((string) $request['text']))->toBeLessThanOrEqual(4096);
+            $count++;
+        }
+
+        return true;
+    });
+
+    expect($count)->toBeGreaterThanOrEqual(1);
+});

@@ -22,16 +22,27 @@ class MonthlyChoicesBroadcaster
         private readonly iterable $channels,
     ) {}
 
-    public function broadcast(?CarbonImmutable $now = null, ?string $onlyChannel = null, bool $isPreview = false): void
-    {
-        $payload = $this->collector->forUpcomingMonth($now, $isPreview);
+    public function broadcast(
+        ?CarbonImmutable $now = null,
+        ?string $onlyChannel = null,
+        bool $isPreview = false,
+        bool $isCurrent = false,
+    ): void {
+        $payload = $isCurrent
+            ? $this->collector->forCurrentMonth($now, $isPreview)
+            : $this->collector->forUpcomingMonth($now, $isPreview);
+
+        $logContext = [
+            'is_preview' => $isPreview,
+            'is_current' => $isCurrent,
+        ];
 
         if ($payload->isEmpty()) {
             Log::info('monthly-choices.skipped', [
+                ...$logContext,
                 'reason' => 'empty-window',
                 'window_start' => $payload->windowStart->toDateString(),
                 'window_end' => $payload->windowEnd->toDateString(),
-                'is_preview' => $isPreview,
             ]);
 
             return;
@@ -41,9 +52,9 @@ class MonthlyChoicesBroadcaster
 
         if ($targets === []) {
             Log::info('monthly-choices.skipped', [
+                ...$logContext,
                 'reason' => 'no-enabled-channels',
                 'requested' => $onlyChannel,
-                'is_preview' => $isPreview,
             ]);
 
             return;
@@ -59,19 +70,19 @@ class MonthlyChoicesBroadcaster
             } catch (Throwable $e) {
                 $failures[$channel->name()] = $e;
                 Log::error('monthly-choices.channel.failed', [
+                    ...$logContext,
                     'channel' => $channel->name(),
                     'exception' => $e::class,
                     'message' => $e->getMessage(),
-                    'is_preview' => $isPreview,
                 ]);
             }
         }
 
         if ($failures === []) {
             Log::info('monthly-choices.broadcast.ok', [
+                ...$logContext,
                 'channels' => $sent,
                 'games' => $payload->count(),
-                'is_preview' => $isPreview,
             ]);
 
             return;
@@ -82,9 +93,9 @@ class MonthlyChoicesBroadcaster
         }
 
         Log::error('monthly-choices.broadcast.partial', [
+            ...$logContext,
             'sent' => $sent,
             'failed' => array_keys($failures),
-            'is_preview' => $isPreview,
         ]);
     }
 

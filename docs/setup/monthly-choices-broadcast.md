@@ -1,38 +1,63 @@
 # Monthly "Next Month's Choices" broadcast
 
-Automated mid-/end-of-month post of next month's curated releases to
+Automated mid-/end-of-month post of curated monthly releases to
 Telegram, sharing the same data source as the homepage's curated
 list. Mirrors the weekly broadcast (see
 [`weekly-choices-broadcast.md`](weekly-choices-broadcast.md)) with
-two distinct fires per month and a different window.
+two distinct fires per month, a switchable window (upcoming or
+current), and automatic chunking of long lists.
 
 - **When:**
   - **23rd of each month, 09:00 UTC** — `PREVIEW` post
   - **28th of each month, 09:00 UTC** — final post
-- **What:** Games whose pivot `release_date` falls in the *upcoming*
-  calendar month (`startOfMonth->addMonth()` through that month's
-  `endOfMonth`).
+- **What:** Games whose pivot `release_date` falls in the **upcoming**
+  calendar month by default (`startOfMonth->addMonth()` through that
+  month's `endOfMonth`). Pass `--current` to target the **current**
+  calendar month instead — same window math but `startOfMonth` of
+  "now".
 - **Where from:** The active yearly system `GameList` (same source as
   the weekly broadcast).
 - **Channels:** Telegram only. **X is intentionally not wired** —
   pattern is in place to add a `MonthlyXChannel` later.
-- **Limit:** 40 games per window (vs 18 for weekly). Keeps the
-  rendered message under Telegram's 4096-char `sendMessage` cap with
-  typical line lengths.
+- **List size:** No hard per-message cap. A 200-game **safety** cap
+  is applied at the collector to avoid pathological queries; in
+  practice the formatter splits the rendered list into multiple
+  Telegram `sendMessage` calls when it would exceed 3800 chars (see
+  *Chunking* below).
 
-## PREVIEW vs FINAL
+## PREVIEW vs FINAL · current vs upcoming
 
-Both fires query the **same upcoming-month window** and produce the
-same list of games. The difference is the header:
+Both schedule fires query the **same upcoming-month window** and
+produce the same list of games. The 23rd run injects a PREVIEW
+marker into the header; the 28th run does not. Two orthogonal flags
+control the header copy:
 
-- Final: `*🎮 Games Outbreak — Next Month's Choices*`
-- Preview: `*🎮 Games Outbreak — PREVIEW — Next Month's Choices*`
+| `isPreview` | `isCurrent` | Header |
+|-------------|-------------|--------|
+| false       | false       | `*🎮 Games Outbreak — Next Month's Choices*` |
+| true        | false       | `*🎮 Games Outbreak — PREVIEW — Next Month's Choices*` |
+| false       | true        | `*🎮 Games Outbreak — This Month's Choices*` |
+| true        | true        | `*🎮 Games Outbreak — PREVIEW — This Month's Choices*` |
 
-The flag travels via:
+The flags travel via:
 
-- `MonthlyChoicesPayload::$isPreview`
-- `BroadcastMonthlyChoicesJob(isPreview: true)`
-- `monthly-choices:broadcast --preview`
+- `MonthlyChoicesPayload::$isPreview` / `$isCurrent`
+- `BroadcastMonthlyChoicesJob(isPreview: true, isCurrent: true)`
+- `monthly-choices:broadcast --preview --current`
+
+The schedule still fires upcoming-month broadcasts; `--current` is
+intended for ad-hoc CLI runs (e.g., posting "this month's slate" on
+day 1 from the terminal).
+
+## Chunking
+
+The Telegram `sendMessage` text limit is 4096 chars. When the rendered
+list would exceed `MonthlyTelegramMessageFormatter::MAX_CHARS_PER_MESSAGE`
+(3800 chars, leaving headroom), the formatter splits at line
+boundaries into multiple messages. Each chunk is sent as its own
+`sendMessage` call. Continuation chunks include a `· Part X/N`
+suffix on the subtitle line; only the **last** chunk carries the
+`[See the full list →]` CTA footer.
 
 ## Architecture at a glance
 
@@ -77,18 +102,22 @@ after any env change.
 # Dry-run (no HTTP)
 php artisan monthly-choices:broadcast --dry-run
 php artisan monthly-choices:broadcast --dry-run --preview
+php artisan monthly-choices:broadcast --dry-run --current
 php artisan monthly-choices:broadcast --dry-run --channel=telegram
 
 # Live (Telegram is the default channel)
 php artisan monthly-choices:broadcast
 php artisan monthly-choices:broadcast --preview
+php artisan monthly-choices:broadcast --current
+php artisan monthly-choices:broadcast --current --preview
 ```
 
 Defaults differ from the weekly command:
 
 - `--channel=telegram` is the default (vs weekly's `all`) since X is
-  not registered for monthly.
-- `--preview` is a flag, not an option — present means PREVIEW mode.
+  not wired for monthly.
+- `--preview` and `--current` are flags, not options — pass each on
+  its own to enable.
 
 ## How to test
 
@@ -152,18 +181,23 @@ php artisan test --compact --filter=Monthly
 Covers:
 
 - `MonthlyChoicesCollectorTest` — current vs upcoming month, empty
-  list, 40-game limit, year-end rollover (Dec → Jan), preview flag
-  passthrough.
-- `MonthlyTelegramMessageFormatterTest` — header in both modes
-  (with/without PREVIEW), monthly subtitle (`_Month Year_`),
-  MarkdownV2 escaping, empty payload.
+  list, 200-game safety cap, year-end rollover (Dec → Jan), preview
+  flag passthrough, `isCurrent` flag passthrough.
+- `MonthlyTelegramMessageFormatterTest` — header in all four flag
+  combinations (PREVIEW/FINAL × current/upcoming), monthly subtitle
+  (`_Month Year_`), MarkdownV2 escaping, empty payload, single-message
+  rendering, multi-chunk rendering with parts label and CTA only on
+  the last chunk.
 - `BroadcastMonthlyChoicesJobTest` — posts to Telegram, PREVIEW
-  marker flows through, never hits X, skips silently on empty
-  month, throws when all channels fail, `--channel` scoping.
+  marker flows through, `isCurrent` targets the current month, never
+  hits X, skips silently on empty month, throws when all channels
+  fail, `--channel` scoping, chunked messages all respect the
+  Telegram 4096-char hard limit.
 - `BroadcastMonthlyChoicesCommandTest` — dry-run prints & sends
-  nothing, `--preview` tags output, live sends once, unknown
-  `--channel` exits with code 2, `--channel=telegram` is the
-  default.
+  nothing, `--preview` tags output, `--current` switches the window,
+  live sends once, unknown `--channel` exits with code 2,
+  `--channel=telegram` is the default, `--channel=x` rejected while
+  X is unwired.
 
 ## Behavior notes
 

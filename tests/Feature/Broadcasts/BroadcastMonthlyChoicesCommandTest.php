@@ -93,3 +93,30 @@ it('--channel=all sends to every enabled channel (telegram only for now)', funct
     Http::assertSentCount(1);
     Http::assertNotSent(fn ($request) => str_contains($request->url(), 'api.x.com'));
 });
+
+it('--current targets the current calendar month and tags the dry-run output', function () {
+    $game = Game::factory()->create(['name' => 'Current April Game', 'slug' => 'current-april-game']);
+    $this->list->games()->attach($game->id, ['release_date' => '2026-04-15 00:00:00']);
+
+    Http::fake();
+
+    $this->artisan('monthly-choices:broadcast', ['--dry-run' => true, '--current' => true])
+        ->expectsOutputToContain('Current window: 2026-04-01')
+        ->expectsOutputToContain('Current April Game')
+        ->assertSuccessful();
+
+    Http::assertNothingSent();
+});
+
+it('live --current dispatches with isCurrent=true', function () {
+    $game = Game::factory()->create(['name' => 'Current April Game', 'slug' => 'current-april-game']);
+    $this->list->games()->attach($game->id, ['release_date' => '2026-04-15 00:00:00']);
+
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $this->artisan('monthly-choices:broadcast', ['--current' => true])->assertSuccessful();
+
+    Http::assertSent(fn ($request) => str_contains($request['text'], "This Month's Choices"));
+});

@@ -293,15 +293,17 @@ Two scheduled jobs post curated upcoming-release lists to Telegram, pulling from
 `GameList` that powers the homepage "This Week's Choices" section. X (Twitter) integration is wired for the weekly
 broadcast and gated by config; the monthly broadcast is Telegram-only for now.
 
-| Broadcast | Cadence | Window | Limit | Channels | Setup doc |
-|-----------|---------|--------|-------|----------|-----------|
+| Broadcast | Cadence | Window | List size | Channels | Setup doc |
+|-----------|---------|--------|-----------|----------|-----------|
 | Weekly    | Sunday 18:00 UTC | Upcoming Mon–Sun | 18 games | Telegram + X (config-gated) | [`docs/setup/weekly-choices-broadcast.md`](docs/setup/weekly-choices-broadcast.md) |
-| Monthly — PREVIEW | 23rd of each month, 09:00 UTC | Upcoming calendar month | 40 games | Telegram | [`docs/setup/monthly-choices-broadcast.md`](docs/setup/monthly-choices-broadcast.md) |
-| Monthly — FINAL | 28th of each month, 09:00 UTC | Upcoming calendar month | 40 games | Telegram | same |
+| Monthly — PREVIEW | 23rd of each month, 09:00 UTC | Upcoming calendar month | Full list (auto-chunked, 200 safety cap) | Telegram | [`docs/setup/monthly-choices-broadcast.md`](docs/setup/monthly-choices-broadcast.md) |
+| Monthly — FINAL | 28th of each month, 09:00 UTC | Upcoming calendar month | same | Telegram | same |
 
-Both fires of the monthly broadcast share the same data; the 23rd run injects ` — PREVIEW — ` into the header. Each
-broadcast supports a `--dry-run` mode that renders the formatted output without making HTTP calls — useful for
-eyeballing MarkdownV2 escaping before going live.
+Both fires of the monthly broadcast share the same data; the 23rd run injects ` — PREVIEW — ` into the header. Long
+monthly lists are auto-split across multiple Telegram messages with a `· Part X/N` subtitle; the CTA footer appears
+only on the last chunk. Pass `--current` to target the current calendar month instead of the upcoming one (useful for
+ad-hoc CLI runs on day 1). Each broadcast supports `--dry-run` to render the formatted output without making HTTP
+calls — useful for eyeballing MarkdownV2 escaping before going live.
 
 ```
 # Weekly
@@ -311,8 +313,10 @@ php artisan weekly-choices:broadcast --channel=telegram
 # Monthly (telegram is the default channel)
 php artisan monthly-choices:broadcast --dry-run
 php artisan monthly-choices:broadcast --dry-run --preview
+php artisan monthly-choices:broadcast --dry-run --current
 php artisan monthly-choices:broadcast
 php artisan monthly-choices:broadcast --preview
+php artisan monthly-choices:broadcast --current
 ```
 
 Telegram credentials (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_BROADCAST_ENABLED`) are shared between

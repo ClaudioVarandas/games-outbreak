@@ -19,6 +19,7 @@ class BroadcastMonthlyChoicesJob implements ShouldQueue
     public function __construct(
         public readonly ?string $onlyChannel = null,
         public readonly bool $isPreview = false,
+        public readonly bool $isCurrent = false,
     ) {}
 
     /**
@@ -31,7 +32,11 @@ class BroadcastMonthlyChoicesJob implements ShouldQueue
 
     public function handle(MonthlyChoicesBroadcaster $broadcaster): void
     {
-        $broadcaster->broadcast(onlyChannel: $this->onlyChannel, isPreview: $this->isPreview);
+        $broadcaster->broadcast(
+            onlyChannel: $this->onlyChannel,
+            isPreview: $this->isPreview,
+            isCurrent: $this->isCurrent,
+        );
     }
 
     public function failed(Throwable $e): void
@@ -41,6 +46,7 @@ class BroadcastMonthlyChoicesJob implements ShouldQueue
             'message' => $e->getMessage(),
             'channel' => $this->onlyChannel,
             'is_preview' => $this->isPreview,
+            'is_current' => $this->isCurrent,
         ]);
     }
 }
