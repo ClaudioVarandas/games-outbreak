@@ -120,3 +120,46 @@ it('live --current dispatches with isCurrent=true', function () {
 
     Http::assertSent(fn ($request) => str_contains($request['text'], "This Month's Choices"));
 });
+
+it('--month=YYYY-MM targets an explicit month and tags dry-run output', function () {
+    $game = Game::factory()->create(['name' => 'September Game', 'slug' => 'september-game']);
+    $this->list->games()->attach($game->id, ['release_date' => '2026-09-15 00:00:00']);
+
+    Http::fake();
+
+    $this->artisan('monthly-choices:broadcast', ['--dry-run' => true, '--month' => '2026-09'])
+        ->expectsOutputToContain('Override window: 2026-09-01')
+        ->expectsOutputToContain('September Game')
+        ->assertSuccessful();
+
+    Http::assertNothingSent();
+});
+
+it('live --month dispatches with the right header and games', function () {
+    $game = Game::factory()->create(['name' => 'September Game', 'slug' => 'september-game']);
+    $this->list->games()->attach($game->id, ['release_date' => '2026-09-15 00:00:00']);
+
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $this->artisan('monthly-choices:broadcast', ['--month' => '2026-09'])->assertSuccessful();
+
+    Http::assertSent(function ($request) {
+        return str_contains($request['text'], 'September 2026 Choices')
+            && str_contains($request['text'], 'September Game');
+    });
+});
+
+it('rejects malformed --month values', function () {
+    $this->artisan('monthly-choices:broadcast', ['--month' => '2026-13'])
+        ->assertExitCode(2);
+
+    $this->artisan('monthly-choices:broadcast', ['--month' => 'banana'])
+        ->assertExitCode(2);
+});
+
+it('rejects --month combined with --current', function () {
+    $this->artisan('monthly-choices:broadcast', ['--month' => '2026-09', '--current' => true])
+        ->assertExitCode(2);
+});

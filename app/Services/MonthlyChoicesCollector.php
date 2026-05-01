@@ -15,23 +15,28 @@ class MonthlyChoicesCollector
     public function forCurrentMonth(?CarbonImmutable $now = null, bool $isPreview = false): MonthlyChoicesPayload
     {
         $now ??= CarbonImmutable::now();
-        $start = $now->startOfMonth();
-        $end = $start->endOfMonth();
 
-        return $this->collect($start, $end, $isPreview, isCurrent: true);
+        return $this->collect($now->startOfMonth(), $now, $isPreview);
     }
 
     public function forUpcomingMonth(?CarbonImmutable $now = null, bool $isPreview = false): MonthlyChoicesPayload
     {
         $now ??= CarbonImmutable::now();
-        $start = $now->startOfMonth()->addMonth();
-        $end = $start->endOfMonth();
 
-        return $this->collect($start, $end, $isPreview, isCurrent: false);
+        return $this->collect($now->startOfMonth()->addMonth(), $now, $isPreview);
     }
 
-    private function collect(CarbonImmutable $start, CarbonImmutable $end, bool $isPreview, bool $isCurrent): MonthlyChoicesPayload
+    public function forMonth(CarbonImmutable $monthStart, ?CarbonImmutable $now = null, bool $isPreview = false): MonthlyChoicesPayload
     {
+        $now ??= CarbonImmutable::now();
+
+        return $this->collect($monthStart->startOfMonth(), $now, $isPreview);
+    }
+
+    private function collect(CarbonImmutable $start, CarbonImmutable $now, bool $isPreview): MonthlyChoicesPayload
+    {
+        $end = $start->endOfMonth();
+
         $yearlyList = GameList::yearly()
             ->where('is_system', true)
             ->where('is_active', true)
@@ -53,8 +58,8 @@ class MonthlyChoicesCollector
             windowEnd: $end,
             games: $games,
             ctaUrl: route('homepage', [], absolute: true),
+            now: $now,
             isPreview: $isPreview,
-            isCurrent: $isCurrent,
         );
     }
 }

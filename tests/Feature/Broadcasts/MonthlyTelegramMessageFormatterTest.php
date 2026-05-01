@@ -6,6 +6,7 @@ use App\Models\GameList;
 use App\Services\Broadcasts\Formatters\MonthlyTelegramMessageFormatter;
 use App\Services\MonthlyChoicesCollector;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -73,7 +74,7 @@ it('returns empty string for an empty payload', function () {
     expect($output)->toBe('');
 });
 
-it('uses the "This Month\'s Choices" header when the payload is current', function () {
+it('uses the "This Month\'s Choices" header when window matches the current calendar month', function () {
     $game = Game::factory()->create(['name' => 'May Day Game', 'slug' => 'may-day-game']);
     $this->list->games()->attach($game->id, ['release_date' => '2026-04-15 00:00:00']);
 
@@ -85,12 +86,37 @@ it('uses the "This Month\'s Choices" header when the payload is current', functi
 });
 
 it('combines PREVIEW with This Month\'s Choices when both flags are set', function () {
-    $game = Game::factory()->create(['name' => 'Mid-Month Sneak', 'slug' => 'mid-month-sneak']);
+    $game = Game::factory()->create(['name' => 'Mid Month Sneak', 'slug' => 'mid-month-sneak']);
     $this->list->games()->attach($game->id, ['release_date' => '2026-04-20 00:00:00']);
 
     $output = $this->formatter->format($this->collector->forCurrentMonth(null, isPreview: true));
 
     expect($output)->toContain("*🎮 Games Outbreak — PREVIEW — This Month's Choices*");
+});
+
+it('uses a "<Month Year> Choices" header when window is neither current nor next month', function () {
+    $game = Game::factory()->create(['name' => 'Far Future Game', 'slug' => 'far-future-game']);
+    $this->list->games()->attach($game->id, ['release_date' => '2026-09-01 00:00:00']);
+
+    $output = $this->formatter->format(
+        $this->collector->forMonth(CarbonImmutable::create(2026, 9, 1)),
+    );
+
+    expect($output)->toContain('*🎮 Games Outbreak — September 2026 Choices*');
+    expect($output)->not->toContain("Next Month's Choices");
+    expect($output)->not->toContain("This Month's Choices");
+    expect($output)->toContain('_September 2026_');
+});
+
+it('combines PREVIEW with the explicit-month header for arbitrary months', function () {
+    $game = Game::factory()->create(['name' => 'Far Future Game', 'slug' => 'far-future-game']);
+    $this->list->games()->attach($game->id, ['release_date' => '2026-09-01 00:00:00']);
+
+    $output = $this->formatter->format(
+        $this->collector->forMonth(CarbonImmutable::create(2026, 9, 1), null, isPreview: true),
+    );
+
+    expect($output)->toContain('*🎮 Games Outbreak — PREVIEW — September 2026 Choices*');
 });
 
 it('formatMessages returns a single message when the list fits', function () {

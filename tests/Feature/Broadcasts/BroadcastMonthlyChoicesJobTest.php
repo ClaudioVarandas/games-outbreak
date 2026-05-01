@@ -137,6 +137,25 @@ it('isCurrent flag targets the current calendar month', function () {
     });
 });
 
+it('monthOverride targets the explicit month with the right header', function () {
+    $game = Game::factory()->create(['name' => 'September Game', 'slug' => 'september-game']);
+    $this->list->games()->attach($game->id, ['release_date' => '2026-09-15 00:00:00']);
+
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    (new BroadcastMonthlyChoicesJob(monthOverride: '2026-09'))
+        ->handle(app(MonthlyChoicesBroadcaster::class));
+
+    Http::assertSent(function ($request) {
+        return str_contains($request['text'], 'September 2026 Choices')
+            && str_contains($request['text'], 'September Game')
+            && ! str_contains($request['text'], "Next Month's Choices")
+            && ! str_contains($request['text'], "This Month's Choices");
+    });
+});
+
 it('chunks oversized payloads into multiple Telegram sendMessage calls', function () {
     $games = Game::factory()->count(80)->create();
     foreach ($games as $i => $game) {

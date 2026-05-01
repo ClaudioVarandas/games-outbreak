@@ -76,9 +76,15 @@ class MonthlyTelegramMessageFormatter
 
     private function headerTitle(MonthlyChoicesPayload $payload): string
     {
-        $base = $payload->isCurrent
-            ? 'This Month\'s Choices'
-            : 'Next Month\'s Choices';
+        $winYM = $payload->windowStart->format('Y-m');
+        $nowYM = $payload->now->format('Y-m');
+        $nextYM = $payload->now->startOfMonth()->addMonth()->format('Y-m');
+
+        $base = match (true) {
+            $winYM === $nowYM => "This Month's Choices",
+            $winYM === $nextYM => "Next Month's Choices",
+            default => $payload->windowStart->format('F Y').' Choices',
+        };
 
         return $payload->isPreview
             ? '*🎮 Games Outbreak — PREVIEW — '.$base.'*'

@@ -40,7 +40,7 @@ it('forCurrentMonth returns only games in the current calendar month', function 
     expect($payload->windowStart->toDateString())->toBe('2026-04-01');
     expect($payload->windowEnd->toDateString())->toBe('2026-04-30');
     expect($payload->isPreview)->toBeFalse();
-    expect($payload->isCurrent)->toBeTrue();
+    expect($payload->now->toDateString())->toBe('2026-04-15');
 });
 
 it('forUpcomingMonth returns only games in next calendar month', function () {
@@ -50,7 +50,16 @@ it('forUpcomingMonth returns only games in next calendar month', function () {
     expect($payload->games->first()->name)->toBe('Next-Month Game');
     expect($payload->windowStart->toDateString())->toBe('2026-05-01');
     expect($payload->windowEnd->toDateString())->toBe('2026-05-31');
-    expect($payload->isCurrent)->toBeFalse();
+});
+
+it('forMonth targets an arbitrary month and stamps the runtime now', function () {
+    $payload = $this->collector->forMonth(CarbonImmutable::create(2026, 6, 1));
+
+    expect($payload->count())->toBe(1);
+    expect($payload->games->first()->name)->toBe('Two-Months-Out Game');
+    expect($payload->windowStart->toDateString())->toBe('2026-06-01');
+    expect($payload->windowEnd->toDateString())->toBe('2026-06-30');
+    expect($payload->now->toDateString())->toBe('2026-04-15');
 });
 
 it('flags the payload as preview when requested', function () {

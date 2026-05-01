@@ -20,6 +20,7 @@ class BroadcastMonthlyChoicesJob implements ShouldQueue
         public readonly ?string $onlyChannel = null,
         public readonly bool $isPreview = false,
         public readonly bool $isCurrent = false,
+        public readonly ?string $monthOverride = null,
     ) {}
 
     /**
@@ -36,6 +37,7 @@ class BroadcastMonthlyChoicesJob implements ShouldQueue
             onlyChannel: $this->onlyChannel,
             isPreview: $this->isPreview,
             isCurrent: $this->isCurrent,
+            monthOverride: $this->monthOverride,
         );
     }
 
@@ -47,6 +49,7 @@ class BroadcastMonthlyChoicesJob implements ShouldQueue
             'channel' => $this->onlyChannel,
             'is_preview' => $this->isPreview,
             'is_current' => $this->isCurrent,
+            'month_override' => $this->monthOverride,
         ]);
     }
 }

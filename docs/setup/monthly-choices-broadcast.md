@@ -25,29 +25,50 @@ current), and automatic chunking of long lists.
   Telegram `sendMessage` calls when it would exceed 3800 chars (see
   *Chunking* below).
 
-## PREVIEW vs FINAL · current vs upcoming
+## Header copy is window-derived
 
-Both schedule fires query the **same upcoming-month window** and
-produce the same list of games. The 23rd run injects a PREVIEW
-marker into the header; the 28th run does not. Two orthogonal flags
-control the header copy:
+The formatter compares the payload's `windowStart` against `now`
+(both stamped on `MonthlyChoicesPayload`) and picks the header
+automatically:
 
-| `isPreview` | `isCurrent` | Header |
-|-------------|-------------|--------|
-| false       | false       | `*🎮 Games Outbreak — Next Month's Choices*` |
-| true        | false       | `*🎮 Games Outbreak — PREVIEW — Next Month's Choices*` |
-| false       | true        | `*🎮 Games Outbreak — This Month's Choices*` |
-| true        | true        | `*🎮 Games Outbreak — PREVIEW — This Month's Choices*` |
+| Window relative to now      | Header base                  |
+|-----------------------------|------------------------------|
+| Same calendar month         | `This Month's Choices`       |
+| Next calendar month         | `Next Month's Choices`       |
+| Any other month             | `<F Y> Choices` (e.g. `September 2026 Choices`) |
+
+`--preview` then prepends ` — PREVIEW — ` to whichever base applies:
+
+```
+*🎮 Games Outbreak — Next Month's Choices*
+*🎮 Games Outbreak — PREVIEW — Next Month's Choices*
+*🎮 Games Outbreak — This Month's Choices*
+*🎮 Games Outbreak — September 2026 Choices*
+*🎮 Games Outbreak — PREVIEW — September 2026 Choices*
+```
+
+The CLI flags select which window to query:
+
+- *(none)* — upcoming month (default; what the schedule fires)
+- `--current` — current calendar month
+- `--month=YYYY-MM` — explicit month (e.g. `2026-09`)
+- `--current` and `--month` are mutually exclusive
+- `--preview` is orthogonal to all three
+
+Because the header is window-derived, `--month=2026-04` while it is
+April 2026 produces "This Month's Choices" automatically; same value
+on March 2026 produces "Next Month's Choices"; on January 2026 or
+later than May produces "April 2026 Choices".
 
 The flags travel via:
 
-- `MonthlyChoicesPayload::$isPreview` / `$isCurrent`
-- `BroadcastMonthlyChoicesJob(isPreview: true, isCurrent: true)`
-- `monthly-choices:broadcast --preview --current`
+- `MonthlyChoicesPayload::$isPreview`, `$now`
+- `BroadcastMonthlyChoicesJob(isPreview: true, monthOverride: '2026-09')`
+- `monthly-choices:broadcast --preview --month=2026-09`
 
-The schedule still fires upcoming-month broadcasts; `--current` is
-intended for ad-hoc CLI runs (e.g., posting "this month's slate" on
-day 1 from the terminal).
+The schedule still fires upcoming-month broadcasts; `--current` and
+`--month` are intended for ad-hoc CLI runs (e.g., posting "this
+month's slate" on day 1, or backfilling a missed fire).
 
 ## Chunking
 
@@ -103,6 +124,7 @@ after any env change.
 php artisan monthly-choices:broadcast --dry-run
 php artisan monthly-choices:broadcast --dry-run --preview
 php artisan monthly-choices:broadcast --dry-run --current
+php artisan monthly-choices:broadcast --dry-run --month=2026-09
 php artisan monthly-choices:broadcast --dry-run --channel=telegram
 
 # Live (Telegram is the default channel)
@@ -110,6 +132,8 @@ php artisan monthly-choices:broadcast
 php artisan monthly-choices:broadcast --preview
 php artisan monthly-choices:broadcast --current
 php artisan monthly-choices:broadcast --current --preview
+php artisan monthly-choices:broadcast --month=2026-09
+php artisan monthly-choices:broadcast --month=2026-09 --preview
 ```
 
 Defaults differ from the weekly command:

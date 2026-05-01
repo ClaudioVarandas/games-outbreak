@@ -301,9 +301,11 @@ broadcast and gated by config; the monthly broadcast is Telegram-only for now.
 
 Both fires of the monthly broadcast share the same data; the 23rd run injects ` — PREVIEW — ` into the header. Long
 monthly lists are auto-split across multiple Telegram messages with a `· Part X/N` subtitle; the CTA footer appears
-only on the last chunk. Pass `--current` to target the current calendar month instead of the upcoming one (useful for
-ad-hoc CLI runs on day 1). Each broadcast supports `--dry-run` to render the formatted output without making HTTP
-calls — useful for eyeballing MarkdownV2 escaping before going live.
+only on the last chunk. The header copy is window-derived: same-month windows render as "This Month's Choices",
+next-month as "Next Month's Choices", any other month as "<Month Year> Choices". Pass `--current` to target the
+current calendar month, or `--month=YYYY-MM` for an explicit month (useful for ad-hoc CLI runs and backfills).
+`--current` and `--month` are mutually exclusive. Each broadcast supports `--dry-run` to render the formatted output
+without making HTTP calls — useful for eyeballing MarkdownV2 escaping before going live.
 
 ```
 # Weekly
@@ -314,9 +316,11 @@ php artisan weekly-choices:broadcast --channel=telegram
 php artisan monthly-choices:broadcast --dry-run
 php artisan monthly-choices:broadcast --dry-run --preview
 php artisan monthly-choices:broadcast --dry-run --current
+php artisan monthly-choices:broadcast --dry-run --month=2026-09
 php artisan monthly-choices:broadcast
 php artisan monthly-choices:broadcast --preview
 php artisan monthly-choices:broadcast --current
+php artisan monthly-choices:broadcast --month=2026-09
 ```
 
 Telegram credentials (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_BROADCAST_ENABLED`) are shared between

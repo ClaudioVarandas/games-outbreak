@@ -10,6 +10,7 @@ use App\Services\MonthlyChoicesCollector;
 use App\Services\MonthlyChoicesPayload;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Throwable;
 
 class MonthlyChoicesBroadcaster
@@ -27,14 +28,22 @@ class MonthlyChoicesBroadcaster
         ?string $onlyChannel = null,
         bool $isPreview = false,
         bool $isCurrent = false,
+        ?string $monthOverride = null,
     ): void {
-        $payload = $isCurrent
-            ? $this->collector->forCurrentMonth($now, $isPreview)
-            : $this->collector->forUpcomingMonth($now, $isPreview);
+        $payload = match (true) {
+            $monthOverride !== null => $this->collector->forMonth(
+                self::parseMonthOverride($monthOverride),
+                $now,
+                $isPreview,
+            ),
+            $isCurrent => $this->collector->forCurrentMonth($now, $isPreview),
+            default => $this->collector->forUpcomingMonth($now, $isPreview),
+        };
 
         $logContext = [
             'is_preview' => $isPreview,
             'is_current' => $isCurrent,
+            'month_override' => $monthOverride,
         ];
 
         if ($payload->isEmpty()) {
@@ -152,5 +161,21 @@ class MonthlyChoicesBroadcaster
         foreach ($this->channels as $channel) {
             yield $channel;
         }
+    }
+
+    public static function parseMonthOverride(string $value): CarbonImmutable
+    {
+        if (! preg_match('/^(\d{4})-(\d{2})$/', $value, $matches)) {
+            throw new InvalidArgumentException("Invalid --month value '{$value}'. Expected YYYY-MM.");
+        }
+
+        $year = (int) $matches[1];
+        $month = (int) $matches[2];
+
+        if ($month < 1 || $month > 12) {
+            throw new InvalidArgumentException("Invalid --month value '{$value}'. Month must be 01–12.");
+        }
+
+        return CarbonImmutable::create($year, $month, 1, 0, 0, 0);
     }
 }

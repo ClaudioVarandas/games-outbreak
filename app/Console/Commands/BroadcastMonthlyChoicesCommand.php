@@ -8,6 +8,7 @@ use App\Jobs\BroadcastMonthlyChoicesJob;
 use App\Services\Broadcasts\MonthlyChoicesBroadcaster;
 use App\Services\MonthlyChoicesCollector;
 use Illuminate\Console\Command;
+use InvalidArgumentException;
 
 class BroadcastMonthlyChoicesCommand extends Command
 {
@@ -15,7 +16,8 @@ class BroadcastMonthlyChoicesCommand extends Command
                             {--dry-run : Render payload locally without calling any APIs}
                             {--channel=telegram : Limit to one channel (telegram|all). Default: telegram.}
                             {--preview : Mark this run as the early-month PREVIEW broadcast}
-                            {--current : Target the current calendar month instead of the upcoming one}';
+                            {--current : Target the current calendar month instead of the upcoming one}
+                            {--month= : Target an explicit month, format YYYY-MM (mutually exclusive with --current)}';
 
     protected $description = 'Broadcast curated monthly releases to configured channels (Telegram). X not wired yet.';
 
@@ -26,6 +28,7 @@ class BroadcastMonthlyChoicesCommand extends Command
         $channel = $this->option('channel');
         $isPreview = (bool) $this->option('preview');
         $isCurrent = (bool) $this->option('current');
+        $monthOverride = $this->option('month') ?: null;
 
         if ($channel !== null && ! in_array($channel, ['telegram', 'all'], true)) {
             $this->error("Unknown --channel={$channel}. Expected one of: telegram, all.");
@@ -33,14 +36,36 @@ class BroadcastMonthlyChoicesCommand extends Command
             return self::INVALID;
         }
 
+        if ($monthOverride !== null && $isCurrent) {
+            $this->error('--month and --current are mutually exclusive.');
+
+            return self::INVALID;
+        }
+
+        if ($monthOverride !== null) {
+            try {
+                MonthlyChoicesBroadcaster::parseMonthOverride($monthOverride);
+            } catch (InvalidArgumentException $e) {
+                $this->error($e->getMessage());
+
+                return self::INVALID;
+            }
+        }
+
         if ($this->option('dry-run')) {
-            $payload = $isCurrent
-                ? $collector->forCurrentMonth(null, $isPreview)
-                : $collector->forUpcomingMonth(null, $isPreview);
+            $payload = match (true) {
+                $monthOverride !== null => $collector->forMonth(
+                    MonthlyChoicesBroadcaster::parseMonthOverride($monthOverride),
+                    null,
+                    $isPreview,
+                ),
+                $isCurrent => $collector->forCurrentMonth(null, $isPreview),
+                default => $collector->forUpcomingMonth(null, $isPreview),
+            };
 
             $this->info(sprintf(
                 '%s window: %s → %s · %d games%s',
-                $isCurrent ? 'Current' : 'Upcoming',
+                $monthOverride !== null ? 'Override' : ($isCurrent ? 'Current' : 'Upcoming'),
                 $payload->windowStart->toDateString(),
                 $payload->windowEnd->toDateString(),
                 $payload->count(),
@@ -67,6 +92,7 @@ class BroadcastMonthlyChoicesCommand extends Command
             $channel === 'all' ? null : $channel,
             $isPreview,
             $isCurrent,
+            $monthOverride,
         );
 
         $this->info('Broadcast completed.');
