@@ -57,7 +57,10 @@ class MonthlyChoicesCollector
             windowStart: $start,
             windowEnd: $end,
             games: $games,
-            ctaUrl: route('homepage', [], absolute: true),
+            ctaUrl: route('releases.year.month', [
+                'year' => $start->year,
+                'month' => $start->format('m'),
+            ], absolute: true),
             now: $now,
             isPreview: $isPreview,
         );
