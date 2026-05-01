@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\BroadcastMonthlyChoicesJob;
 use App\Jobs\BroadcastWeeklyChoicesJob;
 use App\Jobs\News\PublishScheduledNewsJob;
 use Illuminate\Support\Facades\Schedule;
@@ -74,5 +75,19 @@ Schedule::command('highlights:sync')
 Schedule::job(new BroadcastWeeklyChoicesJob)
     ->weeklyOn(0, '18:00')
     ->name('broadcast-weekly-choices')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Monthly "Next Month's Choices" preview broadcast — 23rd of each month, 09:00 UTC
+Schedule::job(new BroadcastMonthlyChoicesJob(isPreview: true))
+    ->monthlyOn(23, '09:00')
+    ->name('broadcast-monthly-choices-preview')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Monthly "Next Month's Choices" final broadcast — 28th of each month, 09:00 UTC
+Schedule::job(new BroadcastMonthlyChoicesJob)
+    ->monthlyOn(28, '09:00')
+    ->name('broadcast-monthly-choices')
     ->withoutOverlapping()
     ->onOneServer();

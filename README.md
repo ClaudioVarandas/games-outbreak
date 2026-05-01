@@ -287,6 +287,38 @@ PC 15/10/2025 [+2]
 ```
 
 
+## Curated Releases Broadcasts
+
+Two scheduled jobs post curated upcoming-release lists to Telegram, pulling from the same active yearly system
+`GameList` that powers the homepage "This Week's Choices" section. X (Twitter) integration is wired for the weekly
+broadcast and gated by config; the monthly broadcast is Telegram-only for now.
+
+| Broadcast | Cadence | Window | Limit | Channels | Setup doc |
+|-----------|---------|--------|-------|----------|-----------|
+| Weekly    | Sunday 18:00 UTC | Upcoming Mon–Sun | 18 games | Telegram + X (config-gated) | [`docs/setup/weekly-choices-broadcast.md`](docs/setup/weekly-choices-broadcast.md) |
+| Monthly — PREVIEW | 23rd of each month, 09:00 UTC | Upcoming calendar month | 40 games | Telegram | [`docs/setup/monthly-choices-broadcast.md`](docs/setup/monthly-choices-broadcast.md) |
+| Monthly — FINAL | 28th of each month, 09:00 UTC | Upcoming calendar month | 40 games | Telegram | same |
+
+Both fires of the monthly broadcast share the same data; the 23rd run injects ` — PREVIEW — ` into the header. Each
+broadcast supports a `--dry-run` mode that renders the formatted output without making HTTP calls — useful for
+eyeballing MarkdownV2 escaping before going live.
+
+```
+# Weekly
+php artisan weekly-choices:broadcast --dry-run
+php artisan weekly-choices:broadcast --channel=telegram
+
+# Monthly (telegram is the default channel)
+php artisan monthly-choices:broadcast --dry-run
+php artisan monthly-choices:broadcast --dry-run --preview
+php artisan monthly-choices:broadcast
+php artisan monthly-choices:broadcast --preview
+```
+
+Telegram credentials (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_BROADCAST_ENABLED`) are shared between
+both broadcasts. See the per-broadcast setup docs for end-to-end testing, scheduler verification, and failure-mode
+notes.
+
 ## News System
 
 Multi-locale news (EN / pt-PT / pt-BR) with a URL-import pipeline that extracts article content and generates a

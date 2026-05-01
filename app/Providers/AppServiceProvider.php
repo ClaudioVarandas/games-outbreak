@@ -1,12 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Contracts\ContentExtractorInterface;
 use App\Contracts\NewsGenerationServiceInterface;
 use App\Services\AnthropicNewsGenerationService;
+use App\Services\Broadcasts\Channels\MonthlyTelegramChannel;
 use App\Services\Broadcasts\Channels\TelegramChannel;
 use App\Services\Broadcasts\Channels\XChannel;
+use App\Services\Broadcasts\MonthlyChoicesBroadcaster;
 use App\Services\Broadcasts\WeeklyChoicesBroadcaster;
 use App\Services\IgdbService;
 use App\Services\JinaReaderService;
@@ -38,6 +42,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->when(WeeklyChoicesBroadcaster::class)
             ->needs('$channels')
             ->giveTagged('broadcasts.channels');
+
+        $this->app->tag([MonthlyTelegramChannel::class], 'broadcasts.monthly_channels');
+
+        $this->app->when(MonthlyChoicesBroadcaster::class)
+            ->needs('$channels')
+            ->giveTagged('broadcasts.monthly_channels');
     }
 
     /**
@@ -48,7 +58,7 @@ class AppServiceProvider extends ServiceProvider
         Http::macro('igdb', function () {
             // Add delay BEFORE each request (~3.5 req/sec → safe under 4/sec limit)
             // usleep(280000); // 280ms = 0.28 seconds
-            usleep(config('services.igdb.rate_limit_delay_ms'));
+            usleep((int) config('services.igdb.rate_limit_delay_ms'));
 
             return Http::withHeaders([
                 'Client-ID' => config('igdb.credentials.client_id'),
