@@ -2,6 +2,7 @@
 
 ## Setup
 
+GO
 
 ```bash
 # Run migrations and seeders
