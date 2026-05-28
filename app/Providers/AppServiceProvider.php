@@ -18,6 +18,7 @@ use App\Services\OpenAiNewsGenerationService;
 use App\Support\News\MarkdownToTiptapConverter;
 use Http;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Pennant\Feature;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -55,6 +56,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Feature::define('game_user_actions', fn () => false);
+
         Http::macro('igdb', function () {
             // Add delay BEFORE each request (~3.5 req/sec → safe under 4/sec limit)
             // usleep(280000); // 280ms = 0.28 seconds
