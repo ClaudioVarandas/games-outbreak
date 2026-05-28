@@ -119,6 +119,7 @@
             <div class="space-y-3">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
+                  id="game-form-tba"
                   type="checkbox"
                   v-model="formData.isTba"
                   @change="onTbaToggle"
@@ -130,6 +131,7 @@
 
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
+                  id="game-form-early-access"
                   type="checkbox"
                   v-model="formData.isEarlyAccess"
                   @change="onEarlyAccessToggle"

@@ -29,6 +29,7 @@
         "nunomaduro/collision": "^8.6",
         "nunomaduro/pao": "^0.1.5",
         "pestphp/pest": "^4.4.6",
+        "pestphp/pest-plugin-browser": "^4.3",
         "phpunit/phpunit": "^12"
     },
     "autoload": {
