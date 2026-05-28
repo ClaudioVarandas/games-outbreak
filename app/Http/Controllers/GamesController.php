@@ -15,6 +15,7 @@ use App\Models\GameMode;
 use App\Models\Genre;
 use App\Models\Platform;
 use App\Models\PlayerPerspective;
+use App\Services\GameReleaseSummaryService;
 use App\Services\IgdbService;
 use App\Services\SteamStoreService;
 use Carbon\Carbon;
@@ -171,7 +172,9 @@ class GamesController extends Controller
 
         $platformEnums = PlatformEnum::getActivePlatforms();
 
-        return view('games.show', compact('game', 'platformEnums'));
+        $releaseSummary = app(GameReleaseSummaryService::class)->forHero($game);
+
+        return view('games.show', compact('game', 'platformEnums', 'releaseSummary'));
     }
 
     public function showByIgdbId(int $igdbId, IgdbService $igdbService): RedirectResponse

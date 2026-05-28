@@ -13,6 +13,7 @@
         "blade-ui-kit/blade-heroicons": "^2.7",
         "laravel/framework": "^12.0",
         "laravel/nightwatch": "^1.22",
+        "laravel/pennant": "^1.23",
         "laravel/tinker": "^2.10.1",
         "marcreichel/igdb-laravel": "^5.3",
         "queuewatch/laravel": "^1.1"

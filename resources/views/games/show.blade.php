@@ -19,99 +19,7 @@
 <div class="theme-neon overflow-x-hidden">
 
     {{-- ─── HERO ─────────────────────────────────────────────────────────── --}}
-    <div class="relative overflow-hidden" style="height:320px">
-
-        {{-- Background image --}}
-        @if($game->steam_data['header_image'] ?? null)
-            <img src="{{ $game->steam_data['header_image'] }}"
-                 class="absolute inset-0 w-full h-full object-cover"
-                 onerror="this.onerror=null;this.style.display='none'">
-        @elseif($game->hero_image_id)
-            <img src="{{ $game->getHeroImageUrl() }}"
-                 class="absolute inset-0 w-full h-full object-cover"
-                 loading="eager"
-                 fetchpriority="high"
-                 onerror="this.onerror=null;this.style.display='none'">
-        @else
-            <div class="absolute inset-0 bg-gradient-to-br from-slate-800 to-[#121522]"></div>
-        @endif
-
-        {{-- Gradient overlays --}}
-        <div class="absolute inset-0 bg-gradient-to-t from-[#121522] via-[#121522]/65 to-transparent"></div>
-        <div class="absolute inset-0 bg-gradient-to-r from-[#121522]/80 via-[#121522]/20 to-transparent"></div>
-
-        {{-- Hero content --}}
-        <div class="absolute bottom-0 left-0 right-0 pb-7">
-            <div class="page-shell">
-                <div class="flex items-end gap-5">
-
-                    {{-- Cover art --}}
-                    @if($game->cover_image_id)
-                        <div class="hidden sm:block shrink-0 [transform:translateZ(0)] overflow-hidden rounded-xl border border-white/10 shadow-xl"
-                             style="width:100px;height:133px">
-                            <img src="{{ $game->getCoverUrl('cover_big') }}"
-                                 alt="{{ $game->name }}"
-                                 class="h-full w-full object-cover">
-                        </div>
-                    @endif
-
-                    {{-- Title & meta --}}
-                    <div class="flex-1 min-w-0">
-
-                        {{-- Developers / Publishers --}}
-                        @if($game->getDevelopers()->count() > 0 || $game->getPublishers()->count() > 0)
-                            <p class="mb-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-slate-400">
-                                @if($game->getDevelopers()->count() > 0)
-                                    <span class="text-orange-400">{{ $game->getDevelopers()->pluck('name')->join(', ') }}</span>
-                                @endif
-                                @if($game->getDevelopers()->count() > 0 && $game->getPublishers()->count() > 0)
-                                    <span class="text-white/20 mx-1">·</span>
-                                @endif
-                                @if($game->getPublishers()->count() > 0)
-                                    <span class="text-slate-500">{{ $game->getPublishers()->pluck('name')->join(', ') }}</span>
-                                @endif
-                            </p>
-                        @endif
-
-                        <h1 class="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight mb-3 drop-shadow-2xl">
-                            {{ $game->name }}
-                        </h1>
-
-                        {{-- Platforms --}}
-                        @php
-                            $displayPlatforms = $game->platforms
-                                ? $game->platforms->filter(function($p) {
-                                    $enum = \App\Enums\PlatformEnum::fromIgdbId($p->igdb_id);
-                                    return $enum !== null || ($p->name !== 'Unknown Platform' && !empty($p->name));
-                                })
-                                : collect();
-                        @endphp
-                        @if($displayPlatforms->count() > 0)
-                            <div class="flex flex-wrap gap-1.5 mb-3">
-                                @foreach($displayPlatforms as $plat)
-                                    @php $enum = \App\Enums\PlatformEnum::fromIgdbId($plat->igdb_id); @endphp
-                                    <span class="neon-platform-pill">{{ $enum?->label() ?? $plat->name }}</span>
-                                @endforeach
-                            </div>
-                        @endif
-
-                        {{-- Game type + wishlist --}}
-                        <div class="flex flex-wrap items-center gap-3">
-                            <span class="{{ $game->getGameTypeEnum()->neonColorClass() }} px-2.5 py-0.5 text-xs font-semibold rounded-full">
-                                {{ $game->getGameTypeEnum()->label() }}
-                            </span>
-                            @if($game->steam_data['wishlist_formatted'] ?? null)
-                                <span class="text-orange-400 text-sm font-bold">
-                                    🔥 {{ $game->steam_data['wishlist_formatted'] }} wishlists on Steam
-                                </span>
-                            @endif
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-game.hero :game="$game" :summary="$releaseSummary" />
 
     {{-- ─── MAIN CONTENT ────────────────────────────────────────────────── --}}
     <div class="page-shell py-8">
@@ -121,7 +29,7 @@
             <div class="lg:col-span-3 space-y-6">
 
                 {{-- About --}}
-                <div class="neon-section-frame">
+                <div class="neon-section-frame" id="about">
                     <x-homepage.section-heading icon="about" title="About" />
                     <p class="mt-4 text-[0.9rem] leading-relaxed text-slate-300">
                         {{ $game->summary ?? 'No summary available.' }}
@@ -130,7 +38,7 @@
 
                 {{-- Critic & Review Scores --}}
                 @if($game->metacritic_score || $game->steam_review_percent !== null || $game->igdb_aggregated_rating)
-                    <div class="neon-section-frame">
+                    <div class="neon-section-frame scroll-mt-32" id="scores">
                         <x-homepage.section-heading icon="star" title="Scores" />
                         <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
 
@@ -233,7 +141,7 @@
 
                 {{-- Screenshots --}}
                 @if($game->screenshots && count($game->screenshots) > 0)
-                    <div class="neon-section-frame">
+                    <div class="neon-section-frame scroll-mt-32" id="screenshots">
                         <x-homepage.section-heading icon="photo" title="Screenshots" />
                         <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                             @foreach(collect($game->screenshots)->take(6) as $shot)
@@ -254,17 +162,19 @@
             <div class="space-y-4">
 
                 {{-- Collection Actions (Desktop) --}}
-                @auth
-                    <div class="hidden md:block">
-                        <x-game-detail-collection :game="$game" />
-                    </div>
-                @endauth
+                @feature('game_user_actions')
+                    @auth
+                        <div class="hidden md:block">
+                            <x-game-detail-collection :game="$game" />
+                        </div>
+                    @endauth
+                @endfeature
 
                 {{-- System Lists (Admin Only) --}}
                 <x-add-to-list :game="$game" />
 
                 {{-- Release Dates --}}
-                <div class="neon-section-frame">
+                <div class="neon-section-frame scroll-mt-32" id="release-dates">
                     <p class="mb-4 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-cyan-400">Release Dates</p>
                     @php
                         $activePlatformIds = $platformEnums->keys()->toArray();
@@ -453,7 +363,7 @@
         </div>
 
         {{-- ── Similar Games ──────────────────────────────────────────── --}}
-        <div class="mt-6" id="similar-games-container">
+        <div class="mt-6 scroll-mt-32" id="similar-games">
             <div id="similar-games-loading" class="neon-section-frame flex items-center gap-3 py-6 justify-center">
                 <svg class="w-6 h-6 animate-spin text-cyan-400/60" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -467,7 +377,9 @@
     </div>
 
     {{-- Mobile Sticky Collection Bar --}}
-    <x-game-detail-collection-mobile :game="$game" />
+    @feature('game_user_actions')
+        <x-game-detail-collection-mobile :game="$game" />
+    @endfeature
 
 </div>
 @endsection
