@@ -31,16 +31,6 @@ enum ReleaseHeroVariantEnum: string
         };
     }
 
-    public function ringClass(): string
-    {
-        return match ($this) {
-            self::Success => 'border-green-400/50 bg-green-400/10',
-            self::EarlyAccess => 'border-orange-400/50 bg-orange-400/10',
-            self::Upcoming => 'border-cyan-300/50 bg-cyan-300/10',
-            self::Tba => 'border-slate-400/50 bg-slate-400/10',
-        };
-    }
-
     public function barClass(): string
     {
         return match ($this) {
