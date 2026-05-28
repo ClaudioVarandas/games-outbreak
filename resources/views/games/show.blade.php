@@ -128,22 +128,57 @@
                     </p>
                 </div>
 
-                {{-- Steam Reviews --}}
-                @if($game->steam_data['reviews_summary']['rating'] ?? null)
+                {{-- Critic & Review Scores --}}
+                @if($game->metacritic_score || $game->steam_review_percent !== null || $game->igdb_aggregated_rating)
                     <div class="neon-section-frame">
-                        <x-homepage.section-heading icon="star" title="Steam Reviews" />
-                        <div class="mt-4 flex items-center gap-6">
-                            <div class="text-5xl font-black text-green-400 drop-shadow-[0_0_12px_rgba(74,222,128,0.5)]">
-                                {{ $game->steam_data['reviews_summary']['percentage'] ?? 'N/A' }}%
-                            </div>
-                            <div>
-                                <p class="text-lg font-bold text-slate-100">
-                                    {{ $game->steam_data['reviews_summary']['rating'] }}
-                                </p>
-                                <p class="text-sm text-slate-400">
-                                    from {{ number_format($game->steam_data['reviews_summary']['total'] ?? 0) }} reviews
-                                </p>
-                            </div>
+                        <x-homepage.section-heading icon="star" title="Scores" />
+                        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
+
+                            @if($game->metacritic_score)
+                                <div class="flex items-center gap-4">
+                                    <div class="text-5xl font-black {{ $game->metacriticColorClass() }}">
+                                        {{ $game->metacritic_score }}
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-100">Metacritic</p>
+                                        @if($game->metacritic_url)
+                                            <a href="{{ $game->metacritic_url }}" target="_blank" rel="noopener noreferrer"
+                                               class="text-xs text-cyan-400 hover:underline">View reviews</a>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if($game->steam_review_percent !== null)
+                                <div class="flex items-center gap-4">
+                                    <div class="text-5xl font-black {{ $game->steamReviewSentiment()?->colorClass() ?? 'text-slate-100' }}">
+                                        {{ $game->steam_review_percent }}%
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-100">
+                                            {{ $game->steamReviewSentiment()?->label() ?? 'Steam' }}
+                                        </p>
+                                        <p class="text-xs text-slate-400">
+                                            {{ number_format($game->steam_review_total ?? 0) }} Steam reviews
+                                        </p>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if($game->igdb_aggregated_rating)
+                                <div class="flex items-center gap-4">
+                                    <div class="text-5xl font-black text-purple-400 drop-shadow-[0_0_12px_rgba(192,132,252,0.5)]">
+                                        {{ $game->igdb_aggregated_rating }}
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-100">IGDB Critics</p>
+                                        <p class="text-xs text-slate-400">
+                                            {{ number_format($game->igdb_aggregated_rating_count ?? 0) }} ratings
+                                        </p>
+                                    </div>
+                                </div>
+                            @endif
+
                         </div>
                     </div>
                 @endif

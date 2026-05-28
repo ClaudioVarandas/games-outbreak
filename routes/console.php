@@ -51,6 +51,13 @@ Schedule::command('steamspy:sync --limit=100 --threshold=50')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Metacritic + Steam review scores for games with Steam links - Daily at 5:30 AM
+Schedule::command('steam:review-sync --limit=200')
+    ->dailyAt('5:30')
+    ->name('steam-review-sync')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // === NEWS PIPELINE SCHEDULES ===
 
 // Publish scheduled news articles every 5 minutes

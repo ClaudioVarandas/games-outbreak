@@ -3,17 +3,21 @@
 namespace App\Models;
 
 use App\Enums\GameTypeEnum;
+use App\Enums\SteamReviewSentimentEnum;
+use App\Jobs\FetchGameImages;
 use App\Services\IgdbService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 
 class Game extends Model
 {
-    use \Illuminate\Database\Eloquent\Factories\HasFactory;
+    use HasFactory;
 
     protected $guarded = ['id'];
 
@@ -78,6 +82,14 @@ class Game extends Model
         'raw_igdb_json' => 'array',
         'last_igdb_sync_at' => 'datetime',
         'last_viewed_at' => 'datetime',
+        'metacritic_score' => 'integer',
+        'steam_review_percent' => 'integer',
+        'steam_review_total' => 'integer',
+        'steam_review_positive' => 'integer',
+        'steam_review_negative' => 'integer',
+        'igdb_aggregated_rating' => 'integer',
+        'igdb_aggregated_rating_count' => 'integer',
+        'last_steam_review_sync_at' => 'datetime',
     ];
 
     public function platforms(): BelongsToMany
@@ -309,6 +321,20 @@ class Game extends Model
         return $this->steam_data['price_overview']['final_formatted'] ?? null;
     }
 
+    public function steamReviewSentiment(): ?SteamReviewSentimentEnum
+    {
+        return SteamReviewSentimentEnum::fromLabel($this->steam_review_desc);
+    }
+
+    public function metacriticColorClass(): string
+    {
+        return match (true) {
+            $this->metacritic_score >= 75 => 'text-green-400 drop-shadow-[0_0_12px_rgba(74,222,128,0.5)]',
+            $this->metacritic_score >= 50 => 'text-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.5)]',
+            default => 'text-red-400 drop-shadow-[0_0_12px_rgba(248,113,113,0.5)]',
+        };
+    }
+
     public function getGameTypeEnum(): GameTypeEnum
     {
         $gameType = $this->game_type ?? 0;
@@ -486,7 +512,7 @@ class Game extends Model
     /**
      * Fetch a game from IGDB if it doesn't exist in the database
      */
-    public static function fetchFromIgdbIfMissing(int $igdbId, \App\Services\IgdbService $igdbService): ?self
+    public static function fetchFromIgdbIfMissing(int $igdbId, IgdbService $igdbService): ?self
     {
         // Check if game already exists
         $game = self::with('platforms')->where('igdb_id', $igdbId)->first();
@@ -495,7 +521,7 @@ class Game extends Model
         }
 
         try {
-            $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
+            $query = "fields name, first_release_date, summary, aggregated_rating, aggregated_rating_count, platforms.name, platforms.id, cover.image_id,
                              genres.name, genres.id,
                              game_modes.name, game_modes.id,
                              similar_games.name, similar_games.cover.image_id, similar_games.id,
@@ -509,7 +535,7 @@ class Game extends Model
                              player_perspectives.name, player_perspectives.id;
                          where id = {$igdbId}; limit 1;";
 
-            $response = \Illuminate\Support\Facades\Http::igdb()
+            $response = Http::igdb()
                 ->withBody($query, 'text/plain')
                 ->post('https://api.igdb.com/v4/games');
 
@@ -561,12 +587,16 @@ class Game extends Model
                 'name' => $gameName,
                 'summary' => $igdbGame['summary'] ?? null,
                 'first_release_date' => isset($igdbGame['first_release_date'])
-                    ? \Carbon\Carbon::createFromTimestamp($igdbGame['first_release_date'])
+                    ? Carbon::createFromTimestamp($igdbGame['first_release_date'])
                     : null,
                 'cover_image_id' => $coverImageId,
                 'hero_image_id' => $heroImageId,
                 'logo_image_id' => $logoImageId,
                 'game_type' => $igdbGame['game_type'] ?? 0,
+                'igdb_aggregated_rating' => isset($igdbGame['aggregated_rating'])
+                    ? (int) round($igdbGame['aggregated_rating'])
+                    : null,
+                'igdb_aggregated_rating_count' => $igdbGame['aggregated_rating_count'] ?? null,
                 'screenshots' => $igdbGame['screenshots'] ?? null,
                 'trailers' => $igdbGame['videos'] ?? null,
                 'similar_games' => $igdbGame['similar_games'] ?? null,
@@ -582,7 +612,7 @@ class Game extends Model
 
             // Dispatch job to fetch missing images asynchronously
             if (! empty($imagesToFetch)) {
-                \App\Jobs\FetchGameImages::dispatch(
+                FetchGameImages::dispatch(
                     $game->id,
                     $gameName,
                     $steamAppId,
@@ -611,19 +641,19 @@ class Game extends Model
     private static function syncRelations(self $game, array $igdbGame): void
     {
         if (! empty($igdbGame['platforms'])) {
-            $ids = collect($igdbGame['platforms'])->map(fn ($p) => \App\Models\Platform::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
+            $ids = collect($igdbGame['platforms'])->map(fn ($p) => Platform::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
             );
             $game->platforms()->sync($ids);
         }
 
         if (! empty($igdbGame['genres'])) {
-            $ids = collect($igdbGame['genres'])->map(fn ($g) => \App\Models\Genre::firstOrCreate(['igdb_id' => $g['id']], ['name' => $g['name'] ?? 'Unknown'])->id
+            $ids = collect($igdbGame['genres'])->map(fn ($g) => Genre::firstOrCreate(['igdb_id' => $g['id']], ['name' => $g['name'] ?? 'Unknown'])->id
             );
             $game->genres()->sync($ids);
         }
 
         if (! empty($igdbGame['game_modes'])) {
-            $ids = collect($igdbGame['game_modes'])->map(fn ($m) => \App\Models\GameMode::firstOrCreate(['igdb_id' => $m['id']], ['name' => $m['name'] ?? 'Unknown'])->id
+            $ids = collect($igdbGame['game_modes'])->map(fn ($m) => GameMode::firstOrCreate(['igdb_id' => $m['id']], ['name' => $m['name'] ?? 'Unknown'])->id
             );
             $game->gameModes()->sync($ids);
         }
@@ -635,7 +665,7 @@ class Game extends Model
                     continue;
                 }
 
-                $company = \App\Models\Company::firstOrCreate(
+                $company = Company::firstOrCreate(
                     ['igdb_id' => $involvedCompany['company']['id']],
                     ['name' => $involvedCompany['company']['name'] ?? 'Unknown']
                 );
@@ -649,13 +679,13 @@ class Game extends Model
         }
 
         if (! empty($igdbGame['game_engines'])) {
-            $ids = collect($igdbGame['game_engines'])->map(fn ($e) => \App\Models\GameEngine::firstOrCreate(['igdb_id' => $e['id']], ['name' => $e['name'] ?? 'Unknown'])->id
+            $ids = collect($igdbGame['game_engines'])->map(fn ($e) => GameEngine::firstOrCreate(['igdb_id' => $e['id']], ['name' => $e['name'] ?? 'Unknown'])->id
             );
             $game->gameEngines()->sync($ids);
         }
 
         if (! empty($igdbGame['player_perspectives'])) {
-            $ids = collect($igdbGame['player_perspectives'])->map(fn ($p) => \App\Models\PlayerPerspective::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
+            $ids = collect($igdbGame['player_perspectives'])->map(fn ($p) => PlayerPerspective::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
             );
             $game->playerPerspectives()->sync($ids);
         }
@@ -768,7 +798,7 @@ class Game extends Model
     {
         try {
             // Fetch fresh data from IGDB
-            $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
+            $query = "fields name, first_release_date, summary, aggregated_rating, aggregated_rating_count, platforms.name, platforms.id, cover.image_id,
                              genres.name, genres.id,
                              game_modes.name, game_modes.id,
                              similar_games.name, similar_games.cover.image_id, similar_games.id,
@@ -782,7 +812,7 @@ class Game extends Model
                              player_perspectives.name, player_perspectives.id;
                          where id = {$this->igdb_id}; limit 1;";
 
-            $response = \Illuminate\Support\Facades\Http::igdb()
+            $response = Http::igdb()
                 ->withBody($query, 'text/plain')
                 ->post('https://api.igdb.com/v4/games');
 
@@ -806,6 +836,10 @@ class Game extends Model
                     : $this->first_release_date,
                 'cover_image_id' => $igdbGame['cover']['image_id'] ?? $this->cover_image_id,
                 'game_type' => $igdbGame['game_type'] ?? $this->game_type,
+                'igdb_aggregated_rating' => isset($igdbGame['aggregated_rating'])
+                    ? (int) round($igdbGame['aggregated_rating'])
+                    : $this->igdb_aggregated_rating,
+                'igdb_aggregated_rating_count' => $igdbGame['aggregated_rating_count'] ?? $this->igdb_aggregated_rating_count,
                 'similar_games' => $igdbGame['similar_games'] ?? $this->similar_games,
                 'screenshots' => $igdbGame['screenshots'] ?? $this->screenshots,
                 'trailers' => $igdbGame['videos'] ?? $this->trailers,
@@ -870,6 +904,8 @@ class Game extends Model
             'first_release_date' => $data['first_release_date'] ?? '',
             'cover_image_id' => $data['cover_image_id'] ?? '',
             'game_type' => $data['game_type'] ?? 0,
+            'igdb_aggregated_rating' => $data['igdb_aggregated_rating'] ?? '',
+            'igdb_aggregated_rating_count' => $data['igdb_aggregated_rating_count'] ?? '',
             'screenshots' => is_string($data['screenshots'] ?? null)
                 ? $data['screenshots']
                 : json_encode($data['screenshots'] ?? []),

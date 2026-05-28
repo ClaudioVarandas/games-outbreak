@@ -6,7 +6,7 @@ use App\Models\Game;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Game>
+ * @extends Factory<Game>
  */
 class GameFactory extends Factory
 {
@@ -24,7 +24,7 @@ class GameFactory extends Factory
             'name' => fake()->words(3, true),
             'summary' => fake()->paragraph(),
             'first_release_date' => fake()->dateTimeBetween('-1 year', '+1 year'),
-            'cover_image_id' => 'co' . fake()->lexify('????'),
+            'cover_image_id' => 'co'.fake()->lexify('????'),
             'hero_image_id' => null,
             'logo_image_id' => null,
             'game_type' => 0,
@@ -43,7 +43,7 @@ class GameFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'steam_data' => [
                 'appid' => fake()->numberBetween(10000, 999999),
-                'header_image' => 'https://cdn.akamai.steamstatic.com/steam/apps/' . fake()->numberBetween(10000, 999999) . '/header.jpg',
+                'header_image' => 'https://cdn.akamai.steamstatic.com/steam/apps/'.fake()->numberBetween(10000, 999999).'/header.jpg',
                 'recommendations' => ['total' => fake()->numberBetween(100, 10000)],
             ],
         ]);
@@ -56,6 +56,25 @@ class GameFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'first_release_date' => fake()->dateTimeBetween('+1 day', '+6 months'),
+        ]);
+    }
+
+    /**
+     * Indicate that the game has critic & review scores.
+     */
+    public function withScores(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'metacritic_score' => fake()->numberBetween(40, 98),
+            'metacritic_url' => 'https://www.metacritic.com/game/'.fake()->slug(),
+            'steam_review_percent' => fake()->numberBetween(40, 99),
+            'steam_review_desc' => 'Very Positive',
+            'steam_review_total' => fake()->numberBetween(100, 500000),
+            'steam_review_positive' => fake()->numberBetween(100, 450000),
+            'steam_review_negative' => fake()->numberBetween(10, 50000),
+            'igdb_aggregated_rating' => fake()->numberBetween(40, 98),
+            'igdb_aggregated_rating_count' => fake()->numberBetween(3, 50),
+            'last_steam_review_sync_at' => now(),
         ]);
     }
 

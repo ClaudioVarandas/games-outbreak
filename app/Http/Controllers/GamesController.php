@@ -4,15 +4,23 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\GameTypeEnum;
 use App\Enums\PlatformEnum;
+use App\Jobs\RefreshGameData;
+use App\Jobs\SyncSteamReviewScores;
+use App\Models\Company;
 use App\Models\Game;
+use App\Models\GameEngine;
 use App\Models\GameMode;
 use App\Models\Genre;
 use App\Models\Platform;
+use App\Models\PlayerPerspective;
 use App\Services\IgdbService;
+use App\Services\SteamStoreService;
 use Carbon\Carbon;
 use Http;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -110,7 +118,7 @@ class GamesController extends Controller
         $platformEnums = PlatformEnum::getActivePlatforms();
         $allGenres = Genre::orderBy('name')->get();
         $allGameModes = GameMode::orderBy('name')->get();
-        $allGameTypes = \App\Enums\GameTypeEnum::cases();
+        $allGameTypes = GameTypeEnum::cases();
 
         // Get active filter values (ensure arrays)
         $activeFilters = [
@@ -153,7 +161,12 @@ class GamesController extends Controller
         // 1. Data is stale (30+ days), OR
         // 2. Missing critical relationships (likely created from search results)
         if ($game->shouldUpdate(30) || $isMissingRelationships) {
-            \App\Jobs\RefreshGameData::dispatch($game->id, false);
+            RefreshGameData::dispatch($game->id, false);
+        }
+
+        // Freshness booster for review scores (primary path is the scheduled steam:review-sync).
+        if (app(SteamStoreService::class)->reviewScoresAreStale($game)) {
+            SyncSteamReviewScores::dispatch($game->id);
         }
 
         $platformEnums = PlatformEnum::getActivePlatforms();
@@ -161,7 +174,7 @@ class GamesController extends Controller
         return view('games.show', compact('game', 'platformEnums'));
     }
 
-    public function showByIgdbId(int $igdbId, IgdbService $igdbService): \Illuminate\Http\RedirectResponse
+    public function showByIgdbId(int $igdbId, IgdbService $igdbService): RedirectResponse
     {
         $game = Game::fetchFromIgdbIfMissing($igdbId, $igdbService);
 
@@ -295,7 +308,7 @@ class GamesController extends Controller
      * category is deprecated
      * Future-Proof with game_type: "where name ~ *\"%s\"* & game_type = 0;"
      */
-    public function search(Request $request): ?\Illuminate\Http\JsonResponse
+    public function search(Request $request): ?JsonResponse
     {
         $query = trim($request->query('q', ''));
         $platforms = $request->query('platforms');
@@ -433,11 +446,11 @@ class GamesController extends Controller
                 $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
 
                 // If it's a bundle by name, treat it as bundle regardless of game_type
-                if ($isBundle && $gameType !== \App\Enums\GameTypeEnum::BUNDLE->value) {
-                    $gameType = \App\Enums\GameTypeEnum::BUNDLE->value;
+                if ($isBundle && $gameType !== GameTypeEnum::BUNDLE->value) {
+                    $gameType = GameTypeEnum::BUNDLE->value;
                 }
 
-                $gameTypeEnum = \App\Enums\GameTypeEnum::fromValue($gameType) ?? \App\Enums\GameTypeEnum::MAIN;
+                $gameTypeEnum = GameTypeEnum::fromValue($gameType) ?? GameTypeEnum::MAIN;
                 $gameTypeLabel = $gameTypeEnum->label();
 
                 // Filter platform IDs to only include active platforms
@@ -457,7 +470,7 @@ class GamesController extends Controller
                     ->implode(', ');
 
                 $releaseDate = isset($game['first_release_date'])
-                    ? \Carbon\Carbon::createFromTimestamp($game['first_release_date'])
+                    ? Carbon::createFromTimestamp($game['first_release_date'])
                     : null;
 
                 // Check if game exists in DB to get slug
@@ -593,7 +606,7 @@ class GamesController extends Controller
         }
     }
 
-    public function searchResults(Request $request): \Illuminate\View\View
+    public function searchResults(Request $request): View
     {
         $query = trim($request->query('q', ''));
         $page = (int) $request->query('page', 1);
@@ -691,8 +704,8 @@ class GamesController extends Controller
 
                 // Detect bundles by name
                 $isBundle = stripos($gameName, 'Bundle') !== false || stripos($gameName, 'Collection') !== false;
-                if ($isBundle && $gameType !== \App\Enums\GameTypeEnum::BUNDLE->value) {
-                    $gameType = \App\Enums\GameTypeEnum::BUNDLE->value;
+                if ($isBundle && $gameType !== GameTypeEnum::BUNDLE->value) {
+                    $gameType = GameTypeEnum::BUNDLE->value;
                 }
 
                 // Try to find existing game
@@ -706,7 +719,7 @@ class GamesController extends Controller
                         'game_type' => $gameType,
                         'cover_image_id' => $igdbGame['cover']['image_id'] ?? null,
                         'first_release_date' => isset($igdbGame['first_release_date'])
-                            ? \Carbon\Carbon::createFromTimestamp($igdbGame['first_release_date'])
+                            ? Carbon::createFromTimestamp($igdbGame['first_release_date'])
                             : null,
                     ]);
 
@@ -792,7 +805,7 @@ class GamesController extends Controller
                     continue;
                 }
 
-                $companyModel = \App\Models\Company::firstOrCreate(
+                $companyModel = Company::firstOrCreate(
                     ['igdb_id' => $company['id']],
                     ['name' => $company['name'] ?? 'Unknown']
                 );
@@ -807,7 +820,7 @@ class GamesController extends Controller
 
         // Sync game engines
         if (! empty($igdbGame['game_engines'])) {
-            $ids = collect($igdbGame['game_engines'])->map(fn ($engine) => \App\Models\GameEngine::firstOrCreate(
+            $ids = collect($igdbGame['game_engines'])->map(fn ($engine) => GameEngine::firstOrCreate(
                 ['igdb_id' => $engine['id']],
                 ['name' => $engine['name'] ?? 'Unknown']
             )->id
@@ -817,7 +830,7 @@ class GamesController extends Controller
 
         // Sync player perspectives
         if (! empty($igdbGame['player_perspectives'])) {
-            $ids = collect($igdbGame['player_perspectives'])->map(fn ($perspective) => \App\Models\PlayerPerspective::firstOrCreate(
+            $ids = collect($igdbGame['player_perspectives'])->map(fn ($perspective) => PlayerPerspective::firstOrCreate(
                 ['igdb_id' => $perspective['id']],
                 ['name' => $perspective['name'] ?? 'Unknown']
             )->id
