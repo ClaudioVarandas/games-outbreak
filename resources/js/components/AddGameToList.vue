@@ -107,6 +107,9 @@
       :submitting="adding"
       :initial-release-date="selectedGame?.release_date || ''"
       :initial-platforms="selectedGame?.platform_ids || []"
+      :suggested-early-access="selectedGame?.suggested_early_access || false"
+      :suggested-early-access-label="selectedGame?.suggested_early_access_label || ''"
+      :suggested-early-access-date="selectedGame?.suggested_early_access_date || ''"
       @close="closeForm"
       @submit="handleFormSubmit"
     />

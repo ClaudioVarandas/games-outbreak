@@ -761,19 +761,7 @@ class AdminListController extends Controller
         }
 
         // Suggest Early Access from IGDB release-date statuses (hint only; admin still decides).
-        $earlyAccessRows = $game->releaseDates
-            ->filter(fn ($r) => str_contains(strtolower($r->status?->name ?? ''), 'early access'));
-        $suggestedEarlyAccess = $earlyAccessRows->isNotEmpty();
-        $suggestedEarlyAccessLabel = null;
-        $suggestedEarlyAccessDate = null;
-        if ($suggestedEarlyAccess) {
-            $eaPlatforms = $earlyAccessRows->map(fn ($r) => $r->platform?->abbreviation)->filter()->unique()->implode(', ');
-            $earliest = $earlyAccessRows->filter(fn ($r) => $r->date !== null)->sortBy('date')->first();
-            $suggestedEarlyAccessDate = $earliest?->date?->format('Y-m-d');
-            $dateLabel = $earliest?->date?->format('j M Y')
-                ?? $earlyAccessRows->first(fn ($r) => ! empty($r->human_readable))?->human_readable;
-            $suggestedEarlyAccessLabel = trim(($eaPlatforms ?: 'Detected').($dateLabel ? ' · since '.$dateLabel : ''));
-        }
+        $eaSuggestion = $game->earlyAccessSuggestion();
 
         return response()->json([
             'igdb_genres' => $igdbGenres,
@@ -783,9 +771,9 @@ class AdminListController extends Controller
             'release_date' => $releaseDate,
             'is_tba' => (bool) ($pivotData->is_tba ?? false),
             'is_early_access' => (bool) ($pivotData->is_early_access ?? false),
-            'suggested_early_access' => $suggestedEarlyAccess,
-            'suggested_early_access_label' => $suggestedEarlyAccessLabel,
-            'suggested_early_access_date' => $suggestedEarlyAccessDate,
+            'suggested_early_access' => $eaSuggestion !== null,
+            'suggested_early_access_label' => $eaSuggestion['label'] ?? null,
+            'suggested_early_access_date' => $eaSuggestion['date'] ?? null,
             'platforms' => $pivotPlatforms,
             'game_name' => $game->name,
             'cover_url' => $game->getCoverUrl('cover_big'),

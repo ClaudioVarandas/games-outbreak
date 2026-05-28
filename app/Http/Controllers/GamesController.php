@@ -476,8 +476,11 @@ class GamesController extends Controller
                     ? Carbon::createFromTimestamp($game['first_release_date'])
                     : null;
 
-                // Check if game exists in DB to get slug
-                $existingGame = Game::where('igdb_id', $game['id'])->first();
+                // Check if game exists in DB to get slug + Early Access suggestion
+                $existingGame = Game::with(['releaseDates.platform', 'releaseDates.status'])
+                    ->where('igdb_id', $game['id'])
+                    ->first();
+                $eaSuggestion = $existingGame?->earlyAccessSuggestion();
 
                 return [
                     'igdb_id' => $game['id'],
@@ -492,6 +495,9 @@ class GamesController extends Controller
                     'platform_ids' => $platformIds,
                     'game_type' => $gameType,
                     'game_type_label' => $gameTypeLabel,
+                    'suggested_early_access' => $eaSuggestion !== null,
+                    'suggested_early_access_label' => $eaSuggestion['label'] ?? null,
+                    'suggested_early_access_date' => $eaSuggestion['date'] ?? null,
                 ];
             })->filter()->values();
 
