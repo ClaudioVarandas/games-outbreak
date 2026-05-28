@@ -64,6 +64,23 @@ it('Scenario B: released on some, coming later on others', function () {
         ->and($s->secondary?->variant)->toBe(ReleaseHeroVariantEnum::Upcoming);
 });
 
+it('shows a TBA platform under Coming later when already released elsewhere', function () {
+    $g = Game::factory()->create();
+    rel($g, platform(6, 'PC'), status('Released', 0), now()->subMonths(2));
+    // TBA platform: no date, no year (IGDB stores human "TBD")
+    GameReleaseDate::create([
+        'game_id' => $g->id, 'platform_id' => platform(508, 'Nintendo Switch 2')->id,
+        'status_id' => status('Released', 0)->id,
+        'date' => null, 'year' => null, 'month' => null, 'day' => null, 'human_readable' => 'TBD', 'is_manual' => false,
+    ]);
+
+    $s = summary($g);
+    expect($s->primary->label)->toBe('Available now')
+        ->and($s->secondary?->label)->toBe('Coming later')
+        ->and($s->secondary?->date)->toBe('TBA')
+        ->and($s->secondary?->platforms)->toContain('Switch 2');
+});
+
 it('Scenario C: early access now, full release upcoming', function () {
     $g = Game::factory()->create();
     rel($g, platform(6, 'PC'), status('Early Access', 3), now()->subMonth());

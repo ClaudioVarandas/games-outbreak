@@ -29,7 +29,7 @@ class GameReleaseSummaryService
         $future = $events->filter(fn (GameReleaseDate $e) => ! $this->isReleased($e, $now) && ! $this->isEarlyAccess($e) && $this->isFuture($e, $now));
 
         if ($released->isNotEmpty()) {
-            return $this->releasedSummary($released, $future, $events, $now);
+            return $this->releasedSummary($released, $events, $now);
         }
 
         if ($earlyActive->isNotEmpty()) {
@@ -43,7 +43,7 @@ class GameReleaseSummaryService
         return new ReleaseHeroSummary($this->tbaLine($game));
     }
 
-    private function releasedSummary(Collection $released, Collection $future, Collection $all, Carbon $now): ReleaseHeroSummary
+    private function releasedSummary(Collection $released, Collection $all, Carbon $now): ReleaseHeroSummary
     {
         $releasedPlatforms = $this->platformLabels($released);
         $primary = new ReleaseHeroLine(
@@ -54,11 +54,16 @@ class GameReleaseSummaryService
             description: implode(' · ', $releasedPlatforms),
         );
 
+        // Platforms still to come: dated/year-only future OR explicitly TBA, excluding already-released platforms.
         $secondary = null;
-        $futureNotReleased = $future->reject(fn (GameReleaseDate $e) => in_array($this->platformLabel($e), $releasedPlatforms, true));
-        if ($futureNotReleased->isNotEmpty()) {
-            $platforms = $this->platformLabels($futureNotReleased);
-            $date = $this->earliestDateLabel($futureNotReleased);
+        $comingLater = $all
+            ->filter(fn (GameReleaseDate $e) => ! $this->isReleased($e, $now)
+                && ! $this->isEarlyAccess($e)
+                && ($this->isFuture($e, $now) || $this->isTba($e)))
+            ->reject(fn (GameReleaseDate $e) => in_array($this->platformLabel($e), $releasedPlatforms, true));
+        if ($comingLater->isNotEmpty()) {
+            $platforms = $this->platformLabels($comingLater);
+            $date = $this->earliestDateLabel($comingLater);
             $secondary = new ReleaseHeroLine(
                 label: 'Coming later',
                 variant: ReleaseHeroVariantEnum::Upcoming,
@@ -157,12 +162,12 @@ class GameReleaseSummaryService
             if ($e->date !== null) {
                 return $e->date->lte($now);
             }
-            // No exact date — if a future year is set, it hasn't released yet
-            if ($e->year !== null && $e->year > $now->year) {
-                return false;
+            // No exact date: released only if a known year is now or past; pure TBA is not released.
+            if ($e->year !== null) {
+                return $e->year <= $now->year;
             }
 
-            return true;
+            return false;
         }
         if ($this->isEarlyAccess($e)) {
             return false;
@@ -183,6 +188,11 @@ class GameReleaseSummaryService
         }
 
         return $e->year !== null;
+    }
+
+    private function isTba(GameReleaseDate $e): bool
+    {
+        return $e->date === null && $e->year === null;
     }
 
     private function onOrBefore(GameReleaseDate $e, Carbon $now): bool
@@ -244,8 +254,13 @@ class GameReleaseSummaryService
         if ($withDate->isNotEmpty()) {
             return $withDate->first()->date->format('j M Y');
         }
-        $first = $events->first();
+        $withYear = $events->filter(fn (GameReleaseDate $e) => $e->year !== null)->sortBy('year');
+        if ($withYear->isNotEmpty()) {
+            $first = $withYear->first();
 
-        return $first ? ('Expected '.($first->human_readable ?? $first->year)) : null;
+            return 'Expected '.($first->human_readable ?? $first->year);
+        }
+
+        return 'TBA';
     }
 }
