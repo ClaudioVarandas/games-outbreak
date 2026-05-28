@@ -1,6 +1,6 @@
 @props(['game'])
 
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl">
+<div class="flex flex-wrap gap-3">
     {{-- Steam --}}
     <div class="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
         <x-game.hero.brand-steam class="h-10 w-10" />
