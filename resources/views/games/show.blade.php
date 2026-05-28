@@ -67,8 +67,13 @@
                                 @if($game->steam_review_percent !== null)
                                     <div class="text-5xl font-black {{ $game->steamReviewSentiment()?->colorClass() ?? 'text-slate-100' }}">{{ $game->steam_review_percent }}%</div>
                                     <div>
-                                        <p class="text-sm font-bold text-slate-100">Steam</p>
-                                        <p class="text-xs text-slate-400">{{ $game->steamReviewSentiment()?->label() ?? 'Reviews' }} · {{ number_format($game->steam_review_total ?? 0) }} reviews</p>
+                                        <p class="text-sm font-bold text-slate-100">
+                                            Steam
+                                            @if($game->steamReviewSentiment())
+                                                <span class="font-normal text-slate-400">({{ $game->steamReviewSentiment()->label() }})</span>
+                                            @endif
+                                        </p>
+                                        <p class="text-xs text-slate-400">{{ number_format($game->steam_review_total ?? 0) }} reviews</p>
                                     </div>
                                 @else
                                     <div class="text-5xl font-black text-slate-700">&mdash;</div>
