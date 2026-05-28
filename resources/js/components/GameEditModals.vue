@@ -10,6 +10,10 @@
     :initial-release-date="initialReleaseDate"
     :initial-primary-genre-id="initialPrimaryGenreId"
     :initial-is-tba="initialIsTba"
+    :initial-is-early-access="initialIsEarlyAccess"
+    :suggested-early-access="suggestedEarlyAccess"
+    :suggested-early-access-label="suggestedEarlyAccessLabel"
+    :suggested-early-access-date="suggestedEarlyAccessDate"
     :initial-platforms="initialPlatforms"
     :initial-genre-ids="initialGenreIds"
     @close="closeModal"
@@ -96,6 +100,10 @@ const targetListName = ref('');
 const initialReleaseDate = ref('');
 const initialPrimaryGenreId = ref('');
 const initialIsTba = ref(false);
+const initialIsEarlyAccess = ref(false);
+const suggestedEarlyAccess = ref(false);
+const suggestedEarlyAccessLabel = ref('');
+const suggestedEarlyAccessDate = ref('');
 const initialPlatforms = ref([]);
 const initialGenreIds = ref([]);
 
@@ -145,6 +153,10 @@ const openModal = async (event) => {
       initialPrimaryGenreId.value = data.primary_genre_id || '';
       initialReleaseDate.value = data.release_date ? data.release_date.split('T')[0] : '';
       initialIsTba.value = data.is_tba || false;
+      initialIsEarlyAccess.value = data.is_early_access || false;
+      suggestedEarlyAccess.value = data.suggested_early_access || false;
+      suggestedEarlyAccessLabel.value = data.suggested_early_access_label || '';
+      suggestedEarlyAccessDate.value = data.suggested_early_access_date || '';
       initialGenreIds.value = data.genre_ids || [];
 
       // Parse platforms from game data and ensure they are integers
@@ -184,6 +196,10 @@ const closeModal = () => {
   initialReleaseDate.value = '';
   initialPrimaryGenreId.value = '';
   initialIsTba.value = false;
+  initialIsEarlyAccess.value = false;
+  suggestedEarlyAccess.value = false;
+  suggestedEarlyAccessLabel.value = '';
+  suggestedEarlyAccessDate.value = '';
   initialPlatforms.value = [];
   initialGenreIds.value = [];
 };
@@ -220,6 +236,7 @@ const performEdit = async (gameId, formData) => {
     _method: 'PATCH',
     release_date: formData.releaseDate || null,
     is_tba: formData.isTba,
+    is_early_access: formData.isEarlyAccess,
     platforms: formData.platforms || [],
     primary_genre_id: formData.primaryGenreId || null,
     genre_ids: formData.genreIds || [],
@@ -261,6 +278,7 @@ const performToggle = async (gameId, mode, turnOn, formData = null) => {
   if (turnOn && formData) {
     body.release_date = formData.releaseDate || null;
     body.is_tba = formData.isTba;
+    body.is_early_access = formData.isEarlyAccess;
     body.primary_genre_id = formData.primaryGenreId;
     if (formData.platforms && formData.platforms.length > 0) {
       body.platforms = formData.platforms;

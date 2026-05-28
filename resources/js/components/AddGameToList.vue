@@ -267,6 +267,7 @@ const handleFormSubmit = async (formData) => {
     }
 
     submitData.append('is_tba', formData.isTba ? '1' : '0');
+    submitData.append('is_early_access', formData.isEarlyAccess ? '1' : '0');
 
     if (props.showGenreSelection) {
       if (formData.primaryGenreId) {

@@ -15,6 +15,7 @@
     'displayPlatforms' => null, // Optional: JSON array of platform IDs to display (from pivot)
     'displayReleaseDateFormatted' => null, // Optional: pre-formatted release date string
     'isTba' => false, // If true, shows "TBA" regardless of any date
+    'isEarlyAccess' => false, // If true, shows an "EA" badge alongside the date (mutually exclusive with TBA)
 ])
 
 @php
@@ -154,6 +155,8 @@
     <div class="flex-shrink-0">
         @if($isTba || !($displayReleaseDateFormatted ?? $releaseDate))
             <span class="text-[0.7rem] font-bold uppercase tracking-[0.06em] text-slate-500">TBA</span>
+        @elseif($isEarlyAccess)
+            <span class="text-[0.7rem] font-bold uppercase tracking-[0.06em] text-orange-400">EA</span>
         @else
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-14 w-14 text-white/30">
                 <rect x="2.75" y="3.75" width="18.5" height="17.5" rx="2.25" stroke="currentColor" stroke-width="1.25"/>
@@ -264,7 +267,7 @@
                             @if($isTba)
                                 {{ 'TBA' }}
                             @else
-                                {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+                                @if($isEarlyAccess)<span class="mr-1 inline-block rounded bg-orange-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-orange-300">EA</span>@endif{{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
                             @endif
                         </p>
                     </div>
@@ -296,7 +299,7 @@
                             @if($isTba)
                                 {{ 'TBA' }}
                             @else
-                                {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+                                @if($isEarlyAccess)<span class="mr-1 inline-block rounded bg-orange-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-orange-300">EA</span>@endif{{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
                             @endif
                         </p>
                     </div>
@@ -335,7 +338,7 @@
                         @if($isTba)
                             {{ 'TBA' }}
                         @else
-                            {{ $displayReleaseDateFormatted ?? $releaseDate?->format($variant === 'neon' ? 'd M' : 'M j, Y') ?? 'TBA' }}
+                            @if($isEarlyAccess)<span class="mr-1 inline-block rounded bg-orange-500/20 px-1.5 text-[0.62rem] font-bold tracking-wide text-orange-300">EA</span>@endif{{ $displayReleaseDateFormatted ?? $releaseDate?->format($variant === 'neon' ? 'd M' : 'M j, Y') ?? 'TBA' }}
                         @endif
                     </p>
                 </div>

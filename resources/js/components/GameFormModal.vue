@@ -115,17 +115,47 @@
               </p>
             </div>
 
-            <!-- TBA Toggle -->
-            <div>
+            <!-- TBA / Early Access Toggles (mutually exclusive) -->
+            <div class="space-y-3">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   v-model="formData.isTba"
+                  @change="onTbaToggle"
                   class="rounded border-gray-500"
                   :class="modeStyles.checkbox"
                 >
                 <span class="text-sm text-gray-300">TBA (To Be Announced)</span>
               </label>
+
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  v-model="formData.isEarlyAccess"
+                  @change="onEarlyAccessToggle"
+                  class="rounded border-gray-500 text-orange-500 focus:ring-orange-500"
+                >
+                <span class="text-sm text-gray-300">Early Access</span>
+              </label>
+
+              <!-- Hint: IGDB-detected Early Access -->
+              <div
+                v-if="suggestedEarlyAccess"
+                class="flex items-start gap-2 rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-2"
+              >
+                <svg class="mt-0.5 h-4 w-4 shrink-0 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-xs text-orange-200">
+                  IGDB lists this game in Early Access — {{ suggestedEarlyAccessLabel }}.
+                  <button
+                    v-if="!formData.isEarlyAccess"
+                    type="button"
+                    class="font-semibold text-orange-300 underline hover:text-orange-100"
+                    @click="applySuggestedEarlyAccess"
+                  >Mark as Early Access</button>
+                </p>
+              </div>
             </div>
 
             <!-- Genre Selection -->
@@ -242,6 +272,22 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  initialIsEarlyAccess: {
+    type: Boolean,
+    default: false
+  },
+  suggestedEarlyAccess: {
+    type: Boolean,
+    default: false
+  },
+  suggestedEarlyAccessLabel: {
+    type: String,
+    default: ''
+  },
+  suggestedEarlyAccessDate: {
+    type: String,
+    default: ''
+  },
   initialGenreIds: {
     type: Array,
     default: () => []
@@ -258,7 +304,8 @@ const formData = ref({
   platforms: [],
   primaryGenreId: '',
   secondaryGenreIds: [],
-  isTba: false
+  isTba: false,
+  isEarlyAccess: false
 });
 
 const modeStyles = computed(() => {
@@ -398,8 +445,30 @@ const resetForm = () => {
     platforms: platformIds,
     primaryGenreId: props.initialPrimaryGenreId || '',
     secondaryGenreIds: secondaryIds,
-    isTba: props.initialIsTba
+    isTba: props.initialIsTba,
+    isEarlyAccess: props.initialIsEarlyAccess
   };
+};
+
+// TBA and Early Access are mutually exclusive.
+const onTbaToggle = () => {
+  if (formData.value.isTba) {
+    formData.value.isEarlyAccess = false;
+  }
+};
+
+const onEarlyAccessToggle = () => {
+  if (formData.value.isEarlyAccess) {
+    formData.value.isTba = false;
+    if (!formData.value.releaseDate && props.suggestedEarlyAccessDate) {
+      formData.value.releaseDate = props.suggestedEarlyAccessDate;
+    }
+  }
+};
+
+const applySuggestedEarlyAccess = () => {
+  formData.value.isEarlyAccess = true;
+  onEarlyAccessToggle();
 };
 
 const handleSubmit = () => {
@@ -418,7 +487,8 @@ const handleSubmit = () => {
     platforms: formData.value.platforms,
     primaryGenreId: formData.value.primaryGenreId,
     genreIds: allGenreIds,
-    isTba: formData.value.isTba
+    isTba: formData.value.isTba,
+    isEarlyAccess: formData.value.isEarlyAccess
   });
 };
 
@@ -463,6 +533,12 @@ watch(() => props.initialPrimaryGenreId, (val) => {
 watch(() => props.initialIsTba, (val) => {
   if (props.show) {
     formData.value.isTba = val;
+  }
+});
+
+watch(() => props.initialIsEarlyAccess, (val) => {
+  if (props.show) {
+    formData.value.isEarlyAccess = val;
   }
 });
 

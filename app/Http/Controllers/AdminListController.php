@@ -11,10 +11,12 @@ use App\Jobs\RefreshGameListGamesJob;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Services\IgdbService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdminListController extends Controller
@@ -243,7 +245,7 @@ class AdminListController extends Controller
             ->with('success', 'System list updated successfully.');
     }
 
-    public function toggleSystemListActive(string $type, string $slug): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function toggleSystemListActive(string $type, string $slug): RedirectResponse|JsonResponse
     {
         $listType = ListTypeEnum::fromSlug($type);
         if ($listType === null) {
@@ -329,7 +331,7 @@ class AdminListController extends Controller
         return $slug;
     }
 
-    public function addGame(Request $request, string $type, string $slug): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function addGame(Request $request, string $type, string $slug): RedirectResponse|JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -346,6 +348,7 @@ class AdminListController extends Controller
             'genre_ids.*' => ['exists:genres,id'],
             'primary_genre_id' => ['nullable', 'exists:genres,id'],
             'is_tba' => ['nullable', 'boolean'],
+            'is_early_access' => ['nullable', 'boolean'],
         ]);
 
         $igdbId = $request->game_id;
@@ -377,7 +380,7 @@ class AdminListController extends Controller
         $releaseDate = $request->input('release_date');
         if ($releaseDate) {
             try {
-                $releaseDate = \Carbon\Carbon::parse($releaseDate);
+                $releaseDate = Carbon::parse($releaseDate);
             } catch (\Exception $e) {
                 $releaseDate = $game->first_release_date;
             }
@@ -411,9 +414,11 @@ class AdminListController extends Controller
         $primaryGenreId = $request->input('primary_genre_id');
 
         $isTba = $request->boolean('is_tba', false);
+        $isEarlyAccess = $request->boolean('is_early_access', false);
         if ($isTba) {
             $releaseDate = null;
         }
+        $this->guardReleaseState($isEarlyAccess, $isTba, $releaseDate);
 
         $list->games()->attach($game->id, [
             'order' => $maxOrder + 1,
@@ -421,6 +426,7 @@ class AdminListController extends Controller
             'platforms' => json_encode($platformIds),
             'platform_group' => $platformGroup,
             'is_tba' => $isTba,
+            'is_early_access' => $isEarlyAccess,
             'genre_ids' => json_encode(array_map('intval', $genreIds)),
             'primary_genre_id' => $primaryGenreId ? (int) $primaryGenreId : null,
         ]);
@@ -435,7 +441,7 @@ class AdminListController extends Controller
         return redirect()->back()->with('success', 'Game added to list.');
     }
 
-    public function removeGame(string $type, string $slug, Game $game): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function removeGame(string $type, string $slug, Game $game): RedirectResponse|JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -451,7 +457,7 @@ class AdminListController extends Controller
         return redirect()->back()->with('success', 'Game removed from list.');
     }
 
-    public function reorderGames(Request $request, string $type, string $slug): \Illuminate\Http\JsonResponse
+    public function reorderGames(Request $request, string $type, string $slug): JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -472,7 +478,7 @@ class AdminListController extends Controller
         ]);
     }
 
-    public function updateGamePlatformGroup(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    public function updateGamePlatformGroup(Request $request, string $type, string $slug, Game $game): JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -504,7 +510,26 @@ class AdminListController extends Controller
         ]);
     }
 
-    public function toggleGameHighlight(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    /**
+     * Enforce the Early Access / TBA invariants: they are mutually exclusive,
+     * and Early Access always requires a release date.
+     */
+    private function guardReleaseState(bool $isEarlyAccess, bool $isTba, mixed $releaseDate): void
+    {
+        if ($isEarlyAccess && $isTba) {
+            throw ValidationException::withMessages([
+                'is_early_access' => 'A game cannot be both Early Access and TBA.',
+            ]);
+        }
+
+        if ($isEarlyAccess && empty($releaseDate)) {
+            throw ValidationException::withMessages([
+                'release_date' => 'Early Access requires a release date.',
+            ]);
+        }
+    }
+
+    public function toggleGameHighlight(Request $request, string $type, string $slug, Game $game): JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -531,6 +556,10 @@ class AdminListController extends Controller
             }
 
             $isTba = (bool) $request->input('is_tba', false);
+            $isEarlyAccess = (bool) $request->input('is_early_access', (bool) $pivotData->is_early_access);
+            if ($isEarlyAccess) {
+                $isTba = false;
+            }
             $releaseDate = $isTba ? null : $request->input('release_date', $pivotData->release_date);
 
             $platforms = $request->input('platforms', $pivotData->platforms);
@@ -544,6 +573,7 @@ class AdminListController extends Controller
                 'primary_genre_id' => (int) $primaryGenreId,
                 'release_date' => $releaseDate,
                 'is_tba' => $isTba,
+                'is_early_access' => $isEarlyAccess,
                 'platforms' => $platforms,
             ]);
         } else {
@@ -559,7 +589,7 @@ class AdminListController extends Controller
         ]);
     }
 
-    public function toggleGameIndie(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    public function toggleGameIndie(Request $request, string $type, string $slug, Game $game): JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -587,6 +617,10 @@ class AdminListController extends Controller
             }
 
             $isTba = (bool) $request->input('is_tba', false);
+            $isEarlyAccess = (bool) $request->input('is_early_access', (bool) $pivotData->is_early_access);
+            if ($isEarlyAccess) {
+                $isTba = false;
+            }
             $releaseDate = $isTba ? null : $request->input('release_date', $pivotData->release_date);
 
             $platforms = $request->input('platforms', $pivotData->platforms);
@@ -600,12 +634,13 @@ class AdminListController extends Controller
                 'primary_genre_id' => (int) $primaryGenreId,
                 'release_date' => $releaseDate,
                 'is_tba' => $isTba,
+                'is_early_access' => $isEarlyAccess,
                 'platforms' => $platforms,
             ]);
 
             // If toggling on a seasoned list, sync to the yearly list for that year
             if ($list->isSeasoned()) {
-                $this->syncIndieToYearlyList($list, $game, $pivotData, true, $genreIds, $primaryGenreId, $releaseDate, $isTba, $platforms);
+                $this->syncIndieToYearlyList($list, $game, $pivotData, true, $genreIds, $primaryGenreId, $releaseDate, $isTba, $platforms, $isEarlyAccess);
             }
         } else {
             $list->games()->updateExistingPivot($game->id, [
@@ -627,7 +662,7 @@ class AdminListController extends Controller
     /**
      * Sync indie status from a seasoned list to the matching yearly list.
      */
-    protected function syncIndieToYearlyList(GameList $sourceList, Game $game, $pivotData, bool $isIndie, ?array $genreIds = null, ?int $primaryGenreId = null, mixed $releaseDate = null, bool $isTba = false, mixed $platforms = null): void
+    protected function syncIndieToYearlyList(GameList $sourceList, Game $game, $pivotData, bool $isIndie, ?array $genreIds = null, ?int $primaryGenreId = null, mixed $releaseDate = null, bool $isTba = false, mixed $platforms = null, bool $isEarlyAccess = false): void
     {
         $year = $sourceList->start_at?->year ?? now()->year;
 
@@ -668,6 +703,7 @@ class AdminListController extends Controller
                     'platforms' => is_string($platforms) ? $platforms : json_encode($platforms),
                     'platform_group' => $platformGroup,
                     'is_tba' => $isTba,
+                    'is_early_access' => $isEarlyAccess,
                     'is_indie' => true,
                     'genre_ids' => json_encode($genreIds ?? []),
                     'primary_genre_id' => $primaryGenreId,
@@ -680,7 +716,7 @@ class AdminListController extends Controller
         }
     }
 
-    public function getGameGenres(string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    public function getGameGenres(string $type, string $slug, Game $game): JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -688,7 +724,7 @@ class AdminListController extends Controller
             return response()->json(['error' => 'Game not found in this list.'], 404);
         }
 
-        $game->load(['genres', 'platforms']);
+        $game->load(['genres', 'platforms', 'releaseDates.platform', 'releaseDates.status']);
         $igdbGenres = $game->genres->map(fn ($genre) => [
             'id' => $genre->id,
             'name' => $genre->name,
@@ -698,10 +734,10 @@ class AdminListController extends Controller
         $pivotData = $list->games()->where('games.id', $game->id)->first()?->pivot;
 
         $releaseDate = $pivotData->release_date ?? $game->first_release_date;
-        if ($releaseDate instanceof \Carbon\Carbon) {
+        if ($releaseDate instanceof Carbon) {
             $releaseDate = $releaseDate->format('Y-m-d');
         } elseif ($releaseDate && is_string($releaseDate)) {
-            $releaseDate = \Carbon\Carbon::parse($releaseDate)->format('Y-m-d');
+            $releaseDate = Carbon::parse($releaseDate)->format('Y-m-d');
         }
 
         $genreIds = $pivotData->genre_ids ?? null;
@@ -724,6 +760,21 @@ class AdminListController extends Controller
                 ->toArray();
         }
 
+        // Suggest Early Access from IGDB release-date statuses (hint only; admin still decides).
+        $earlyAccessRows = $game->releaseDates
+            ->filter(fn ($r) => str_contains(strtolower($r->status?->name ?? ''), 'early access'));
+        $suggestedEarlyAccess = $earlyAccessRows->isNotEmpty();
+        $suggestedEarlyAccessLabel = null;
+        $suggestedEarlyAccessDate = null;
+        if ($suggestedEarlyAccess) {
+            $eaPlatforms = $earlyAccessRows->map(fn ($r) => $r->platform?->abbreviation)->filter()->unique()->implode(', ');
+            $earliest = $earlyAccessRows->filter(fn ($r) => $r->date !== null)->sortBy('date')->first();
+            $suggestedEarlyAccessDate = $earliest?->date?->format('Y-m-d');
+            $dateLabel = $earliest?->date?->format('j M Y')
+                ?? $earlyAccessRows->first(fn ($r) => ! empty($r->human_readable))?->human_readable;
+            $suggestedEarlyAccessLabel = trim(($eaPlatforms ?: 'Detected').($dateLabel ? ' · since '.$dateLabel : ''));
+        }
+
         return response()->json([
             'igdb_genres' => $igdbGenres,
             'genre_ids' => $genreIds ?? [],
@@ -731,13 +782,17 @@ class AdminListController extends Controller
             'is_indie' => (bool) ($pivotData->is_indie ?? false),
             'release_date' => $releaseDate,
             'is_tba' => (bool) ($pivotData->is_tba ?? false),
+            'is_early_access' => (bool) ($pivotData->is_early_access ?? false),
+            'suggested_early_access' => $suggestedEarlyAccess,
+            'suggested_early_access_label' => $suggestedEarlyAccessLabel,
+            'suggested_early_access_date' => $suggestedEarlyAccessDate,
             'platforms' => $pivotPlatforms,
             'game_name' => $game->name,
             'cover_url' => $game->getCoverUrl('cover_big'),
         ]);
     }
 
-    public function updateGamePivotData(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse
+    public function updateGamePivotData(Request $request, string $type, string $slug, Game $game): JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -754,17 +809,21 @@ class AdminListController extends Controller
             'release_date' => ['nullable', 'date'],
             'platforms' => ['nullable', 'array'],
             'is_tba' => ['nullable', 'boolean'],
+            'is_early_access' => ['nullable', 'boolean'],
             'genre_ids' => ['nullable', 'array', 'max:3'],
             'genre_ids.*' => ['exists:genres,id'],
             'primary_genre_id' => ['nullable', 'exists:genres,id'],
         ]);
 
         $isTba = $request->boolean('is_tba', false);
+        $isEarlyAccess = $request->boolean('is_early_access', false);
         $releaseDate = $isTba ? null : $request->input('release_date');
+        $this->guardReleaseState($isEarlyAccess, $isTba, $releaseDate);
 
         $pivotUpdate = [
             'release_date' => $releaseDate,
             'is_tba' => $isTba,
+            'is_early_access' => $isEarlyAccess,
         ];
 
         $platforms = $request->input('platforms');
@@ -789,7 +848,7 @@ class AdminListController extends Controller
         ]);
     }
 
-    public function updateGameGenres(Request $request, string $type, string $slug, Game $game): \Illuminate\Http\JsonResponse|RedirectResponse
+    public function updateGameGenres(Request $request, string $type, string $slug, Game $game): JsonResponse|RedirectResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
