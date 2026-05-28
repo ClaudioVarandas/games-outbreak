@@ -48,10 +48,6 @@
                     <x-game.hero.score-snapshot :game="$game" />
                     <x-game.hero.metadata :game="$game" />
                     <x-game.hero.section-anchors :game="$game" />
-
-                    @if($game->summary)
-                        <p class="text-sm leading-relaxed text-slate-300 line-clamp-3 max-w-3xl">{{ $game->summary }}</p>
-                    @endif
                 </div>
             </div>
         </div>
