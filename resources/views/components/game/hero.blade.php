@@ -13,7 +13,7 @@
     <div class="absolute inset-0 bg-gradient-to-r from-[#121522]/85 via-[#121522]/30 to-transparent"></div>
 
     <div class="relative">
-        <div class="page-shell py-7">
+        <div class="page-shell py-7 px-4 md:px-0">
             <div class="flex items-start gap-5">
                 @if($game->cover_image_id)
                     <div class="hidden sm:block shrink-0 w-[150px] h-[200px] md:w-[190px] md:h-[253px] [transform:translateZ(0)] overflow-hidden rounded-xl border border-white/10 shadow-xl">
