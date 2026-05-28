@@ -27,6 +27,24 @@ it('renders the content-first hero', function () {
         ->assertSee('Metacritic');
 });
 
+it('only shows anchors for sections that exist', function () {
+    // Upcoming game with no scores and no screenshots.
+    $game = Game::factory()->create([
+        'first_release_date' => now()->addMonths(3),
+        'metacritic_score' => null,
+        'steam_review_percent' => null,
+        'igdb_aggregated_rating' => null,
+        'screenshots' => null,
+    ]);
+
+    $response = $this->get(route('game.show', $game))->assertOk();
+    // Anchor pills (with smooth-scroll handler) — absent for empty sections, present for always-on ones.
+    $response->assertDontSee("getElementById('scores')", false)
+        ->assertDontSee("getElementById('screenshots')", false)
+        ->assertSee("getElementById('release-dates')", false)
+        ->assertSee("getElementById('similar-games')", false);
+});
+
 it('hides collection buttons when the flag is off', function () {
     $game = Game::factory()->create();
 

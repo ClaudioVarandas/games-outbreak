@@ -38,7 +38,7 @@
 
                 {{-- Critic & Review Scores --}}
                 @if($game->metacritic_score || $game->steam_review_percent !== null || $game->igdb_aggregated_rating)
-                    <div class="neon-section-frame" id="scores">
+                    <div class="neon-section-frame scroll-mt-32" id="scores">
                         <x-homepage.section-heading icon="star" title="Scores" />
                         <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
 
@@ -141,7 +141,7 @@
 
                 {{-- Screenshots --}}
                 @if($game->screenshots && count($game->screenshots) > 0)
-                    <div class="neon-section-frame" id="screenshots">
+                    <div class="neon-section-frame scroll-mt-32" id="screenshots">
                         <x-homepage.section-heading icon="photo" title="Screenshots" />
                         <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                             @foreach(collect($game->screenshots)->take(6) as $shot)
@@ -174,7 +174,7 @@
                 <x-add-to-list :game="$game" />
 
                 {{-- Release Dates --}}
-                <div class="neon-section-frame" id="release-dates">
+                <div class="neon-section-frame scroll-mt-32" id="release-dates">
                     <p class="mb-4 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-cyan-400">Release Dates</p>
                     @php
                         $activePlatformIds = $platformEnums->keys()->toArray();
@@ -363,7 +363,7 @@
         </div>
 
         {{-- ── Similar Games ──────────────────────────────────────────── --}}
-        <div class="mt-6" id="similar-games">
+        <div class="mt-6 scroll-mt-32" id="similar-games">
             <div id="similar-games-loading" class="neon-section-frame flex items-center gap-3 py-6 justify-center">
                 <svg class="w-6 h-6 animate-spin text-cyan-400/60" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

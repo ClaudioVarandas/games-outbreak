@@ -32,15 +32,16 @@
                         <p class="mb-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-slate-400">
                             @if($maker !== '')
                                 <span class="text-orange-400">{{ $maker }}</span>
-                                <span class="text-white/20 mx-1">·</span>
                             @endif
-                            <span>{{ $game->getGameTypeEnum()->label() }}</span>
                             @if($showPublisher)
                                 <span class="text-white/20 mx-1">·</span>
-                                <span class="text-slate-500">Published by {{ $pubs->join(', ') }}</span>
+                                <span class="text-cyan-300 drop-shadow-[0_0_6px_rgba(99,243,255,0.45)]">Published by {{ $pubs->join(', ') }}</span>
                             @endif
                         </p>
                         <h1 class="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-2xl">{{ $game->name }}</h1>
+                        <div class="mt-2">
+                            <span class="neon-type-pill {{ $game->getGameTypeEnum()->neonColorClass() }}">{{ $game->getGameTypeEnum()->label() }}</span>
+                        </div>
                     </div>
 
                     <x-game.hero.release-status :summary="$summary" />
