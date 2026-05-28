@@ -162,11 +162,13 @@
             <div class="space-y-4">
 
                 {{-- Collection Actions (Desktop) --}}
-                @auth
-                    <div class="hidden md:block">
-                        <x-game-detail-collection :game="$game" />
-                    </div>
-                @endauth
+                @feature('game_user_actions')
+                    @auth
+                        <div class="hidden md:block">
+                            <x-game-detail-collection :game="$game" />
+                        </div>
+                    @endauth
+                @endfeature
 
                 {{-- System Lists (Admin Only) --}}
                 <x-add-to-list :game="$game" />
@@ -375,7 +377,9 @@
     </div>
 
     {{-- Mobile Sticky Collection Bar --}}
-    <x-game-detail-collection-mobile :game="$game" />
+    @feature('game_user_actions')
+        <x-game-detail-collection-mobile :game="$game" />
+    @endfeature
 
 </div>
 @endsection
