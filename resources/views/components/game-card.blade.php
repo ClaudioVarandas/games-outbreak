@@ -15,6 +15,7 @@
     'displayPlatforms' => null, // Optional: JSON array of platform IDs to display (from pivot)
     'displayReleaseDateFormatted' => null, // Optional: pre-formatted release date string
     'isTba' => false, // If true, shows "TBA" regardless of any date
+    'isEarlyAccess' => false, // If true, shows an "EA" badge alongside the date (mutually exclusive with TBA)
 ])
 
 @php
@@ -113,7 +114,7 @@
 <div class="relative flex items-center gap-4 p-3 transition-colors hover:bg-white/[0.03]">
     {{-- Small Cover Thumbnail --}}
     <a href="{{ $linkUrl }}" class="flex-shrink-0">
-        <div class="w-12 h-16 rounded overflow-hidden bg-gray-200 dark:bg-gray-700">
+        <div class="relative w-12 h-16 rounded overflow-hidden bg-gray-200 dark:bg-gray-700">
             @if($coverUrl)
                 <img src="{{ $coverUrl }}"
                      alt="{{ $game->name }}"
@@ -123,6 +124,9 @@
                 <div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">
                     <x-heroicon-o-photo class="w-6 h-6" />
                 </div>
+            @endif
+            @if($isEarlyAccess)
+                <span class="absolute left-0 top-0 rounded-br bg-blue-500/90 px-1 text-[0.55rem] font-bold uppercase tracking-wide text-white shadow">EA</span>
             @endif
         </div>
     </a>
@@ -198,6 +202,13 @@
                 <div class="absolute top-0 left-0 {{ $rankColor ?? 'bg-orange-500' }} text-gray-900 text-sm font-black px-3 py-1 rounded-br-lg z-20 shadow-lg">
                     #{{ $rank }}
                 </div>
+            @endif
+
+            <!-- Early Access Ribbon (diagonal corner) -->
+            @if($isEarlyAccess)
+                <span class="pointer-events-none absolute right-[-40px] top-[18px] z-20 w-[140px] rotate-45 bg-blue-500 py-1 text-center text-[0.6rem] font-bold uppercase tracking-[0.15em] text-white shadow-md">
+                    EA
+                </span>
             @endif
 
             <!-- Platform Badges -->

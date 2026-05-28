@@ -392,6 +392,7 @@
                                             @foreach($monthData['games'] as $game)
                                                 @php
                                                     $isTba = (bool) ($game->pivot->is_tba ?? false);
+                                                    $isEarlyAccess = (bool) ($game->pivot->is_early_access ?? false);
                                                     $pivotReleaseDate = $game->pivot->release_date ?? null;
                                                     if ($pivotReleaseDate && is_string($pivotReleaseDate)) {
                                                         $pivotReleaseDate = \Carbon\Carbon::parse($pivotReleaseDate);
@@ -409,6 +410,7 @@
                                                         aspectRatio="3/4"
                                                         :platformEnums="$platformEnums"
                                                         :isTba="$isTba"
+                                                        :isEarlyAccess="$isEarlyAccess"
                                                     />
                                                 </div>
                                             @endforeach
@@ -419,6 +421,7 @@
                                             @foreach($monthData['games'] as $game)
                                                 @php
                                                     $isTba = (bool) ($game->pivot->is_tba ?? false);
+                                                    $isEarlyAccess = (bool) ($game->pivot->is_early_access ?? false);
                                                     $pivotReleaseDate = $game->pivot->release_date ?? null;
                                                     if ($pivotReleaseDate && is_string($pivotReleaseDate)) {
                                                         $pivotReleaseDate = \Carbon\Carbon::parse($pivotReleaseDate);
@@ -434,6 +437,7 @@
                                                         variant="table-row"
                                                         :platformEnums="$platformEnums"
                                                         :isTba="$isTba"
+                                                        :isEarlyAccess="$isEarlyAccess"
                                                     />
                                                 </div>
                                             @endforeach

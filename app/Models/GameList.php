@@ -54,7 +54,7 @@ class GameList extends Model
     public function games(): BelongsToMany
     {
         return $this->belongsToMany(Game::class, 'game_list_game')
-            ->withPivot('order', 'release_date', 'platforms', 'platform_group', 'is_highlight', 'is_tba', 'is_indie', 'genre_ids', 'primary_genre_id')
+            ->withPivot('order', 'release_date', 'platforms', 'platform_group', 'is_highlight', 'is_tba', 'is_early_access', 'is_indie', 'genre_ids', 'primary_genre_id')
             ->withTimestamps()
             ->orderByPivot('order');
     }
@@ -224,7 +224,7 @@ class GameList extends Model
     /**
      * Get event time as Carbon instance with timezone
      */
-    public function getEventTime(): ?\Carbon\Carbon
+    public function getEventTime(): ?Carbon
     {
         $eventTime = $this->event_data['event_time'] ?? null;
         $eventTimezone = $this->event_data['event_timezone'] ?? 'UTC';
@@ -233,7 +233,7 @@ class GameList extends Model
             return null;
         }
 
-        return \Carbon\Carbon::parse($eventTime, $eventTimezone);
+        return Carbon::parse($eventTime, $eventTimezone);
     }
 
     /**
@@ -600,13 +600,14 @@ class GameList extends Model
                 'cover_url' => $game->getCoverUrl(),
                 'release_date' => $game->pivot->release_date ?? $game->first_release_date?->format('Y-m-d'),
                 'release_date_formatted' => $game->pivot->release_date
-                    ? \Carbon\Carbon::parse($game->pivot->release_date)->format('M j, Y')
+                    ? Carbon::parse($game->pivot->release_date)->format('M j, Y')
                     : $game->first_release_date?->format('M j, Y') ?? 'TBA',
                 'platforms' => $platforms->sortBy('priority')->values()->toArray(),
                 'platform_group' => $game->pivot->platform_group ?? null,
                 'is_highlight' => (bool) ($game->pivot->is_highlight ?? false),
                 'is_indie' => (bool) ($game->pivot->is_indie ?? false),
                 'is_tba' => (bool) ($game->pivot->is_tba ?? false),
+                'is_early_access' => (bool) ($game->pivot->is_early_access ?? false),
                 'genres' => $game->genres->map(fn ($g) => [
                     'id' => $g->id,
                     'name' => $g->name,

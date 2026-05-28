@@ -219,6 +219,8 @@
                                 'genreIds' => is_string($game->pivot->genre_ids) ? json_decode($game->pivot->genre_ids, true) ?? [] : ($game->pivot->genre_ids ?? []),
                                 'isHighlight' => (bool) $game->pivot->is_highlight,
                                 'isIndie' => (bool) $game->pivot->is_indie,
+                                'isTba' => (bool) $game->pivot->is_tba,
+                                'isEarlyAccess' => (bool) $game->pivot->is_early_access,
                                 'platformGroup' => $game->pivot->platform_group ?? '',
                             ];
                         });
@@ -263,7 +265,9 @@
                                         :displayPlatforms="$entry['displayPlatforms']"
                                         variant="neon"
                                         aspectRatio="3/4"
-                                        :platformEnums="$platformEnums" />
+                                        :platformEnums="$platformEnums"
+                                        :isTba="$entry['isTba']"
+                                        :isEarlyAccess="$entry['isEarlyAccess']" />
                                 </div>
                             @endforeach
                         </div>
@@ -279,7 +283,9 @@
                                         :displayReleaseDate="$entry['displayDate']"
                                         :displayPlatforms="$entry['displayPlatforms']"
                                         variant="table-row"
-                                        :platformEnums="$platformEnums" />
+                                        :platformEnums="$platformEnums"
+                                        :isTba="$entry['isTba']"
+                                        :isEarlyAccess="$entry['isEarlyAccess']" />
                                 </div>
                             @endforeach
                         </div>

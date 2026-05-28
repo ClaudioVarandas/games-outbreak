@@ -55,7 +55,9 @@
                                             :carousel="true"
                                             :platformEnums="$platformEnums"
                                             :displayReleaseDate="$displayDate"
-                                            :displayPlatforms="isset($carouselGame->pivot) ? ($carouselGame->pivot->platforms ?? null) : null" />
+                                            :displayPlatforms="isset($carouselGame->pivot) ? ($carouselGame->pivot->platforms ?? null) : null"
+                                            :isTba="isset($carouselGame->pivot) ? (bool) ($carouselGame->pivot->is_tba ?? false) : false"
+                                            :isEarlyAccess="isset($carouselGame->pivot) ? (bool) ($carouselGame->pivot->is_early_access ?? false) : false" />
                                     </div>
                                 @endforeach
                             </div>
@@ -114,7 +116,9 @@
                                             :carousel="true"
                                             :platformEnums="$platformEnums"
                                             :displayReleaseDate="$displayDate"
-                                            :displayPlatforms="isset($carouselGame->pivot) ? ($carouselGame->pivot->platforms ?? null) : null" />
+                                            :displayPlatforms="isset($carouselGame->pivot) ? ($carouselGame->pivot->platforms ?? null) : null"
+                                            :isTba="isset($carouselGame->pivot) ? (bool) ($carouselGame->pivot->is_tba ?? false) : false"
+                                            :isEarlyAccess="isset($carouselGame->pivot) ? (bool) ($carouselGame->pivot->is_early_access ?? false) : false" />
                                     </div>
                                 @endforeach
                             </div>

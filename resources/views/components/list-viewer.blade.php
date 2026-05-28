@@ -42,7 +42,9 @@
                     variant="glassmorphism"
                     layout="overlay"
                     aspectRatio="3/4"
-                    :platformEnums="$platformEnums" />
+                    :platformEnums="$platformEnums"
+                    :isTba="(bool) ($game->pivot->is_tba ?? false)"
+                    :isEarlyAccess="(bool) ($game->pivot->is_early_access ?? false)" />
             @endforeach
         </div>
     @else

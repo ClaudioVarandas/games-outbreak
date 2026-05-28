@@ -107,6 +107,9 @@
       :submitting="adding"
       :initial-release-date="selectedGame?.release_date || ''"
       :initial-platforms="selectedGame?.platform_ids || []"
+      :suggested-early-access="selectedGame?.suggested_early_access || false"
+      :suggested-early-access-label="selectedGame?.suggested_early_access_label || ''"
+      :suggested-early-access-date="selectedGame?.suggested_early_access_date || ''"
       @close="closeForm"
       @submit="handleFormSubmit"
     />
@@ -267,6 +270,7 @@ const handleFormSubmit = async (formData) => {
     }
 
     submitData.append('is_tba', formData.isTba ? '1' : '0');
+    submitData.append('is_early_access', formData.isEarlyAccess ? '1' : '0');
 
     if (props.showGenreSelection) {
       if (formData.primaryGenreId) {

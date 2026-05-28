@@ -362,6 +362,33 @@ class Game extends Model
     }
 
     /**
+     * Build an Early Access suggestion from this game's IGDB release-date statuses.
+     * Returns null when no Early Access release date exists. Expects the
+     * `releaseDates.platform` and `releaseDates.status` relations to be loaded.
+     *
+     * @return array{label: string, date: string|null}|null
+     */
+    public function earlyAccessSuggestion(): ?array
+    {
+        $rows = $this->releaseDates
+            ->filter(fn (GameReleaseDate $r) => str_contains(strtolower($r->status?->name ?? ''), 'early access'));
+
+        if ($rows->isEmpty()) {
+            return null;
+        }
+
+        $platforms = $rows->map(fn (GameReleaseDate $r) => $r->platform?->abbreviation)->filter()->unique()->implode(', ');
+        $earliest = $rows->filter(fn (GameReleaseDate $r) => $r->date !== null)->sortBy('date')->first();
+        $dateLabel = $earliest?->date?->format('j M Y')
+            ?? $rows->first(fn (GameReleaseDate $r) => ! empty($r->human_readable))?->human_readable;
+
+        return [
+            'label' => trim(($platforms ?: 'Detected').($dateLabel ? ' · since '.$dateLabel : '')),
+            'date' => $earliest?->date?->format('Y-m-d'),
+        ];
+    }
+
+    /**
      * Sync release dates from IGDB data to game_release_dates table
      */
     public static function syncReleaseDates(Game $game, ?array $igdbReleaseDates): void
