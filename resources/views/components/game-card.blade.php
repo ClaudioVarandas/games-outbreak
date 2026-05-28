@@ -114,7 +114,7 @@
 <div class="relative flex items-center gap-4 p-3 transition-colors hover:bg-white/[0.03]">
     {{-- Small Cover Thumbnail --}}
     <a href="{{ $linkUrl }}" class="flex-shrink-0">
-        <div class="w-12 h-16 rounded overflow-hidden bg-gray-200 dark:bg-gray-700">
+        <div class="relative w-12 h-16 rounded overflow-hidden bg-gray-200 dark:bg-gray-700">
             @if($coverUrl)
                 <img src="{{ $coverUrl }}"
                      alt="{{ $game->name }}"
@@ -124,6 +124,9 @@
                 <div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">
                     <x-heroicon-o-photo class="w-6 h-6" />
                 </div>
+            @endif
+            @if($isEarlyAccess)
+                <span class="absolute left-0 top-0 rounded-br bg-blue-500/90 px-1 text-[0.55rem] font-bold uppercase tracking-wide text-white shadow">EA</span>
             @endif
         </div>
     </a>
@@ -155,8 +158,6 @@
     <div class="flex-shrink-0">
         @if($isTba || !($displayReleaseDateFormatted ?? $releaseDate))
             <span class="text-[0.7rem] font-bold uppercase tracking-[0.06em] text-slate-500">TBA</span>
-        @elseif($isEarlyAccess)
-            <span class="text-[0.7rem] font-bold uppercase tracking-[0.06em] text-orange-400">EA</span>
         @else
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-14 w-14 text-white/30">
                 <rect x="2.75" y="3.75" width="18.5" height="17.5" rx="2.25" stroke="currentColor" stroke-width="1.25"/>
@@ -200,6 +201,13 @@
             @if($showRank && $rank !== null)
                 <div class="absolute top-0 left-0 {{ $rankColor ?? 'bg-orange-500' }} text-gray-900 text-sm font-black px-3 py-1 rounded-br-lg z-20 shadow-lg">
                     #{{ $rank }}
+                </div>
+            @endif
+
+            <!-- Early Access Badge -->
+            @if($isEarlyAccess)
+                <div class="absolute top-0 {{ $showRank && $rank !== null ? 'right-0 rounded-bl-lg' : 'left-0 rounded-br-lg' }} z-20 bg-blue-500/90 px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wide text-white shadow-lg">
+                    EA
                 </div>
             @endif
 
@@ -267,7 +275,7 @@
                             @if($isTba)
                                 {{ 'TBA' }}
                             @else
-                                @if($isEarlyAccess)<span class="mr-1 inline-block rounded bg-orange-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-orange-300">EA</span>@endif{{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+                                {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
                             @endif
                         </p>
                     </div>
@@ -299,7 +307,7 @@
                             @if($isTba)
                                 {{ 'TBA' }}
                             @else
-                                @if($isEarlyAccess)<span class="mr-1 inline-block rounded bg-orange-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-orange-300">EA</span>@endif{{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
+                                {{ $displayReleaseDateFormatted ?? $releaseDate?->format('M j, Y') ?? 'TBA' }}
                             @endif
                         </p>
                     </div>
@@ -338,7 +346,7 @@
                         @if($isTba)
                             {{ 'TBA' }}
                         @else
-                            @if($isEarlyAccess)<span class="mr-1 inline-block rounded bg-orange-500/20 px-1.5 text-[0.62rem] font-bold tracking-wide text-orange-300">EA</span>@endif{{ $displayReleaseDateFormatted ?? $releaseDate?->format($variant === 'neon' ? 'd M' : 'M j, Y') ?? 'TBA' }}
+                            {{ $displayReleaseDateFormatted ?? $releaseDate?->format($variant === 'neon' ? 'd M' : 'M j, Y') ?? 'TBA' }}
                         @endif
                     </p>
                 </div>
