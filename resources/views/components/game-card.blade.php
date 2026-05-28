@@ -204,11 +204,11 @@
                 </div>
             @endif
 
-            <!-- Early Access Badge -->
+            <!-- Early Access Ribbon (diagonal corner) -->
             @if($isEarlyAccess)
-                <div class="absolute top-0 {{ $showRank && $rank !== null ? 'right-0 rounded-bl-lg' : 'left-0 rounded-br-lg' }} z-20 bg-blue-500/90 px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-wide text-white shadow-lg">
+                <span class="pointer-events-none absolute right-[-40px] top-[18px] z-20 w-[140px] rotate-45 bg-blue-500 py-1 text-center text-[0.6rem] font-bold uppercase tracking-[0.15em] text-white shadow-md">
                     EA
-                </div>
+                </span>
             @endif
 
             <!-- Platform Badges -->
