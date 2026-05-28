@@ -134,11 +134,10 @@
                         <x-homepage.section-heading icon="star" title="Scores" />
                         <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
 
-                            @if($game->metacritic_score)
-                                <div class="flex items-center gap-4">
-                                    <div class="text-5xl font-black {{ $game->metacriticColorClass() }}">
-                                        {{ $game->metacritic_score }}
-                                    </div>
+                            {{-- Metacritic --}}
+                            <div class="flex items-center gap-4">
+                                @if($game->metacritic_score)
+                                    <div class="text-5xl font-black {{ $game->metacriticColorClass() }}">{{ $game->metacritic_score }}</div>
                                     <div>
                                         <p class="text-sm font-bold text-slate-100">Metacritic</p>
                                         @if($game->metacritic_url)
@@ -146,38 +145,48 @@
                                                class="text-xs text-cyan-400 hover:underline">View reviews</a>
                                         @endif
                                     </div>
-                                </div>
-                            @endif
-
-                            @if($game->steam_review_percent !== null)
-                                <div class="flex items-center gap-4">
-                                    <div class="text-5xl font-black {{ $game->steamReviewSentiment()?->colorClass() ?? 'text-slate-100' }}">
-                                        {{ $game->steam_review_percent }}%
-                                    </div>
+                                @else
+                                    <div class="text-5xl font-black text-slate-700">&mdash;</div>
                                     <div>
-                                        <p class="text-sm font-bold text-slate-100">
-                                            {{ $game->steamReviewSentiment()?->label() ?? 'Steam' }}
-                                        </p>
-                                        <p class="text-xs text-slate-400">
-                                            {{ number_format($game->steam_review_total ?? 0) }} Steam reviews
-                                        </p>
+                                        <p class="text-sm font-bold text-slate-400">Metacritic</p>
+                                        <p class="text-xs text-slate-500">No score</p>
                                     </div>
-                                </div>
-                            @endif
+                                @endif
+                            </div>
 
-                            @if($game->igdb_aggregated_rating)
-                                <div class="flex items-center gap-4">
-                                    <div class="text-5xl font-black text-purple-400 drop-shadow-[0_0_12px_rgba(192,132,252,0.5)]">
-                                        {{ $game->igdb_aggregated_rating }}
+                            {{-- Steam reviews --}}
+                            <div class="flex items-center gap-4">
+                                @if($game->steam_review_percent !== null)
+                                    <div class="text-5xl font-black {{ $game->steamReviewSentiment()?->colorClass() ?? 'text-slate-100' }}">{{ $game->steam_review_percent }}%</div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-100">{{ $game->steamReviewSentiment()?->label() ?? 'Steam' }}</p>
+                                        <p class="text-xs text-slate-400">{{ number_format($game->steam_review_total ?? 0) }} Steam reviews</p>
                                     </div>
+                                @else
+                                    <div class="text-5xl font-black text-slate-700">&mdash;</div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-400">Steam</p>
+                                        <p class="text-xs text-slate-500">No reviews</p>
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- IGDB critics --}}
+                            <div class="flex items-center gap-4">
+                                @if($game->igdb_aggregated_rating)
+                                    <div class="text-5xl font-black text-purple-400 drop-shadow-[0_0_12px_rgba(192,132,252,0.5)]">{{ $game->igdb_aggregated_rating }}</div>
                                     <div>
                                         <p class="text-sm font-bold text-slate-100">IGDB Critics</p>
-                                        <p class="text-xs text-slate-400">
-                                            {{ number_format($game->igdb_aggregated_rating_count ?? 0) }} ratings
-                                        </p>
+                                        <p class="text-xs text-slate-400">{{ number_format($game->igdb_aggregated_rating_count ?? 0) }} ratings</p>
                                     </div>
-                                </div>
-                            @endif
+                                @else
+                                    <div class="text-5xl font-black text-slate-700">&mdash;</div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-400">IGDB Critics</p>
+                                        <p class="text-xs text-slate-500">Not rated</p>
+                                    </div>
+                                @endif
+                            </div>
 
                         </div>
                     </div>

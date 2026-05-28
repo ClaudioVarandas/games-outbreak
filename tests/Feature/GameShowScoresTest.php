@@ -32,6 +32,25 @@ it('renders the score blocks when scores are present', function () {
         ->assertSee('88');
 });
 
+it('keeps all three slots with placeholders when some scores are missing', function () {
+    $game = Game::factory()->create([
+        'metacritic_score' => null,
+        'steam_review_percent' => 83,
+        'steam_review_desc' => 'Very Positive',
+        'steam_review_total' => 3719,
+        'igdb_aggregated_rating' => null,
+    ]);
+
+    $this->get(route('game.show', $game))
+        ->assertOk()
+        ->assertSee('Scores')
+        ->assertSee('Metacritic')   // label still present
+        ->assertSee('No score')     // metacritic placeholder
+        ->assertSee('83%')
+        ->assertSee('IGDB Critics')
+        ->assertSee('Not rated');   // igdb placeholder
+});
+
 it('hides the score block when no scores are present', function () {
     $game = Game::factory()->create([
         'metacritic_score' => null,
