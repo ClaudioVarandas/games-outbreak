@@ -28,8 +28,7 @@ it('renders the score blocks when scores are present', function () {
         ->assertSee('91')
         ->assertSee('Overwhelmingly Positive')
         ->assertSee('96%')
-        ->assertSee('IGDB Critics')
-        ->assertSee('88');
+        ->assertDontSee('IGDB Critics');
 });
 
 it('keeps all three slots with placeholders when some scores are missing', function () {
@@ -47,11 +46,11 @@ it('keeps all three slots with placeholders when some scores are missing', funct
         ->assertSee('Metacritic')   // label still present
         ->assertSee('No score')     // metacritic placeholder
         ->assertSee('83%')
-        ->assertSee('IGDB Critics')
-        ->assertSee('Not rated');   // igdb placeholder
+        ->assertDontSee('IGDB Critics');
 });
 
-it('hides the score block when no scores are present', function () {
+it('hides the scores section when no scores are present', function () {
+    // The hero snapshot always renders; only the full Scores section is conditional.
     $game = Game::factory()->create([
         'metacritic_score' => null,
         'steam_review_percent' => null,
@@ -60,6 +59,5 @@ it('hides the score block when no scores are present', function () {
 
     $this->get(route('game.show', $game))
         ->assertOk()
-        ->assertDontSee('IGDB Critics')
-        ->assertDontSee('Metacritic');
+        ->assertDontSee('id="scores"', false);
 });

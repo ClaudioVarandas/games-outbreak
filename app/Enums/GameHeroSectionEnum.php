@@ -26,7 +26,7 @@ enum GameHeroSectionEnum: string
     public function isVisibleFor(Game $game): bool
     {
         return match ($this) {
-            self::Scores => (bool) ($game->metacritic_score || $game->steam_review_percent !== null || $game->igdb_aggregated_rating),
+            self::Scores => (bool) ($game->metacritic_score || $game->steam_review_percent !== null),
             self::Screenshots => is_array($game->screenshots) && count($game->screenshots) > 0,
             self::ReleaseDates, self::SimilarGames => true,
         };

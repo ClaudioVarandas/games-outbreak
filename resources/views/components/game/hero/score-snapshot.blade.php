@@ -26,15 +26,4 @@
             </p>
         </div>
     </div>
-
-    {{-- IGDB --}}
-    <div class="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-        <x-game.hero.brand-igdb class="h-10 w-10" />
-        <div class="min-w-0">
-            <p class="text-[0.65rem] uppercase tracking-wide text-slate-400">IGDB Critics</p>
-            <p class="text-sm font-bold leading-none {{ $game->igdb_aggregated_rating ? 'text-purple-400' : 'text-slate-600' }}">
-                {{ $game->igdb_aggregated_rating ?: '—' }}
-            </p>
-        </div>
-    </div>
 </div>

@@ -27,7 +27,7 @@ it('renders the content-first hero', function () {
         ->assertSee('Metacritic');
 });
 
-it('always shows the three score cards, even with no scores', function () {
+it('always shows the score cards, even with no scores', function () {
     $game = Game::factory()->create([
         'metacritic_score' => null,
         'steam_review_percent' => null,
@@ -38,7 +38,7 @@ it('always shows the three score cards, even with no scores', function () {
         ->assertOk()
         ->assertSee('Steam')
         ->assertSee('Metacritic')
-        ->assertSee('IGDB Critics');
+        ->assertDontSee('IGDB Critics');
 });
 
 it('only shows anchors for sections that exist', function () {

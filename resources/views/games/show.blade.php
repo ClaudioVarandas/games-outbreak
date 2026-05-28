@@ -37,10 +37,10 @@
                 </div>
 
                 {{-- Critic & Review Scores --}}
-                @if($game->metacritic_score || $game->steam_review_percent !== null || $game->igdb_aggregated_rating)
+                @if($game->metacritic_score || $game->steam_review_percent !== null)
                     <div class="neon-section-frame scroll-mt-32" id="scores">
                         <x-homepage.section-heading icon="star" title="Scores" />
-                        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
 
                             {{-- Metacritic --}}
                             <div class="flex items-center gap-4">
@@ -80,23 +80,6 @@
                                     <div>
                                         <p class="text-sm font-bold text-slate-400">Steam</p>
                                         <p class="text-xs text-slate-500">No reviews</p>
-                                    </div>
-                                @endif
-                            </div>
-
-                            {{-- IGDB critics --}}
-                            <div class="flex items-center gap-4">
-                                @if($game->igdb_aggregated_rating)
-                                    <div class="text-5xl font-black text-purple-400 drop-shadow-[0_0_12px_rgba(192,132,252,0.5)]">{{ $game->igdb_aggregated_rating }}</div>
-                                    <div>
-                                        <p class="text-sm font-bold text-slate-100">IGDB Critics</p>
-                                        <p class="text-xs text-slate-400">{{ number_format($game->igdb_aggregated_rating_count ?? 0) }} ratings</p>
-                                    </div>
-                                @else
-                                    <div class="text-5xl font-black text-slate-700">&mdash;</div>
-                                    <div>
-                                        <p class="text-sm font-bold text-slate-400">IGDB Critics</p>
-                                        <p class="text-xs text-slate-500">Not rated</p>
                                     </div>
                                 @endif
                             </div>
