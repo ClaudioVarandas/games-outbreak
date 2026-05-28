@@ -16,7 +16,7 @@
         <div class="page-shell py-7">
             <div class="flex items-start gap-5">
                 @if($game->cover_image_id)
-                    <div class="hidden sm:block shrink-0 w-[120px] h-[160px] [transform:translateZ(0)] overflow-hidden rounded-xl border border-white/10 shadow-xl">
+                    <div class="hidden sm:block shrink-0 w-[150px] h-[200px] md:w-[190px] md:h-[253px] [transform:translateZ(0)] overflow-hidden rounded-xl border border-white/10 shadow-xl">
                         <img src="{{ $game->getCoverUrl('cover_big') }}" alt="{{ $game->name }}" class="h-full w-full object-cover">
                     </div>
                 @endif
