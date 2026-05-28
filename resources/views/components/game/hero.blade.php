@@ -1,6 +1,6 @@
 @props(['game', 'summary'])
 
-<div class="relative overflow-hidden" style="min-height:320px">
+<div class="relative overflow-hidden min-h-[320px]">
     @if($game->steam_data['header_image'] ?? null)
         <img src="{{ $game->steam_data['header_image'] }}" class="absolute inset-0 w-full h-full object-cover" onerror="this.onerror=null;this.style.display='none'">
     @elseif($game->hero_image_id)
@@ -16,7 +16,7 @@
         <div class="page-shell py-7">
             <div class="flex items-start gap-5">
                 @if($game->cover_image_id)
-                    <div class="hidden sm:block shrink-0 [transform:translateZ(0)] overflow-hidden rounded-xl border border-white/10 shadow-xl" style="width:120px;height:160px">
+                    <div class="hidden sm:block shrink-0 w-[120px] h-[160px] [transform:translateZ(0)] overflow-hidden rounded-xl border border-white/10 shadow-xl">
                         <img src="{{ $game->getCoverUrl('cover_big') }}" alt="{{ $game->name }}" class="h-full w-full object-cover">
                     </div>
                 @endif

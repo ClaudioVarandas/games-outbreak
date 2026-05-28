@@ -1,6 +1,7 @@
 <?php
 
 use App\DTOs\ReleaseHeroSummary;
+use App\Enums\ReleaseHeroVariantEnum;
 use App\Models\Game;
 use App\Models\GameReleaseDate;
 use App\Models\Platform;
@@ -46,7 +47,7 @@ it('Scenario A: released on all platforms => Available now', function () {
 
     $s = summary($g);
     expect($s->primary->label)->toBe('Available now')
-        ->and($s->primary->variant)->toBe('success')
+        ->and($s->primary->variant)->toBe(ReleaseHeroVariantEnum::Success)
         ->and($s->primary->platforms)->toContain('PC')
         ->and($s->secondary)->toBeNull();
 });
@@ -60,7 +61,7 @@ it('Scenario B: released on some, coming later on others', function () {
     $s = summary($g);
     expect($s->primary->label)->toBe('Available now')
         ->and($s->secondary?->label)->toBe('Coming later')
-        ->and($s->secondary?->variant)->toBe('upcoming');
+        ->and($s->secondary?->variant)->toBe(ReleaseHeroVariantEnum::Upcoming);
 });
 
 it('Scenario C: early access now, full release upcoming', function () {
@@ -70,7 +71,7 @@ it('Scenario C: early access now, full release upcoming', function () {
 
     $s = summary($g);
     expect($s->primary->label)->toBe('In Early Access')
-        ->and($s->primary->variant)->toBe('early_access')
+        ->and($s->primary->variant)->toBe(ReleaseHeroVariantEnum::EarlyAccess)
         ->and($s->secondary?->label)->toBe('Full release');
 });
 
@@ -100,7 +101,7 @@ it('Scenario H: no dates => Release date TBA', function () {
 
     $s = summary($g);
     expect($s->primary->label)->toBe('Release date TBA')
-        ->and($s->primary->variant)->toBe('tba');
+        ->and($s->primary->variant)->toBe(ReleaseHeroVariantEnum::Tba);
 });
 
 it('fallback: only first_release_date in the past => Available now', function () {

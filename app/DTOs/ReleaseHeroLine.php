@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTOs;
 
+use App\Enums\ReleaseHeroVariantEnum;
+
 final class ReleaseHeroLine
 {
     /**
@@ -11,7 +13,7 @@ final class ReleaseHeroLine
      */
     public function __construct(
         public string $label,
-        public string $variant,      // success | upcoming | early_access | tba
+        public ReleaseHeroVariantEnum $variant,
         public array $platforms = [],
         public ?string $date = null,
         public string $description = '',

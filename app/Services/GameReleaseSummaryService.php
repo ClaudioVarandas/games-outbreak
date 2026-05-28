@@ -7,6 +7,7 @@ namespace App\Services;
 use App\DTOs\ReleaseHeroLine;
 use App\DTOs\ReleaseHeroSummary;
 use App\Enums\PlatformEnum;
+use App\Enums\ReleaseHeroVariantEnum;
 use App\Models\Game;
 use App\Models\GameReleaseDate;
 use Carbon\Carbon;
@@ -47,7 +48,7 @@ class GameReleaseSummaryService
         $releasedPlatforms = $this->platformLabels($released);
         $primary = new ReleaseHeroLine(
             label: 'Available now',
-            variant: 'success',
+            variant: ReleaseHeroVariantEnum::Success,
             platforms: $releasedPlatforms,
             date: null,
             description: implode(' · ', $releasedPlatforms),
@@ -60,7 +61,7 @@ class GameReleaseSummaryService
             $date = $this->earliestDateLabel($futureNotReleased);
             $secondary = new ReleaseHeroLine(
                 label: 'Coming later',
-                variant: 'upcoming',
+                variant: ReleaseHeroVariantEnum::Upcoming,
                 platforms: $platforms,
                 date: $date,
                 description: trim(implode(' · ', $platforms).($date ? ' · '.$date : '')),
@@ -82,7 +83,7 @@ class GameReleaseSummaryService
         $since = $this->earliestDateLabel($earlyActive);
         $primary = new ReleaseHeroLine(
             label: 'In Early Access',
-            variant: 'early_access',
+            variant: ReleaseHeroVariantEnum::EarlyAccess,
             platforms: $platforms,
             date: $since,
             description: trim(implode(' · ', $platforms).($since ? ' · Since '.$since : '')),
@@ -95,7 +96,7 @@ class GameReleaseSummaryService
             $date = $this->earliestDateLabel($fullFuture);
             $secondary = new ReleaseHeroLine(
                 label: 'Full release',
-                variant: 'upcoming',
+                variant: ReleaseHeroVariantEnum::Upcoming,
                 platforms: $p,
                 date: $date,
                 description: trim(implode(' · ', $p).($date ? ' · '.$date : '')),
@@ -112,7 +113,7 @@ class GameReleaseSummaryService
 
         return new ReleaseHeroLine(
             label: 'Coming soon',
-            variant: 'upcoming',
+            variant: ReleaseHeroVariantEnum::Upcoming,
             platforms: $platforms,
             date: $date,
             description: trim(implode(' · ', $platforms).($date ? ' · '.$date : '')),
@@ -125,7 +126,7 @@ class GameReleaseSummaryService
 
         return new ReleaseHeroLine(
             label: 'Release date TBA',
-            variant: 'tba',
+            variant: ReleaseHeroVariantEnum::Tba,
             platforms: $platforms,
             date: null,
             description: $platforms === [] ? 'Platforms to be announced' : implode(' · ', $platforms),
@@ -138,12 +139,12 @@ class GameReleaseSummaryService
         $first = $game->first_release_date;
 
         if ($first && $first->lte($now)) {
-            return new ReleaseHeroSummary(new ReleaseHeroLine('Available now', 'success', $platforms, null, implode(' · ', $platforms)));
+            return new ReleaseHeroSummary(new ReleaseHeroLine('Available now', ReleaseHeroVariantEnum::Success, $platforms, null, implode(' · ', $platforms)));
         }
         if ($first && $first->gt($now)) {
             $date = $first->format('j M Y');
 
-            return new ReleaseHeroSummary(new ReleaseHeroLine('Coming soon', 'upcoming', $platforms, $date, trim(implode(' · ', $platforms).' · '.$date)));
+            return new ReleaseHeroSummary(new ReleaseHeroLine('Coming soon', ReleaseHeroVariantEnum::Upcoming, $platforms, $date, trim(implode(' · ', $platforms).' · '.$date)));
         }
 
         return new ReleaseHeroSummary($this->tbaLine($game));
@@ -209,6 +210,7 @@ class GameReleaseSummaryService
     private function gamePlatformLabels(Game $game): array
     {
         return ($game->platforms ?? collect())
+            ->sortBy(fn ($p) => PlatformEnum::getPriority($p->igdb_id))
             ->map(fn ($p) => PlatformEnum::fromIgdbId($p->igdb_id)?->label() ?? $p->name)
             ->filter()
             ->unique()

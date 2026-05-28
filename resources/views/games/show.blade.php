@@ -363,7 +363,7 @@
         </div>
 
         {{-- ── Similar Games ──────────────────────────────────────────── --}}
-        <div class="mt-6" id="similar-games" data-container="similar-games-container">
+        <div class="mt-6" id="similar-games">
             <div id="similar-games-loading" class="neon-section-frame flex items-center gap-3 py-6 justify-center">
                 <svg class="w-6 h-6 animate-spin text-cyan-400/60" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
