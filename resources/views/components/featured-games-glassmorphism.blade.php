@@ -32,7 +32,9 @@
                         aspectRatio="3/4"
                         :platformEnums="$platformEnums"
                         :displayReleaseDate="$displayDate"
-                        :displayPlatforms="isset($game->pivot) ? ($game->pivot->platforms ?? null) : null" />
+                        :displayPlatforms="isset($game->pivot) ? ($game->pivot->platforms ?? null) : null"
+                        :isTba="isset($game->pivot) ? (bool) ($game->pivot->is_tba ?? false) : false"
+                        :isEarlyAccess="isset($game->pivot) ? (bool) ($game->pivot->is_early_access ?? false) : false" />
                 </div>
             @endforeach
         </div>
