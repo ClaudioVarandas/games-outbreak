@@ -65,11 +65,11 @@ class MarkdownToTiptapConverter
         ];
     }
 
-    /** Parse inline markdown (**bold**, *italic*, ***both***) into Tiptap text nodes with marks. */
-    private function parseInline(string $text): array
+    /** Parse inline markdown (**bold**, *italic*, ***both***, [text](url)) into Tiptap text nodes with marks. */
+    public function parseInline(string $text): array
     {
         $parts = preg_split(
-            '/(\*\*\*.+?\*\*\*|\*\*.+?\*\*|\*.+?\*|_.+?_)/su',
+            '/(\[[^\]]+\]\([^)\s]+\)|\*\*\*.+?\*\*\*|\*\*.+?\*\*|\*.+?\*|_.+?_)/su',
             $text,
             -1,
             PREG_SPLIT_DELIM_CAPTURE
@@ -82,7 +82,9 @@ class MarkdownToTiptapConverter
                 continue;
             }
 
-            if (preg_match('/^\*\*\*(.+)\*\*\*$/su', $part, $m)) {
+            if (preg_match('/^\[([^\]]+)\]\(([^)\s]+)\)$/su', $part, $m)) {
+                $nodes[] = ['type' => 'text', 'text' => $m[1], 'marks' => [['type' => 'link', 'attrs' => ['href' => $m[2]]]]];
+            } elseif (preg_match('/^\*\*\*(.+)\*\*\*$/su', $part, $m)) {
                 $nodes[] = ['type' => 'text', 'text' => $m[1], 'marks' => [['type' => 'bold'], ['type' => 'italic']]];
             } elseif (preg_match('/^\*\*(.+)\*\*$/su', $part, $m)) {
                 $nodes[] = ['type' => 'text', 'text' => $m[1], 'marks' => [['type' => 'bold']]];
