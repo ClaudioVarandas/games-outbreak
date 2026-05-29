@@ -77,7 +77,6 @@ This application is a Laravel application and its main Laravel ecosystems packag
 
 - php - 8.5.6
 - laravel/framework (LARAVEL) - v12
-- laravel/nightwatch (NIGHTWATCH) - v1
 - laravel/pennant (PENNANT) - v1
 - laravel/prompts (PROMPTS) - v0
 - laravel/breeze (BREEZE) - v2
