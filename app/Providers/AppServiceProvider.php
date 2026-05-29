@@ -15,8 +15,12 @@ use App\Services\Broadcasts\WeeklyChoicesBroadcaster;
 use App\Services\IgdbService;
 use App\Services\JinaReaderService;
 use App\Services\OpenAiNewsGenerationService;
+use App\Support\Metrics\QueueEventLogger;
 use App\Support\News\MarkdownToTiptapConverter;
 use Http;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Pennant\Feature;
 
@@ -49,6 +53,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->when(MonthlyChoicesBroadcaster::class)
             ->needs('$channels')
             ->giveTagged('broadcasts.monthly_channels');
+
+        $this->app->singleton(QueueEventLogger::class);
     }
 
     /**
@@ -57,6 +63,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Feature::define('game_user_actions', fn () => false);
+
+        $queueLogger = $this->app->make(QueueEventLogger::class);
+        Queue::before($queueLogger->processing(...));
+        Queue::after($queueLogger->processed(...));
+        Queue::failing($queueLogger->failed(...));
+        Event::listen(JobExceptionOccurred::class, $queueLogger->exceptionOccurred(...));
 
         Http::macro('igdb', function () {
             // Add delay BEFORE each request (~3.5 req/sec → safe under 4/sec limit)

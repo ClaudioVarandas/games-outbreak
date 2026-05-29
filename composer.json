@@ -16,6 +16,7 @@
         "laravel/pennant": "^1.23",
         "laravel/tinker": "^2.10.1",
         "marcreichel/igdb-laravel": "^5.3",
+        "promphp/prometheus_client_php": "^2.15",
         "queuewatch/laravel": "^1.1"
     },
     "require-dev": {

@@ -98,3 +98,13 @@ Schedule::job(new BroadcastMonthlyChoicesJob)
     ->name('broadcast-monthly-choices')
     ->withoutOverlapping()
     ->onOneServer();
+
+// === OBSERVABILITY SCHEDULES ===
+
+// Export queue metrics to the node_exporter textfile collector every minute.
+// Intentionally NOT onOneServer(): the .prom file is host-local, so every host must
+// write its own (Prometheus dedupes by instance label).
+Schedule::command('metrics:export-queues')
+    ->everyMinute()
+    ->name('metrics-export-queues')
+    ->withoutOverlapping();
