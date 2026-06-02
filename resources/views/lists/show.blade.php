@@ -381,7 +381,7 @@
                                                 <h3 class="neon-eyebrow neon-eyebrow--orange">
                                                     {{ $monthData['label'] }}
                                                 </h3>
-                                                <span class="mt-1.5 inline-flex items-center rounded-full border border-cyan-400/30 bg-cyan-400/[0.07] px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-cyan-300">
+                                                <span class="mt-1 block text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-cyan-300">
                                                     {{ count($monthData['games']) }} {{ Str::plural('game', count($monthData['games'])) }}
                                                 </span>
                                             </div>
