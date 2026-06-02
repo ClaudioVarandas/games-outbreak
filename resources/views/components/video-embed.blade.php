@@ -6,8 +6,8 @@
 
     if ($url) {
         // YouTube: https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID
-        if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/', $url, $matches)) {
-            $embedUrl = 'https://www.youtube.com/embed/' . $matches[1] . '?rel=0&modestbranding=1';
+        if ($youtubeId = \App\Support\YouTube::idFromUrl($url)) {
+            $embedUrl = 'https://www.youtube.com/embed/' . $youtubeId . '?rel=0&modestbranding=1';
             $platform = 'youtube';
         }
         // Twitch VOD: https://www.twitch.tv/videos/VIDEO_ID

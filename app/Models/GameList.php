@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ListTypeEnum;
 use App\Enums\PlatformEnum;
+use App\Support\YouTube;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -280,8 +281,8 @@ class GameList extends Model
         }
 
         // YouTube: https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID
-        if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/', $url, $matches)) {
-            return 'https://www.youtube.com/embed/'.$matches[1];
+        if ($youtubeId = YouTube::idFromUrl($url)) {
+            return 'https://www.youtube.com/embed/'.$youtubeId;
         }
 
         // Twitch: https://www.twitch.tv/CHANNEL or https://www.twitch.tv/videos/VIDEO_ID
