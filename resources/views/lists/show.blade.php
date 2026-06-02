@@ -79,7 +79,8 @@
                 'wishlistGameIds' => $wishlistGameIds ?? [],
                 'csrfToken' => csrf_token(),
                 'username' => auth()->user()?->username ?? '',
-            ]) }}
+            ]) }},
+            {{ Js::from($gameList->isEvents() ? 'list' : 'grid') }}
         )" class="min-h-screen">
 
             {{-- Event Hero --}}
@@ -438,6 +439,7 @@
                                                         :platformEnums="$platformEnums"
                                                         :isTba="$isTba"
                                                         :isEarlyAccess="$isEarlyAccess"
+                                                        :videoUrl="$game->pivot->video_url ?? null"
                                                     />
                                                 </div>
                                             @endforeach

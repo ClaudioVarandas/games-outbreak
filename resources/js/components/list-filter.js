@@ -4,7 +4,7 @@ import Alpine from 'alpinejs';
  * Alpine.js component for system list filtering
  * Handles client-side filtering with URL sync
  */
-Alpine.data('listFilter', (initialGames, initialFilters, filterOptions, quickActionsConfig = {}) => ({
+Alpine.data('listFilter', (initialGames, initialFilters, filterOptions, quickActionsConfig = {}, defaultViewMode = 'grid') => ({
         // All games in the list
         games: initialGames,
 
@@ -21,7 +21,7 @@ Alpine.data('listFilter', (initialGames, initialFilters, filterOptions, quickAct
         filterOptions: filterOptions,
 
         // View mode: 'grid' or 'list'
-        viewMode: 'grid',
+        viewMode: defaultViewMode,
 
         // Mobile filter panel state
         mobileFiltersOpen: false,
@@ -38,9 +38,11 @@ Alpine.data('listFilter', (initialGames, initialFilters, filterOptions, quickAct
         loadingStates: {},
 
         init() {
-            // Read view mode from hash
+            // URL hash overrides the default view mode
             const hash = window.location.hash;
-            if (hash.includes('view=list')) {
+            if (hash.includes('view=grid')) {
+                this.viewMode = 'grid';
+            } else if (hash.includes('view=list')) {
                 this.viewMode = 'list';
             }
 
@@ -279,10 +281,10 @@ Alpine.data('listFilter', (initialGames, initialFilters, filterOptions, quickAct
             this.filters.perspectives = params.get('perspective')?.split(',').map(Number).filter(Boolean) || [];
 
             const hash = window.location.hash;
-            if (hash.includes('view=list')) {
-                this.viewMode = 'list';
-            } else if (hash.includes('view=grid')) {
+            if (hash.includes('view=grid')) {
                 this.viewMode = 'grid';
+            } else if (hash.includes('view=list')) {
+                this.viewMode = 'list';
             }
         },
 
