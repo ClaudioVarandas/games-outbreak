@@ -89,6 +89,23 @@
               </p>
             </div>
 
+            <!-- Trailer URL (YouTube) -->
+            <div v-if="mode === 'add' || mode === 'edit'">
+              <label class="block text-sm font-medium text-gray-300 mb-2">
+                Trailer URL (YouTube)
+              </label>
+              <input
+                v-model="formData.videoUrl"
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=…"
+                class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2"
+                :class="modeStyles.focusRing"
+              >
+              <p class="mt-1 text-xs text-gray-400">
+                Shown as a play button on the list row. Leave empty for none.
+              </p>
+            </div>
+
             <!-- Platforms -->
             <div v-if="availablePlatforms.length > 0">
               <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -293,6 +310,10 @@ const props = defineProps({
   initialGenreIds: {
     type: Array,
     default: () => []
+  },
+  initialVideoUrl: {
+    type: String,
+    default: ''
   }
 });
 
@@ -307,7 +328,8 @@ const formData = ref({
   primaryGenreId: '',
   secondaryGenreIds: [],
   isTba: false,
-  isEarlyAccess: false
+  isEarlyAccess: false,
+  videoUrl: ''
 });
 
 const modeStyles = computed(() => {
@@ -448,7 +470,8 @@ const resetForm = () => {
     primaryGenreId: props.initialPrimaryGenreId || '',
     secondaryGenreIds: secondaryIds,
     isTba: props.initialIsTba,
-    isEarlyAccess: props.initialIsEarlyAccess
+    isEarlyAccess: props.initialIsEarlyAccess,
+    videoUrl: props.initialVideoUrl || ''
   };
 };
 
@@ -490,7 +513,8 @@ const handleSubmit = () => {
     primaryGenreId: formData.value.primaryGenreId,
     genreIds: allGenreIds,
     isTba: formData.value.isTba,
-    isEarlyAccess: formData.value.isEarlyAccess
+    isEarlyAccess: formData.value.isEarlyAccess,
+    videoUrl: formData.value.videoUrl || null
   });
 };
 
@@ -541,6 +565,12 @@ watch(() => props.initialIsTba, (val) => {
 watch(() => props.initialIsEarlyAccess, (val) => {
   if (props.show) {
     formData.value.isEarlyAccess = val;
+  }
+});
+
+watch(() => props.initialVideoUrl, (val) => {
+  if (props.show) {
+    formData.value.videoUrl = val || '';
   }
 });
 

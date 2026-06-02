@@ -16,6 +16,7 @@
     :suggested-early-access-date="suggestedEarlyAccessDate"
     :initial-platforms="initialPlatforms"
     :initial-genre-ids="initialGenreIds"
+    :initial-video-url="initialVideoUrl"
     @close="closeModal"
     @submit="handleSubmit"
   />
@@ -106,6 +107,7 @@ const suggestedEarlyAccessLabel = ref('');
 const suggestedEarlyAccessDate = ref('');
 const initialPlatforms = ref([]);
 const initialGenreIds = ref([]);
+const initialVideoUrl = ref('');
 
 const notification = ref({ show: false, message: '', type: 'success' });
 
@@ -158,6 +160,7 @@ const openModal = async (event) => {
       suggestedEarlyAccessLabel.value = data.suggested_early_access_label || '';
       suggestedEarlyAccessDate.value = data.suggested_early_access_date || '';
       initialGenreIds.value = data.genre_ids || [];
+      initialVideoUrl.value = data.video_url || '';
 
       // Parse platforms from game data and ensure they are integers
       let platforms = data.platforms || [];
@@ -202,6 +205,7 @@ const closeModal = () => {
   suggestedEarlyAccessDate.value = '';
   initialPlatforms.value = [];
   initialGenreIds.value = [];
+  initialVideoUrl.value = '';
 };
 
 const handleSubmit = async (formData) => {
@@ -240,6 +244,7 @@ const performEdit = async (gameId, formData) => {
     platforms: formData.platforms || [],
     primary_genre_id: formData.primaryGenreId || null,
     genre_ids: formData.genreIds || [],
+    video_url: formData.videoUrl || null,
   };
 
   try {

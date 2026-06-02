@@ -272,6 +272,10 @@ const handleFormSubmit = async (formData) => {
     submitData.append('is_tba', formData.isTba ? '1' : '0');
     submitData.append('is_early_access', formData.isEarlyAccess ? '1' : '0');
 
+    if (formData.videoUrl) {
+      submitData.append('video_url', formData.videoUrl);
+    }
+
     if (props.showGenreSelection) {
       if (formData.primaryGenreId) {
         submitData.append('primary_genre_id', formData.primaryGenreId);
