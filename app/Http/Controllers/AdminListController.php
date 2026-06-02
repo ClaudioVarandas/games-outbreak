@@ -11,6 +11,7 @@ use App\Jobs\RefreshGameListGamesJob;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Services\IgdbService;
+use App\Support\YouTube;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -349,6 +350,7 @@ class AdminListController extends Controller
             'primary_genre_id' => ['nullable', 'exists:genres,id'],
             'is_tba' => ['nullable', 'boolean'],
             'is_early_access' => ['nullable', 'boolean'],
+            'video_url' => ['nullable', 'string', $this->youtubeUrlRule()],
         ]);
 
         $igdbId = $request->game_id;
@@ -429,6 +431,7 @@ class AdminListController extends Controller
             'is_early_access' => $isEarlyAccess,
             'genre_ids' => json_encode(array_map('intval', $genreIds)),
             'primary_genre_id' => $primaryGenreId ? (int) $primaryGenreId : null,
+            'video_url' => $request->input('video_url') ?: null,
         ]);
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -508,6 +511,15 @@ class AdminListController extends Controller
                 'color' => $platformGroup->colorClass(),
             ],
         ]);
+    }
+
+    private function youtubeUrlRule(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value && ! YouTube::idFromUrl($value)) {
+                $fail('Must be a valid YouTube URL (youtube.com/watch?v=… or youtu.be/…).');
+            }
+        };
     }
 
     /**
@@ -777,6 +789,7 @@ class AdminListController extends Controller
             'platforms' => $pivotPlatforms,
             'game_name' => $game->name,
             'cover_url' => $game->getCoverUrl('cover_big'),
+            'video_url' => $pivotData->video_url ?? null,
         ]);
     }
 
@@ -801,6 +814,7 @@ class AdminListController extends Controller
             'genre_ids' => ['nullable', 'array', 'max:3'],
             'genre_ids.*' => ['exists:genres,id'],
             'primary_genre_id' => ['nullable', 'exists:genres,id'],
+            'video_url' => ['nullable', 'string', $this->youtubeUrlRule()],
         ]);
 
         $isTba = $request->boolean('is_tba', false);
@@ -826,6 +840,10 @@ class AdminListController extends Controller
 
         if ($request->has('primary_genre_id')) {
             $pivotUpdate['primary_genre_id'] = $request->input('primary_genre_id') ? (int) $request->input('primary_genre_id') : null;
+        }
+
+        if ($request->has('video_url')) {
+            $pivotUpdate['video_url'] = $request->input('video_url') ?: null;
         }
 
         $list->games()->updateExistingPivot($game->id, $pivotUpdate);
