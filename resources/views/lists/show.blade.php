@@ -95,7 +95,7 @@
                         <div class="absolute inset-0 bg-gradient-to-b from-slate-950 to-slate-900"></div>
                     @endif
 
-                    <div class="page-shell py-10 relative z-10">
+                    <div class="page-shell px-4 py-10 relative z-10">
                         <div class="flex flex-col lg:flex-row gap-8 items-start">
                             {{-- Video Embed --}}
                             @if($gameList->hasVideo())
