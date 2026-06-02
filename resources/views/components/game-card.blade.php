@@ -187,7 +187,9 @@
                 </span>
             </button>
         @else
-            <div class="h-[47px] w-[84px] sm:h-[60px] sm:w-[108px]"></div>
+            <div class="grid h-[47px] w-[84px] place-items-center rounded-lg border border-dashed border-white/10 bg-white/[0.02] sm:h-[60px] sm:w-[108px]">
+                <span class="text-center text-[0.55rem] font-semibold uppercase leading-tight tracking-[0.08em] text-slate-600">{{ __('No trailer') }}</span>
+            </div>
         @endif
     </div>
 </div>

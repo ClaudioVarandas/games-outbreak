@@ -20,13 +20,15 @@ it('renders a youtube trailer thumbnail when a video url is given', function () 
         ->assertSee('img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg', false);
 });
 
-it('renders no trailer trigger when the game has no video url', function () {
+it('renders a "no trailer" placeholder and no play trigger when the game has no video url', function () {
     $game = Game::factory()->create();
 
     $this->blade(
         '<x-game-card :game="$game" variant="table-row" :videoUrl="$videoUrl" :displayReleaseDate="$date" />',
         ['game' => $game, 'videoUrl' => null, 'date' => now()->setDate(2026, 3, 14)]
-    )->assertDontSee('data-video-id', false);
+    )
+        ->assertDontSee('data-video-id', false)
+        ->assertSee('No trailer');
 });
 
 it('does not render collection action buttons in the table-row', function () {
