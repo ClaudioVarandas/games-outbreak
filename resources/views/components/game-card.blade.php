@@ -16,6 +16,7 @@
     'displayReleaseDateFormatted' => null, // Optional: pre-formatted release date string
     'isTba' => false, // If true, shows "TBA" regardless of any date
     'isEarlyAccess' => false, // If true, shows an "EA" badge alongside the date (mutually exclusive with TBA)
+    'videoUrl' => null, // Optional: YouTube watch URL for the per-row trailer (table-row variant only)
 ])
 
 @php
@@ -111,6 +112,7 @@
 
 {{-- TABLE ROW VARIANT --}}
 @if($variant === 'table-row')
+@php $videoId = \App\Support\YouTube::idFromUrl($videoUrl); @endphp
 <div class="relative flex items-center gap-4 p-3 transition-colors hover:bg-white/[0.03]">
     {{-- Small Cover Thumbnail --}}
     <a href="{{ $linkUrl }}" class="flex-shrink-0">
@@ -154,30 +156,39 @@
         </div>
     </div>
 
-    {{-- Day --}}
+    {{-- Date chip --}}
     <div class="flex-shrink-0">
         @if($isTba || !($displayReleaseDateFormatted ?? $releaseDate))
             <span class="text-[0.7rem] font-bold uppercase tracking-[0.06em] text-slate-500">TBA</span>
         @else
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-14 w-14 text-white/30">
-                <rect x="2.75" y="3.75" width="18.5" height="17.5" rx="2.25" stroke="currentColor" stroke-width="1.25"/>
-                <rect x="2.75" y="3.75" width="18.5" height="6" rx="2.25" fill="currentColor" opacity="0.25"/>
-                <line x1="7.5" y1="2" x2="7.5" y2="5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                <line x1="16.5" y1="2" x2="16.5" y2="5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                <text x="12" y="17.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#63f3ff" font-family="Inter, ui-sans-serif, system-ui, sans-serif" filter="url(#glow-{{ $cardId }})">{{ $releaseDate->format('j') }}</text>
-                <defs>
-                    <filter id="glow-{{ $cardId }}" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="1" result="blur"/>
-                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                    </filter>
-                </defs>
-            </svg>
+            <div class="flex w-[50px] flex-col items-center justify-center rounded-[10px] border border-cyan-400/30 bg-cyan-400/[0.06] py-1.5">
+                <span class="text-xl font-extrabold leading-none text-cyan-300">{{ $releaseDate->format('j') }}</span>
+                <span class="mt-1 text-[0.55rem] font-bold uppercase tracking-[0.14em] text-slate-400">{{ $releaseDate->format('M') }}</span>
+            </div>
         @endif
     </div>
 
-    {{-- Quick Actions --}}
+    {{-- Trailer thumbnail (YouTube) --}}
     <div class="flex-shrink-0">
-        <x-game-collection-actions-mobile :game="$game" />
+        @if($videoId)
+            <button type="button"
+                    data-video-id="{{ $videoId }}"
+                    data-video-title="{{ $game->name }}"
+                    aria-label="{{ __('Play trailer') }}: {{ $game->name }}"
+                    class="group/vid relative block h-[47px] w-[84px] overflow-hidden rounded-lg border border-white/10 bg-black/40 transition hover:border-cyan-400/60 hover:shadow-[0_0_18px_rgba(99,243,255,0.3)] sm:h-[60px] sm:w-[108px]">
+                <img src="https://img.youtube.com/vi/{{ $videoId }}/mqdefault.jpg"
+                     alt=""
+                     loading="lazy"
+                     class="h-full w-full object-cover opacity-90 transition group-hover/vid:opacity-100">
+                <span class="absolute inset-0 grid place-items-center">
+                    <span class="grid h-7 w-7 place-items-center rounded-full border border-cyan-400/60 bg-slate-950/60 backdrop-blur-sm">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="ml-0.5 h-3.5 w-3.5 text-cyan-300"><path d="M8 5v14l11-7z"/></svg>
+                    </span>
+                </span>
+            </button>
+        @else
+            <div class="h-[47px] w-[84px] sm:h-[60px] sm:w-[108px]"></div>
+        @endif
     </div>
 </div>
 @else
