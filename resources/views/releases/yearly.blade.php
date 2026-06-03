@@ -222,6 +222,7 @@
                                 'isTba' => (bool) $game->pivot->is_tba,
                                 'isEarlyAccess' => (bool) $game->pivot->is_early_access,
                                 'platformGroup' => $game->pivot->platform_group ?? '',
+                                'videoUrl' => $game->pivot->video_url ?? null,
                             ];
                         });
                     @endphp
@@ -285,7 +286,8 @@
                                         variant="table-row"
                                         :platformEnums="$platformEnums"
                                         :isTba="$entry['isTba']"
-                                        :isEarlyAccess="$entry['isEarlyAccess']" />
+                                        :isEarlyAccess="$entry['isEarlyAccess']"
+                                        :videoUrl="$entry['videoUrl']" />
                                 </div>
                             @endforeach
                         </div>
