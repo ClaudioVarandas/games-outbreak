@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateGameListRequest;
 use App\Jobs\RefreshGameListGamesJob;
 use App\Models\Game;
 use App\Models\GameList;
+use App\Services\GameListSyncService;
 use App\Services\IgdbService;
 use App\Support\YouTube;
 use Carbon\Carbon;
@@ -601,7 +602,7 @@ class AdminListController extends Controller
         ]);
     }
 
-    public function toggleGameIndie(Request $request, string $type, string $slug, Game $game): JsonResponse
+    public function toggleGameIndie(Request $request, string $type, string $slug, Game $game, GameListSyncService $sync): JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -652,7 +653,7 @@ class AdminListController extends Controller
 
             // If toggling on a seasoned list, sync to the yearly list for that year
             if ($list->isSeasoned()) {
-                $this->syncIndieToYearlyList($list, $game, $pivotData, true, $genreIds, $primaryGenreId, $releaseDate, $isTba, $platforms, $isEarlyAccess);
+                $this->syncIndieToYearlyList($sync, $list, $game, $pivotData, true, $genreIds, $primaryGenreId, $releaseDate, $isTba, $platforms, $isEarlyAccess);
             }
         } else {
             $list->games()->updateExistingPivot($game->id, [
@@ -660,7 +661,7 @@ class AdminListController extends Controller
             ]);
 
             if ($list->isSeasoned()) {
-                $this->syncIndieToYearlyList($list, $game, $pivotData, false);
+                $this->syncIndieToYearlyList($sync, $list, $game, $pivotData, false);
             }
         }
 
@@ -674,57 +675,39 @@ class AdminListController extends Controller
     /**
      * Sync indie status from a seasoned list to the matching yearly list.
      */
-    protected function syncIndieToYearlyList(GameList $sourceList, Game $game, $pivotData, bool $isIndie, ?array $genreIds = null, ?int $primaryGenreId = null, mixed $releaseDate = null, bool $isTba = false, mixed $platforms = null, bool $isEarlyAccess = false): void
+    protected function syncIndieToYearlyList(GameListSyncService $sync, GameList $sourceList, Game $game, $pivotData, bool $isIndie, ?array $genreIds = null, ?int $primaryGenreId = null, mixed $releaseDate = null, bool $isTba = false, mixed $platforms = null, bool $isEarlyAccess = false): void
     {
         $year = $sourceList->start_at?->year ?? now()->year;
 
-        $yearlyList = GameList::yearly()
-            ->where('is_system', true)
-            ->whereYear('start_at', $year)
-            ->first();
-
+        $yearlyList = $sync->findYearlyList($year);
         if (! $yearlyList) {
             return;
         }
 
+        $alreadyInList = $yearlyList->games()->where('games.id', $game->id)->exists();
+
         if ($isIndie) {
-            if ($yearlyList->games()->where('games.id', $game->id)->exists()) {
+            if ($alreadyInList) {
                 $yearlyList->games()->updateExistingPivot($game->id, ['is_indie' => true]);
-            } else {
-                if ($platforms === null) {
-                    $platforms = $pivotData->platforms;
-                }
-                if (is_string($platforms)) {
-                    $platforms = json_decode($platforms, true) ?? [];
-                }
-                if (! is_array($platforms) || empty($platforms)) {
-                    $game->load('platforms');
-                    $platforms = $game->platforms
-                        ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
-                        ->map(fn ($p) => $p->igdb_id)
-                        ->values()
-                        ->toArray();
-                }
 
-                $platformGroup = PlatformGroupEnum::suggestFromPlatforms(is_array($platforms) ? $platforms : [])->value;
-                $maxOrder = $yearlyList->games()->max('order') ?? 0;
+                return;
+            }
 
-                $yearlyList->games()->attach($game->id, [
-                    'order' => $maxOrder + 1,
-                    'release_date' => $releaseDate ?? $pivotData->release_date,
-                    'platforms' => is_string($platforms) ? $platforms : json_encode($platforms),
-                    'platform_group' => $platformGroup,
-                    'is_tba' => $isTba,
-                    'is_early_access' => $isEarlyAccess,
-                    'is_indie' => true,
-                    'genre_ids' => json_encode($genreIds ?? []),
-                    'primary_genre_id' => $primaryGenreId,
-                ]);
-            }
-        } else {
-            if ($yearlyList->games()->where('games.id', $game->id)->exists()) {
-                $yearlyList->games()->updateExistingPivot($game->id, ['is_indie' => false]);
-            }
+            $sync->insertGame($yearlyList, $game, [
+                'release_date' => $releaseDate ?? $pivotData->release_date,
+                'platforms' => $sync->resolvePlatforms($game, $platforms ?? $pivotData->platforms),
+                'is_tba' => $isTba,
+                'is_early_access' => $isEarlyAccess,
+                'is_indie' => true,
+                'genre_ids' => $genreIds ?? [],
+                'primary_genre_id' => $primaryGenreId,
+            ]);
+
+            return;
+        }
+
+        if ($alreadyInList) {
+            $yearlyList->games()->updateExistingPivot($game->id, ['is_indie' => false]);
         }
     }
 
