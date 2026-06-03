@@ -493,8 +493,14 @@ class GameList extends Model
                 if ($filterMonth !== null) {
                     continue;
                 }
-                $monthKey = 'tba';
-                $monthLabel = 'To Be Announced';
+                $year = $this->isEvents() ? ($game->pivot->release_year ?? null) : null;
+                if ($year) {
+                    $monthKey = 'tba-'.$year;
+                    $monthLabel = (string) $year;
+                } else {
+                    $monthKey = 'tba';
+                    $monthLabel = 'To Be Announced';
+                }
                 $monthNumber = null;
             } else {
                 $releaseDate = $game->pivot->release_date ?? $game->first_release_date;
@@ -510,8 +516,9 @@ class GameList extends Model
                     $monthLabel = 'To Be Announced';
                     $monthNumber = null;
                 } else {
-                    // Skip games whose release date falls outside this list's year
-                    if ($this->start_at && $releaseDate->year !== (int) $this->start_at->year) {
+                    // Skip games whose release date falls outside this list's year.
+                    // Events span multiple years, so they never skip — only single-year lists (yearly/seasoned) do.
+                    if (! $this->isEvents() && $this->start_at && $releaseDate->year !== (int) $this->start_at->year) {
                         continue;
                     }
 
@@ -538,14 +545,18 @@ class GameList extends Model
         }
 
         uksort($gamesByMonth, function ($a, $b) {
-            if ($a === 'tba') {
-                return -1;
-            }
-            if ($b === 'tba') {
-                return 1;
-            }
+            $rank = function (string $key): array {
+                if ($key === 'tba') {
+                    return [0, 0];
+                }
+                if (str_starts_with($key, 'tba-')) {
+                    return [0, (int) substr($key, 4)];
+                }
 
-            return $a <=> $b;
+                return [1, $key];
+            };
+
+            return $rank($a) <=> $rank($b);
         });
 
         return $gamesByMonth;
