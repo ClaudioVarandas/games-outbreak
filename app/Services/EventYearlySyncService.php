@@ -28,7 +28,7 @@ class EventYearlySyncService
             $pivot = $game->pivot;
             $isTba = (bool) ($pivot->is_tba ?? false);
             $date = $this->resolveDate($pivot, $game);
-            $targetYear = ($isTba || ! $date) ? $eventYear : $date->year;
+            $targetYear = $this->resolveTargetYear($pivot, $isTba, $date, $eventYear);
             $videoUrl = $pivot->video_url ?? null;
 
             [$action, $fills] = $this->decide($targetYear, $game, $pivot, $date, $videoUrl, $isTba);
@@ -75,7 +75,7 @@ class EventYearlySyncService
                     $pivot = $game->pivot;
                     $isTba = (bool) ($pivot->is_tba ?? false);
                     $date = $this->resolveDate($pivot, $game);
-                    $targetYear = ($isTba || ! $date) ? $eventYear : $date->year;
+                    $targetYear = $this->resolveTargetYear($pivot, $isTba, $date, $eventYear);
 
                     $existed = $this->sync->findYearlyList($targetYear) !== null;
                     $yearly = $this->sync->firstOrCreateYearlyList($targetYear);
@@ -109,6 +109,7 @@ class EventYearlySyncService
                             'genre_ids' => $this->decodeIntArray($pivot->genre_ids ?? null),
                             'primary_genre_id' => $pivot->primary_genre_id ?? null,
                             'video_url' => $videoUrl,
+                            'release_year' => $pivot->release_year ?? null,
                         ]);
                         $result['inserted']++;
                     }
@@ -183,6 +184,21 @@ class EventYearlySyncService
         }
 
         return [$fills ? 'fill' : 'skip', $fills];
+    }
+
+    /**
+     * Target yearly list for a game: a real date wins; otherwise a TBA-tagged release_year;
+     * otherwise the event's own year.
+     */
+    private function resolveTargetYear(object $pivot, bool $isTba, ?Carbon $date, int $eventYear): int
+    {
+        $year = $pivot->release_year;
+
+        return match (true) {
+            ! $isTba && $date !== null => $date->year,
+            $year !== null => (int) $year,
+            default => $eventYear,
+        };
     }
 
     private function resolveDate(object $pivot, Game $game): ?Carbon
