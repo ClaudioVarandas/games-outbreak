@@ -8,6 +8,7 @@ use App\Models\Game;
 use App\Models\GameList;
 use App\Support\YouTube;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class EventYearlySyncService
 {
@@ -44,6 +45,111 @@ class EventYearlySyncService
         }
 
         return $plan;
+    }
+
+    /**
+     * Apply the sync for the chosen game ids. Auto-creates missing yearly lists.
+     *
+     * @param  list<int>  $gameIds
+     * @return array{created_years: list<int>, inserted: int, filled: array<int, list<string>>, skipped: int, errors: array<int, string>, per_year: array<int, int>}
+     */
+    public function apply(GameList $eventList, array $gameIds): array
+    {
+        $eventYear = $eventList->start_at?->year ?? now()->year;
+        $result = [
+            'created_years' => [],
+            'inserted' => 0,
+            'filled' => [],
+            'skipped' => 0,
+            'errors' => [],
+            'per_year' => [],
+        ];
+
+        DB::transaction(function () use ($eventList, $gameIds, $eventYear, &$result) {
+            foreach ($eventList->games as $game) {
+                if (! in_array($game->id, $gameIds, true)) {
+                    continue;
+                }
+
+                try {
+                    $pivot = $game->pivot;
+                    $isTba = (bool) ($pivot->is_tba ?? false);
+                    $date = $this->resolveDate($pivot, $game);
+                    $targetYear = ($isTba || ! $date) ? $eventYear : $date->year;
+
+                    $existed = $this->sync->findYearlyList($targetYear) !== null;
+                    $yearly = $this->sync->firstOrCreateYearlyList($targetYear);
+                    if (! $existed) {
+                        $result['created_years'][] = $targetYear;
+                    }
+
+                    $platforms = $this->sync->resolvePlatforms($game, $pivot->platforms ?? null);
+                    $videoUrl = $pivot->video_url ?? null;
+
+                    if ($yearly->games()->where('games.id', $game->id)->exists()) {
+                        $filled = $this->sync->fillMissing($yearly, $game, [
+                            'release_date' => $isTba ? null : $date,
+                            'platforms' => $platforms,
+                            'video_url' => $videoUrl,
+                        ]);
+
+                        if ($filled) {
+                            $result['filled'][$game->id] = $filled;
+                        } else {
+                            $result['skipped']++;
+                        }
+                    } else {
+                        $this->sync->insertGame($yearly, $game, [
+                            'release_date' => $isTba ? null : $date,
+                            'platforms' => $platforms,
+                            'is_tba' => $isTba,
+                            'is_early_access' => (bool) ($pivot->is_early_access ?? false),
+                            'is_indie' => false,
+                            'is_highlight' => false,
+                            'genre_ids' => $this->decodeIntArray($pivot->genre_ids ?? null),
+                            'primary_genre_id' => $pivot->primary_genre_id ?? null,
+                            'video_url' => $videoUrl,
+                        ]);
+                        $result['inserted']++;
+                    }
+
+                    $result['per_year'][$targetYear] = ($result['per_year'][$targetYear] ?? 0) + 1;
+                } catch (\Throwable $e) {
+                    // A deadlock / lost connection poisons the surrounding transaction, so let it
+                    // abort the run rather than silently misreporting the remaining games as synced.
+                    if ($this->isFatalDbError($e)) {
+                        throw $e;
+                    }
+
+                    $result['errors'][$game->id] = $e->getMessage();
+                }
+            }
+        });
+
+        return $result;
+    }
+
+    private function isFatalDbError(\Throwable $e): bool
+    {
+        foreach (['Deadlock found', 'Lock wait timeout', 'server has gone away', 'database is locked'] as $needle) {
+            if (str_contains($e->getMessage(), $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function decodeIntArray(mixed $value): array
+    {
+        if (is_string($value)) {
+            $value = json_decode($value, true) ?? [];
+        }
+
+        return is_array($value) ? array_map('intval', $value) : [];
     }
 
     /**

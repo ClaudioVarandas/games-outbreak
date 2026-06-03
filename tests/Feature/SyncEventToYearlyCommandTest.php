@@ -4,6 +4,7 @@ use App\Models\Game;
 use App\Models\GameList;
 use App\Models\User;
 use App\Services\EventYearlySyncService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -87,4 +88,91 @@ it('marks a game present in its yearly list but missing a trailer as fill', func
 
     expect($entry['action'])->toBe('fill')
         ->and($entry['fills'])->toBe(['video_url']);
+});
+
+it('inserts games into the correct yearly lists, auto-creating a missing one', function () {
+    [$event, $in2026, $in2028, $tba] = eventWithGames();
+
+    $result = app(EventYearlySyncService::class)->apply($event, [$in2026->id, $in2028->id, $tba->id]);
+
+    $list2026 = GameList::yearly()->whereYear('start_at', 2026)->first();
+    $list2028 = GameList::yearly()->whereYear('start_at', 2028)->first();
+
+    expect($list2026)->not->toBeNull()
+        ->and($list2028)->not->toBeNull()
+        ->and($result['inserted'])->toBe(3)
+        ->and($list2026->games()->where('games.id', $in2026->id)->exists())->toBeTrue()
+        ->and($list2026->games()->where('games.id', $tba->id)->exists())->toBeTrue()
+        ->and($list2028->games()->where('games.id', $in2028->id)->exists())->toBeTrue();
+
+    $videoPivot = $list2026->games()->where('games.id', $in2026->id)->first()->pivot;
+    expect($videoPivot->video_url)->toBe('https://youtu.be/dQw4w9WgXcQ');
+
+    $tbaPivot = $list2026->games()->where('games.id', $tba->id)->first()->pivot;
+    expect((bool) $tbaPivot->is_tba)->toBeTrue();
+
+    // Public-contract bookkeeping the command's summary consumes.
+    expect($result['per_year'][2026])->toBe(2) // in2026 + tba
+        ->and($result['per_year'][2028])->toBe(1)
+        ->and($result['created_years'])->toContain(2026)
+        ->and($result['created_years'])->toContain(2028);
+});
+
+it('only syncs the selected game ids', function () {
+    [$event, $in2026, $in2028] = eventWithGames();
+
+    $result = app(EventYearlySyncService::class)->apply($event, [$in2026->id]);
+
+    expect($result['inserted'])->toBe(1)
+        ->and(GameList::yearly()->whereYear('start_at', 2026)->first()->games()->where('games.id', $in2026->id)->exists())->toBeTrue()
+        ->and(GameList::yearly()->whereYear('start_at', 2028)->exists())->toBeFalse(); // excluded game never created its year list
+});
+
+it('fills a missing video_url on an existing year row without overwriting curated fields', function () {
+    [$event, $in2026] = eventWithGames();
+
+    $yearly = GameList::factory()->yearly()->system()->create([
+        'slug' => 'game-releases-2026',
+        'start_at' => now()->setDate(2026, 1, 1),
+        'end_at' => now()->setDate(2026, 12, 31),
+    ]);
+    $yearly->games()->attach($in2026->id, [
+        'order' => 1,
+        'release_date' => now()->setDate(2026, 12, 25),
+        'platforms' => json_encode([6]),
+        'video_url' => null,
+        'is_highlight' => true,
+    ]);
+
+    $result = app(EventYearlySyncService::class)->apply($event, [$in2026->id]);
+
+    $pivot = $yearly->games()->where('games.id', $in2026->id)->first()->pivot;
+    expect($result['inserted'])->toBe(0)
+        ->and($result['filled'])->toHaveKey($in2026->id)
+        ->and($pivot->video_url)->toBe('https://youtu.be/dQw4w9WgXcQ')
+        ->and(Carbon::parse($pivot->release_date)->format('Y-m-d'))->toBe('2026-12-25')
+        ->and(json_decode($pivot->platforms, true))->toBe([6])
+        ->and((bool) $pivot->is_highlight)->toBeTrue();
+});
+
+it('skips a game that is already complete in the year list', function () {
+    [$event, $in2026] = eventWithGames();
+
+    $yearly = GameList::factory()->yearly()->system()->create([
+        'slug' => 'game-releases-2026',
+        'start_at' => now()->setDate(2026, 1, 1),
+        'end_at' => now()->setDate(2026, 12, 31),
+    ]);
+    $yearly->games()->attach($in2026->id, [
+        'order' => 1,
+        'release_date' => now()->setDate(2026, 9, 1),
+        'platforms' => json_encode([6]),
+        'video_url' => 'https://youtu.be/dQw4w9WgXcQ',
+    ]);
+
+    $result = app(EventYearlySyncService::class)->apply($event, [$in2026->id]);
+
+    expect($result['skipped'])->toBe(1)
+        ->and($result['inserted'])->toBe(0)
+        ->and($yearly->games()->where('games.id', $in2026->id)->count())->toBe(1);
 });
