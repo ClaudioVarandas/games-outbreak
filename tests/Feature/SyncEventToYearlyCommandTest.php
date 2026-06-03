@@ -176,3 +176,34 @@ it('skips a game that is already complete in the year list', function () {
         ->and($result['inserted'])->toBe(0)
         ->and($yearly->games()->where('games.id', $in2026->id)->count())->toBe(1);
 });
+
+it('syncs all eligible games with --all', function () {
+    [$event, $in2026, $in2028, $tba] = eventWithGames();
+
+    $this->artisan('events:sync-to-yearly', ['event' => 'nacon-connect-2026', '--all' => true])
+        ->assertSuccessful();
+
+    expect(GameList::yearly()->whereYear('start_at', 2026)->first()->games()->where('games.id', $in2026->id)->exists())->toBeTrue()
+        ->and(GameList::yearly()->whereYear('start_at', 2028)->first()->games()->where('games.id', $in2028->id)->exists())->toBeTrue();
+});
+
+it('accepts a numeric id as the event argument', function () {
+    [$event, $in2026] = eventWithGames();
+
+    $this->artisan('events:sync-to-yearly', ['event' => (string) $event->id, '--all' => true])
+        ->assertSuccessful();
+
+    expect(GameList::yearly()->whereYear('start_at', 2026)->first()->games()->where('games.id', $in2026->id)->exists())->toBeTrue();
+});
+
+it('fails when the events list does not exist', function () {
+    $this->artisan('events:sync-to-yearly', ['event' => 'does-not-exist', '--all' => true])
+        ->assertFailed();
+});
+
+it('fails when the slug resolves to a non-events list', function () {
+    GameList::factory()->yearly()->system()->create(['slug' => 'game-releases-2026']);
+
+    $this->artisan('events:sync-to-yearly', ['event' => 'game-releases-2026', '--all' => true])
+        ->assertFailed();
+});
