@@ -146,6 +146,24 @@
                 <span class="text-sm text-gray-300">TBA (To Be Announced)</span>
               </label>
 
+              <div v-if="formData.isTba && (mode === 'add' || mode === 'edit')" class="pl-6">
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                  Year (optional)
+                </label>
+                <input
+                  v-model.number="formData.releaseYear"
+                  type="number"
+                  min="2000"
+                  max="2100"
+                  placeholder="2027"
+                  class="w-40 px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2"
+                  :class="modeStyles.focusRing"
+                >
+                <p class="mt-1 text-xs text-gray-400">
+                  Groups this TBA game under a year section on event lists (e.g. 2027).
+                </p>
+              </div>
+
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
                   id="game-form-early-access"
@@ -314,6 +332,10 @@ const props = defineProps({
   initialVideoUrl: {
     type: String,
     default: ''
+  },
+  initialReleaseYear: {
+    type: [Number, String],
+    default: ''
   }
 });
 
@@ -329,7 +351,8 @@ const formData = ref({
   secondaryGenreIds: [],
   isTba: false,
   isEarlyAccess: false,
-  videoUrl: ''
+  videoUrl: '',
+  releaseYear: ''
 });
 
 const modeStyles = computed(() => {
@@ -471,7 +494,8 @@ const resetForm = () => {
     secondaryGenreIds: secondaryIds,
     isTba: props.initialIsTba,
     isEarlyAccess: props.initialIsEarlyAccess,
-    videoUrl: props.initialVideoUrl || ''
+    videoUrl: props.initialVideoUrl || '',
+    releaseYear: props.initialReleaseYear || ''
   };
 };
 
@@ -479,12 +503,15 @@ const resetForm = () => {
 const onTbaToggle = () => {
   if (formData.value.isTba) {
     formData.value.isEarlyAccess = false;
+  } else {
+    formData.value.releaseYear = '';
   }
 };
 
 const onEarlyAccessToggle = () => {
   if (formData.value.isEarlyAccess) {
     formData.value.isTba = false;
+    formData.value.releaseYear = '';
     if (!formData.value.releaseDate && props.suggestedEarlyAccessDate) {
       formData.value.releaseDate = props.suggestedEarlyAccessDate;
     }
@@ -514,7 +541,8 @@ const handleSubmit = () => {
     genreIds: allGenreIds,
     isTba: formData.value.isTba,
     isEarlyAccess: formData.value.isEarlyAccess,
-    videoUrl: formData.value.videoUrl || null
+    videoUrl: formData.value.videoUrl || null,
+    releaseYear: formData.value.isTba ? (formData.value.releaseYear || null) : null
   });
 };
 
@@ -571,6 +599,12 @@ watch(() => props.initialIsEarlyAccess, (val) => {
 watch(() => props.initialVideoUrl, (val) => {
   if (props.show) {
     formData.value.videoUrl = val || '';
+  }
+});
+
+watch(() => props.initialReleaseYear, (val) => {
+  if (props.show) {
+    formData.value.releaseYear = val || '';
   }
 });
 

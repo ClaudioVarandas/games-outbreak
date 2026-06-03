@@ -276,6 +276,10 @@ const handleFormSubmit = async (formData) => {
       submitData.append('video_url', formData.videoUrl);
     }
 
+    if (formData.releaseYear) {
+      submitData.append('release_year', formData.releaseYear);
+    }
+
     if (props.showGenreSelection) {
       if (formData.primaryGenreId) {
         submitData.append('primary_genre_id', formData.primaryGenreId);
