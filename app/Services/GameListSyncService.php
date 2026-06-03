@@ -79,7 +79,7 @@ class GameListSyncService
     /**
      * Attach a game to a list, computing order + platform_group and encoding json fields.
      *
-     * @param  array{release_date?: mixed, platforms?: list<int>, is_tba?: bool, is_early_access?: bool, is_indie?: bool, is_highlight?: bool, genre_ids?: list<int>, primary_genre_id?: int|null, video_url?: string|null}  $attrs
+     * @param  array{release_date?: mixed, platforms?: list<int>, is_tba?: bool, is_early_access?: bool, is_indie?: bool, is_highlight?: bool, genre_ids?: list<int>, primary_genre_id?: int|null, video_url?: string|null, release_year?: int|null}  $attrs
      */
     public function insertGame(GameList $list, Game $game, array $attrs): void
     {
@@ -98,6 +98,7 @@ class GameListSyncService
             'genre_ids' => json_encode(array_values($attrs['genre_ids'] ?? [])),
             'primary_genre_id' => $attrs['primary_genre_id'] ?? null,
             'video_url' => $attrs['video_url'] ?? null,
+            'release_year' => $attrs['release_year'] ?? null,
         ]);
     }
 

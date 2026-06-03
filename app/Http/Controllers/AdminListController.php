@@ -352,6 +352,7 @@ class AdminListController extends Controller
             'is_tba' => ['nullable', 'boolean'],
             'is_early_access' => ['nullable', 'boolean'],
             'video_url' => ['nullable', 'string', $this->youtubeUrlRule()],
+            'release_year' => ['nullable', 'integer', 'min:2000', 'max:2100'],
         ]);
 
         $igdbId = $request->game_id;
@@ -433,6 +434,7 @@ class AdminListController extends Controller
             'genre_ids' => json_encode(array_map('intval', $genreIds)),
             'primary_genre_id' => $primaryGenreId ? (int) $primaryGenreId : null,
             'video_url' => $request->input('video_url') ?: null,
+            'release_year' => $isTba ? ($request->integer('release_year') ?: null) : null,
         ]);
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -773,6 +775,7 @@ class AdminListController extends Controller
             'game_name' => $game->name,
             'cover_url' => $game->getCoverUrl('cover_big'),
             'video_url' => $pivotData->video_url ?? null,
+            'release_year' => $pivotData->release_year ?? null,
         ]);
     }
 
@@ -798,6 +801,7 @@ class AdminListController extends Controller
             'genre_ids.*' => ['exists:genres,id'],
             'primary_genre_id' => ['nullable', 'exists:genres,id'],
             'video_url' => ['nullable', 'string', $this->youtubeUrlRule()],
+            'release_year' => ['nullable', 'integer', 'min:2000', 'max:2100'],
         ]);
 
         $isTba = $request->boolean('is_tba', false);
@@ -828,6 +832,10 @@ class AdminListController extends Controller
         if ($request->has('video_url')) {
             $pivotUpdate['video_url'] = $request->input('video_url') ?: null;
         }
+
+        // release_year is fully derived from is_tba, so it is set unconditionally (unlike the
+        // optional video_url above): turning TBA off must clear any previously stored year.
+        $pivotUpdate['release_year'] = $isTba ? ($request->integer('release_year') ?: null) : null;
 
         $list->games()->updateExistingPivot($game->id, $pivotUpdate);
 
