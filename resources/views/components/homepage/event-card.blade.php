@@ -43,24 +43,24 @@
             ])></span>
             {{ $isUpcoming ? 'Upcoming' : 'Past Event' }}
         </span>
-
-        {{-- Event time — bottom-left overlay --}}
-        @if(!empty($banner['date']))
-            <span class="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-[3px] text-[0.66rem] font-semibold tracking-[0.03em] text-slate-100 backdrop-blur-sm">
-                <svg class="h-3 w-3 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                {{ $banner['date'] }}@if(!empty($banner['time'])) <span class="text-slate-300">· {{ $banner['time'] }}</span>@endif
-            </span>
-        @endif
     </div>
 
     {{-- Title — relative so it stacks above neon-card::before gradient overlay --}}
     <h3 @class([
-        'relative mt-[14px] px-1 pb-1 font-bold uppercase leading-snug tracking-[0.04em] text-slate-100 line-clamp-2',
+        'relative mt-[14px] px-1 font-bold uppercase leading-snug tracking-[0.04em] text-slate-100 line-clamp-2',
         'text-base' => $size === 'lg',
         'text-[0.8rem]' => $size !== 'lg',
     ])>
         {{ $banner['alt'] ?? 'Gaming Event' }}
     </h3>
+
+    {{-- Event time — below the title, same pill style --}}
+    @if(!empty($banner['date']))
+        <span class="relative ml-1 mt-2 inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-[3px] text-[0.66rem] font-semibold tracking-[0.03em] text-slate-100 backdrop-blur-sm">
+            <svg class="h-3 w-3 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            {{ $banner['date'] }}@if(!empty($banner['time'])) <span class="text-slate-300">· {{ $banner['time'] }}</span>@endif
+        </span>
+    @endif
 </a>

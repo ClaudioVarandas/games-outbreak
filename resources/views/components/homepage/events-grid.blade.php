@@ -14,12 +14,14 @@
 
     @if($featured || count($past) > 0)
         @if($featured)
-            {{-- Upcoming row: featured on the left half, the next 2 side by side on the right half --}}
-            <div class="grid gap-4 lg:grid-cols-2">
-                <x-homepage.event-card :banner="$featured" size="lg" />
+            {{-- Upcoming row: featured (60%) on the left, the next 2 stacked (40%) on the right --}}
+            <div class="grid gap-4 lg:grid-cols-5">
+                <div class="lg:col-span-3">
+                    <x-homepage.event-card :banner="$featured" size="lg" />
+                </div>
 
                 @if(count($restUpcoming) > 0)
-                    <div class="grid gap-4">
+                    <div class="grid gap-4 lg:col-span-2">
                         @foreach($restUpcoming as $banner)
                             <x-homepage.event-card :banner="$banner" size="md" />
                         @endforeach
