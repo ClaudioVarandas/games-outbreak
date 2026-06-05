@@ -4,9 +4,10 @@
 
 @php
     $upcoming = $banners['upcoming'] ?? [];
-    $past = $banners['past'] ?? [];
+    $past = array_slice($banners['past'] ?? [], 0, 4);
     $featured = $upcoming[0] ?? null;
-    $restUpcoming = array_slice($upcoming, 1);
+    $restUpcoming = array_slice($upcoming, 1, 3);
+    $restCount = count($restUpcoming);
 @endphp
 
 <section id="events" class="neon-section-frame grid gap-5 scroll-mt-32">
@@ -14,14 +15,17 @@
 
     @if($featured || count($past) > 0)
         @if($featured)
-            {{-- Upcoming: next event large, the rest smaller alongside --}}
-            <div class="grid gap-4 lg:grid-cols-3">
-                <div class="lg:col-span-2">
-                    <x-homepage.event-card :banner="$featured" featured />
-                </div>
+            {{-- Upcoming: next event featured on the left half, the next 3 stacked on the right half --}}
+            <div class="grid gap-4 lg:h-[460px] lg:grid-cols-2">
+                <x-homepage.event-card :banner="$featured" featured />
 
-                @if(count($restUpcoming) > 0)
-                    <div class="grid grid-cols-2 gap-4 lg:grid-cols-1">
+                @if($restCount > 0)
+                    <div @class([
+                        'grid gap-4 lg:h-full',
+                        'lg:grid-rows-1' => $restCount === 1,
+                        'lg:grid-rows-2' => $restCount === 2,
+                        'lg:grid-rows-3' => $restCount >= 3,
+                    ])>
                         @foreach($restUpcoming as $banner)
                             <x-homepage.event-card :banner="$banner" />
                         @endforeach

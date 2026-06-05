@@ -7,12 +7,12 @@
     $isUpcoming = ($banner['status'] ?? 'upcoming') === 'upcoming';
 @endphp
 
-<a href="{{ $banner['link'] ?? '#' }}" class="neon-card group block p-[9px]">
-    {{-- Image with status + time overlays --}}
+<a href="{{ $banner['link'] ?? '#' }}" class="neon-card group flex h-full flex-col p-[9px]">
+    {{-- Image with status + time overlays (flex-1 so it fills the card's height) --}}
     <div @class([
-        'relative [transform:translateZ(0)] overflow-hidden rounded-[14px]',
-        'h-[300px]' => $featured,
-        'h-[150px]' => ! $featured,
+        'relative flex-1 [transform:translateZ(0)] overflow-hidden rounded-[14px]',
+        'min-h-[260px]' => $featured,
+        'min-h-[130px]' => ! $featured,
     ])>
         @if(!empty($banner['image']))
             <img
@@ -45,7 +45,7 @@
         {{-- Event time — bottom-left overlay --}}
         @if(!empty($banner['date']))
             <span class="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-[3px] text-[0.66rem] font-semibold tracking-[0.03em] text-slate-100 backdrop-blur-sm">
-                <svg class="h-3 w-3 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="h-3 w-3 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 {{ $banner['date'] }}@if(!empty($banner['time'])) <span class="text-slate-300">· {{ $banner['time'] }}</span>@endif
