@@ -3,30 +3,37 @@
 ])
 
 @php
-    $upcoming = $banners['upcoming'] ?? [];
+    $upcoming = array_slice($banners['upcoming'] ?? [], 0, 3);
     $past = array_slice($banners['past'] ?? [], 0, 4);
-    $featured = $upcoming[0] ?? null;
-    $restUpcoming = array_slice($upcoming, 1, 2);
+    $upcomingCount = count($upcoming);
 @endphp
 
 <section id="events" class="neon-section-frame grid gap-5 scroll-mt-32">
     <x-homepage.section-heading icon="broadcast" title="Events" :href="route('events')" linkText="See timeline" />
 
-    @if($featured || count($past) > 0)
-        @if($featured)
-            {{-- Upcoming row: featured (60%) on the left, the next 2 stacked (40%) on the right --}}
+    @if($upcomingCount > 0 || count($past) > 0)
+        @if($upcomingCount === 1)
+            {{-- Single upcoming: full width --}}
+            <x-homepage.event-card :banner="$upcoming[0]" size="lg" />
+        @elseif($upcomingCount === 2)
+            {{-- Two upcoming: 50/50 split --}}
+            <div class="grid gap-4 lg:grid-cols-2">
+                @foreach($upcoming as $banner)
+                    <x-homepage.event-card :banner="$banner" size="lg" />
+                @endforeach
+            </div>
+        @elseif($upcomingCount >= 3)
+            {{-- Three upcoming: featured (60%) on the left, the next 2 stacked (40%) on the right --}}
             <div class="grid gap-4 lg:grid-cols-5">
                 <div class="lg:col-span-3">
-                    <x-homepage.event-card :banner="$featured" size="lg" />
+                    <x-homepage.event-card :banner="$upcoming[0]" size="lg" />
                 </div>
 
-                @if(count($restUpcoming) > 0)
-                    <div class="grid gap-4 lg:col-span-2">
-                        @foreach($restUpcoming as $banner)
-                            <x-homepage.event-card :banner="$banner" size="md" />
-                        @endforeach
-                    </div>
-                @endif
+                <div class="grid gap-4 lg:col-span-2">
+                    @foreach(array_slice($upcoming, 1, 2) as $banner)
+                        <x-homepage.event-card :banner="$banner" size="md" />
+                    @endforeach
+                </div>
             </div>
         @endif
 
