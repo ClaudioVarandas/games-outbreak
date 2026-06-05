@@ -1,19 +1,21 @@
 @props([
     'banner' => [],
-    'featured' => false,
+    'size' => 'md',
 ])
 
 @php
     $isUpcoming = ($banner['status'] ?? 'upcoming') === 'upcoming';
+
+    $imageHeight = match ($size) {
+        'lg' => 'h-[220px] sm:h-[300px] lg:h-[380px]',
+        'md' => 'h-[180px] lg:h-[380px]',
+        default => 'h-[150px]',
+    };
 @endphp
 
-<a href="{{ $banner['link'] ?? '#' }}" class="neon-card group flex h-full flex-col p-[9px]">
-    {{-- Image with status + time overlays (flex-1 so it fills the card's height) --}}
-    <div @class([
-        'relative flex-1 [transform:translateZ(0)] overflow-hidden rounded-[14px]',
-        'min-h-[260px]' => $featured,
-        'min-h-[130px]' => ! $featured,
-    ])>
+<a href="{{ $banner['link'] ?? '#' }}" class="neon-card group block p-[9px]">
+    {{-- Image with status + time overlays --}}
+    <div class="relative [transform:translateZ(0)] overflow-hidden rounded-[14px] {{ $imageHeight }}">
         @if(!empty($banner['image']))
             <img
                 src="{{ $banner['image'] }}"
@@ -56,8 +58,8 @@
     {{-- Title — relative so it stacks above neon-card::before gradient overlay --}}
     <h3 @class([
         'relative mt-[14px] px-1 pb-1 font-bold uppercase leading-snug tracking-[0.04em] text-slate-100 line-clamp-2',
-        'text-base' => $featured,
-        'text-[0.8rem]' => ! $featured,
+        'text-base' => $size === 'lg',
+        'text-[0.8rem]' => $size !== 'lg',
     ])>
         {{ $banner['alt'] ?? 'Gaming Event' }}
     </h3>
