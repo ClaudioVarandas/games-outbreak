@@ -8,7 +8,7 @@
 
     $imageHeight = match ($size) {
         'lg' => 'h-[220px] sm:h-[300px] lg:h-[380px]',
-        'md' => 'h-[180px] lg:h-[380px]',
+        'md' => 'h-[182px]',
         default => 'h-[150px]',
     };
 @endphp

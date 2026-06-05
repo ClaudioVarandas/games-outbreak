@@ -19,7 +19,7 @@
                 <x-homepage.event-card :banner="$featured" size="lg" />
 
                 @if(count($restUpcoming) > 0)
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-4">
                         @foreach($restUpcoming as $banner)
                             <x-homepage.event-card :banner="$banner" size="md" />
                         @endforeach
