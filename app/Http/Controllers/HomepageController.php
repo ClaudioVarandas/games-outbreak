@@ -48,27 +48,43 @@ class HomepageController extends Controller
     }
 
     /**
-     * Get active event lists with computed status.
+     * Get active event lists, grouped into upcoming/past and sorted by event time.
+     *
+     * @return array{upcoming: list<array<string, mixed>>, past: list<array<string, mixed>>}
      */
     private function getEventBanners(): array
     {
-        return GameList::events()
+        $events = GameList::events()
             ->where('is_active', true)
             ->where('is_public', true)
-            ->orderBy('start_at', 'desc')
             ->get()
             ->map(function (GameList $event) {
                 $eventTime = $event->getEventTime();
-                $status = $eventTime && $eventTime->isPast() ? 'past' : 'upcoming';
+                $when = $eventTime ?? $event->start_at;
 
                 return [
-                    'image' => $event->og_image_path ? asset($event->og_image_path) : '',
-                    'link' => route('lists.show', ['type' => ListTypeEnum::EVENTS->value, 'slug' => $event->slug]),
-                    'alt' => $event->name,
-                    'status' => $status,
+                    'when' => $when,
+                    'banner' => [
+                        'image' => $event->og_image_path ? asset($event->og_image_path) : '',
+                        'link' => route('lists.show', ['type' => ListTypeEnum::EVENTS->value, 'slug' => $event->slug]),
+                        'alt' => $event->name,
+                        'status' => $when && $when->isPast() ? 'past' : 'upcoming',
+                        'date' => $when?->format('M d, Y'),
+                        'time' => $eventTime && $event->getEventTimezone()
+                            ? $eventTime->format('H:i').' '.$event->getEventTimezone()
+                            : null,
+                    ],
                 ];
-            })
-            ->toArray();
+            });
+
+        return [
+            'upcoming' => $events->filter(fn (array $e) => $e['banner']['status'] === 'upcoming')
+                ->sortBy(fn (array $e) => $e['when']?->getTimestamp() ?? 0)
+                ->pluck('banner')->values()->all(),
+            'past' => $events->filter(fn (array $e) => $e['banner']['status'] === 'past')
+                ->sortByDesc(fn (array $e) => $e['when']?->getTimestamp() ?? 0)
+                ->pluck('banner')->values()->all(),
+        ];
     }
 
     private function resolveNewsLocale(Request $request): NewsLocaleEnum

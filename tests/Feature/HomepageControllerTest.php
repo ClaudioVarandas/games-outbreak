@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Game;
 use App\Models\GameList;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,11 +23,11 @@ class HomepageControllerTest extends TestCase
     public function test_homepage_displays_this_week_games(): void
     {
         $currentYear = now()->year;
-        $startOfWeek = \Carbon\Carbon::today()->startOfWeek(\Carbon\Carbon::MONDAY);
+        $startOfWeek = Carbon::today()->startOfWeek(Carbon::MONDAY);
 
         $yearlyList = GameList::factory()->system()->yearly()->active()->create([
-            'start_at' => \Carbon\Carbon::create($currentYear, 1, 1),
-            'end_at' => \Carbon\Carbon::create($currentYear, 12, 31),
+            'start_at' => Carbon::create($currentYear, 1, 1),
+            'end_at' => Carbon::create($currentYear, 12, 31),
         ]);
 
         $game = Game::factory()->create();
@@ -55,8 +56,8 @@ class HomepageControllerTest extends TestCase
     public function test_homepage_displays_weekly_upcoming_games(): void
     {
         // Create games within the current week (from today to Sunday)
-        $today = \Carbon\Carbon::today();
-        $weekEnd = $today->copy()->endOfWeek(\Carbon\Carbon::SUNDAY)->endOfDay();
+        $today = Carbon::today();
+        $weekEnd = $today->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
 
         // Ensure dates are in the future relative to today, but within the current week
         $thisWeek = $today->copy()->addDays(1); // Tomorrow
@@ -140,7 +141,9 @@ class HomepageControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertViewHas('eventBanners', function (array $banners) {
-            return count($banners) === 1 && $banners[0]['status'] === 'past';
+            return count($banners['past']) === 1
+                && $banners['past'][0]['status'] === 'past'
+                && count($banners['upcoming']) === 0;
         });
     }
 
@@ -156,7 +159,9 @@ class HomepageControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertViewHas('eventBanners', function (array $banners) {
-            return count($banners) === 1 && $banners[0]['status'] === 'upcoming';
+            return count($banners['upcoming']) === 1
+                && $banners['upcoming'][0]['status'] === 'upcoming'
+                && count($banners['past']) === 0;
         });
     }
 
@@ -172,7 +177,37 @@ class HomepageControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertViewHas('eventBanners', function (array $banners) {
-            return count($banners) === 0;
+            return count($banners['upcoming']) === 0 && count($banners['past']) === 0;
+        });
+    }
+
+    public function test_homepage_groups_and_sorts_events_by_event_time(): void
+    {
+        GameList::factory()->system()->events()->public()->create([
+            'name' => 'Later Showcase',
+            'event_data' => ['event_time' => now()->addDays(10)->format('Y-m-d\TH:i'), 'event_timezone' => 'UTC'],
+        ]);
+        GameList::factory()->system()->events()->public()->create([
+            'name' => 'Soon Showcase',
+            'event_data' => ['event_time' => now()->addDays(2)->format('Y-m-d\TH:i'), 'event_timezone' => 'UTC'],
+        ]);
+        GameList::factory()->system()->events()->public()->create([
+            'name' => 'Older Past',
+            'event_data' => ['event_time' => now()->subDays(20)->format('Y-m-d\TH:i'), 'event_timezone' => 'UTC'],
+        ]);
+        GameList::factory()->system()->events()->public()->create([
+            'name' => 'Recent Past',
+            'event_data' => ['event_time' => now()->subDays(2)->format('Y-m-d\TH:i'), 'event_timezone' => 'UTC'],
+        ]);
+
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('eventBanners', function (array $banners) {
+            return array_column($banners['upcoming'], 'alt') === ['Soon Showcase', 'Later Showcase']
+                && array_column($banners['past'], 'alt') === ['Recent Past', 'Older Past']
+                && $banners['upcoming'][0]['date'] !== null
+                && $banners['upcoming'][0]['time'] !== null;
         });
     }
 
