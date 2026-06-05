@@ -10,7 +10,7 @@
 @if(!$sectionKey)
 {{-- Vue mount point for game edit modals (only in flat/non-sectioned mode) --}}
 @php
-    $activePlatforms = \App\Enums\PlatformEnum::getActivePlatforms()->map(fn($enum) => ['id' => $enum->value, 'label' => $enum->label(), 'color' => $enum->color()])->values();
+    $activePlatforms = \App\Enums\PlatformEnum::displayList();
     $systemGenres = \App\Models\Genre::visible()->where('is_pending_review', false)->ordered()->get(['id', 'name', 'slug']);
 @endphp
 <div id="game-edit-modals"

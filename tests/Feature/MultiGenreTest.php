@@ -73,7 +73,7 @@ describe('Multi-Genre Assignment via addGame', function () {
         expect($pivot->primary_genre_id)->toBe($this->primaryGenre->id);
     });
 
-    it('rejects more than 3 genres', function () {
+    it('allows more than 3 genres', function () {
         $genreIds = $this->genres->pluck('id')->toArray(); // 5 genres
 
         $response = $this->actingAs($this->admin)
@@ -86,8 +86,11 @@ describe('Multi-Genre Assignment via addGame', function () {
                 'primary_genre_id' => $this->primaryGenre->id,
             ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['genre_ids']);
+        $response->assertSuccessful();
+
+        $pivot = $this->yearlyList->games()->where('games.id', $this->game->id)->first()->pivot;
+
+        expect(json_decode($pivot->genre_ids, true))->toHaveCount(5);
     });
 
     it('validates genre ids exist', function () {

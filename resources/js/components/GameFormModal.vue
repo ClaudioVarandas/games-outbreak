@@ -12,7 +12,7 @@
       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
       @click.self="$emit('close')"
     >
-      <div class="bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <!-- Header with mode-based styling -->
           <div class="flex items-center justify-between mb-4">
@@ -111,21 +111,27 @@
               <label class="block text-sm font-medium text-gray-300 mb-2">
                 Platforms
               </label>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <label
-                  v-for="platform in availablePlatforms"
-                  :key="platform.id"
-                  class="flex items-center gap-2 p-3 rounded-lg bg-gray-700 hover:bg-gray-600 cursor-pointer transition"
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 items-start">
+                <div
+                  v-for="group in platformGroups"
+                  :key="group.key"
+                  class="flex flex-col gap-2"
                 >
-                  <input
-                    type="checkbox"
-                    :value="platform.id"
-                    v-model="formData.platforms"
-                    class="rounded border-gray-500 focus:ring-orange-500"
-                    :class="modeStyles.checkbox"
+                  <label
+                    v-for="platform in group.platforms"
+                    :key="platform.id"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 cursor-pointer transition"
                   >
-                  <span class="text-sm text-white">{{ platform.label }}</span>
-                </label>
+                    <input
+                      type="checkbox"
+                      :value="platform.id"
+                      v-model="formData.platforms"
+                      class="rounded border-gray-500 focus:ring-orange-500"
+                      :class="modeStyles.checkbox"
+                    >
+                    <span class="text-sm text-white">{{ platform.label }}</span>
+                  </label>
+                </div>
               </div>
               <p v-if="game.platforms" class="mt-2 text-xs text-gray-400">
                 Default: {{ game.platforms }}
@@ -134,34 +140,32 @@
 
             <!-- TBA / Early Access Toggles (mutually exclusive) -->
             <div class="space-y-3">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input
-                  id="game-form-tba"
-                  type="checkbox"
-                  v-model="formData.isTba"
-                  @change="onTbaToggle"
-                  class="rounded border-gray-500"
-                  :class="modeStyles.checkbox"
-                >
-                <span class="text-sm text-gray-300">TBA (To Be Announced)</span>
-              </label>
-
-              <div v-if="formData.isTba && (mode === 'add' || mode === 'edit')" class="pl-6">
-                <label class="block text-sm font-medium text-gray-300 mb-2">
-                  Year (optional)
+              <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    id="game-form-tba"
+                    type="checkbox"
+                    v-model="formData.isTba"
+                    @change="onTbaToggle"
+                    class="rounded border-gray-500"
+                    :class="modeStyles.checkbox"
+                  >
+                  <span class="text-sm text-gray-300">TBA (To Be Announced)</span>
                 </label>
-                <input
-                  v-model.number="formData.releaseYear"
-                  type="number"
-                  min="2000"
-                  max="2100"
-                  placeholder="2027"
-                  class="w-40 px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2"
-                  :class="modeStyles.focusRing"
-                >
-                <p class="mt-1 text-xs text-gray-400">
-                  Groups this TBA game under a year section on event lists (e.g. 2027).
-                </p>
+
+                <div v-if="mode === 'add' || mode === 'edit'" class="flex items-center gap-2">
+                  <label for="game-form-release-year" class="text-sm text-gray-300">Year</label>
+                  <select
+                    id="game-form-release-year"
+                    v-model.number="formData.releaseYear"
+                    :disabled="!formData.isTba"
+                    class="w-36 px-3 py-1.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :class="modeStyles.focusRing"
+                  >
+                    <option value="">No year</option>
+                    <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}</option>
+                  </select>
+                </div>
               </div>
 
               <label class="flex items-center gap-2 cursor-pointer">
@@ -195,31 +199,16 @@
               </div>
             </div>
 
-            <!-- Genre Selection -->
+            <!-- Genres (first selected is the primary) -->
             <div v-if="availableGenres.length > 0">
-              <label class="block text-sm font-medium text-gray-300 mb-2">
-                Primary Genre
-              </label>
-              <select
-                v-model="formData.primaryGenreId"
-                class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2"
-                :class="modeStyles.focusRing"
-              >
-                <option value="">Select primary genre...</option>
-                <option v-for="genre in availableGenres" :key="genre.id" :value="genre.id">
-                  {{ genre.name }}
-                </option>
-              </select>
-              <p v-if="mode === 'highlight' || mode === 'indie'" class="mt-1 text-sm text-gray-400">
-                Choose which genre tab this game should appear under.
-              </p>
-            </div>
-
-            <!-- Secondary Genres -->
-            <div v-if="availableGenres.length > 0">
-              <label class="block text-sm font-medium text-gray-300 mb-2">
-                Additional Genres (max 2)
-              </label>
+              <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 mb-2">
+                <label class="text-sm font-medium text-gray-300">
+                  Genres
+                </label>
+                <span class="text-xs text-blue-400">
+                  The first genre is the primary — it sets which genre tab the game appears under on yearly lists.
+                </span>
+              </div>
               <select
                 ref="genreSelectRef"
                 multiple
@@ -229,16 +218,13 @@
                   {{ genre.name }}
                 </option>
               </select>
-              <p class="mt-1 text-xs text-gray-400">
-                Selected: {{ formData.secondaryGenreIds.length }}/2
-              </p>
             </div>
 
             <!-- Form Actions -->
             <div class="flex gap-3 pt-4">
               <button
                 type="submit"
-                :disabled="submitting || (requireGenre && !formData.primaryGenreId)"
+                :disabled="submitting"
                 class="flex-1 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition"
                 :class="modeStyles.submitButton"
               >
@@ -347,8 +333,7 @@ let tomSelectInstance = null;
 const formData = ref({
   releaseDate: '',
   platforms: [],
-  primaryGenreId: '',
-  secondaryGenreIds: [],
+  genreIds: [],
   isTba: false,
   isEarlyAccess: false,
   videoUrl: '',
@@ -438,8 +423,42 @@ const submittingText = computed(() => {
   }
 });
 
-const requireGenre = computed(() => {
-  return (props.mode === 'highlight' || props.mode === 'indie') && props.availableGenres.length > 0;
+const platformGroups = computed(() => {
+  const groups = [];
+  const indexByKey = {};
+
+  for (const platform of props.availablePlatforms) {
+    const key = platform.group ?? 'other';
+    if (!(key in indexByKey)) {
+      indexByKey[key] = groups.length;
+      groups.push({ key, platforms: [] });
+    }
+    groups[indexByKey[key]].platforms.push(platform);
+  }
+
+  return groups;
+});
+
+const defaultPlatformIds = computed(() => {
+  return props.availablePlatforms
+    .filter(platform => platform.default)
+    .map(platform => parseInt(platform.id, 10));
+});
+
+const yearOptions = computed(() => {
+  const current = new Date().getFullYear();
+  const years = [];
+  for (let year = current; year <= current + 6; year++) {
+    years.push(year);
+  }
+
+  const selected = Number(formData.value.releaseYear);
+  if (selected && !years.includes(selected)) {
+    years.push(selected);
+    years.sort((a, b) => a - b);
+  }
+
+  return years;
 });
 
 const initTomSelect = () => {
@@ -450,16 +469,15 @@ const initTomSelect = () => {
   }
 
   tomSelectInstance = new window.TomSelect(genreSelectRef.value, {
-    maxItems: 2,
     plugins: ['remove_button'],
     onChange: (values) => {
-      formData.value.secondaryGenreIds = values.map(v => parseInt(v));
+      formData.value.genreIds = values.map(v => parseInt(v));
     }
   });
 
-  // Set initial values if we have any secondary genres
-  if (formData.value.secondaryGenreIds.length > 0) {
-    formData.value.secondaryGenreIds.forEach(id => {
+  // Seed the field with any pre-selected genres, preserving order (first = primary).
+  if (formData.value.genreIds.length > 0) {
+    formData.value.genreIds.forEach(id => {
       tomSelectInstance.addItem(String(id), true);
     });
   }
@@ -473,25 +491,35 @@ const destroyTomSelect = () => {
 };
 
 const resetForm = () => {
-  // Calculate secondary genre IDs (all genre IDs except primary)
+  // Build an ordered genre list with the primary first, so "first = primary" holds on edit.
   const primaryId = props.initialPrimaryGenreId ? parseInt(props.initialPrimaryGenreId) : null;
-  const secondaryIds = (props.initialGenreIds || [])
+  const genreIds = [];
+  if (primaryId) {
+    genreIds.push(primaryId);
+  }
+  (props.initialGenreIds || [])
     .map(id => parseInt(id))
-    .filter(id => id !== primaryId);
+    .forEach(id => {
+      if (id !== primaryId && !genreIds.includes(id)) {
+        genreIds.push(id);
+      }
+    });
 
-  // Ensure platforms are integers for checkbox v-model matching
+  // Ensure platforms are integers for checkbox v-model matching.
+  // Prefer the game's own platforms; fall back to the default selection when it has none.
   let platformIds = [];
   if (props.initialPlatforms && props.initialPlatforms.length > 0) {
     platformIds = props.initialPlatforms.map(p => parseInt(p, 10));
   } else if (props.game?.platform_ids && props.game.platform_ids.length > 0) {
     platformIds = props.game.platform_ids.map(p => parseInt(p, 10));
+  } else {
+    platformIds = [...defaultPlatformIds.value];
   }
 
   formData.value = {
     releaseDate: props.initialReleaseDate || props.game?.release_date || '',
     platforms: platformIds,
-    primaryGenreId: props.initialPrimaryGenreId || '',
-    secondaryGenreIds: secondaryIds,
+    genreIds,
     isTba: props.initialIsTba,
     isEarlyAccess: props.initialIsEarlyAccess,
     videoUrl: props.initialVideoUrl || '',
@@ -524,21 +552,13 @@ const applySuggestedEarlyAccess = () => {
 };
 
 const handleSubmit = () => {
-  const allGenreIds = [];
-  if (formData.value.primaryGenreId) {
-    allGenreIds.push(parseInt(formData.value.primaryGenreId));
-  }
-  formData.value.secondaryGenreIds.forEach(id => {
-    if (!allGenreIds.includes(id)) {
-      allGenreIds.push(id);
-    }
-  });
+  const genreIds = [...formData.value.genreIds];
 
   emit('submit', {
     releaseDate: formData.value.isTba ? null : formData.value.releaseDate,
     platforms: formData.value.platforms,
-    primaryGenreId: formData.value.primaryGenreId,
-    genreIds: allGenreIds,
+    primaryGenreId: genreIds.length > 0 ? genreIds[0] : null,
+    genreIds,
     isTba: formData.value.isTba,
     isEarlyAccess: formData.value.isEarlyAccess,
     videoUrl: formData.value.videoUrl || null,
@@ -575,12 +595,6 @@ watch(() => props.initialPlatforms, (val) => {
 watch(() => props.initialReleaseDate, (val) => {
   if (props.show && val) {
     formData.value.releaseDate = val;
-  }
-});
-
-watch(() => props.initialPrimaryGenreId, (val) => {
-  if (props.show) {
-    formData.value.primaryGenreId = val || '';
   }
 });
 

@@ -14,7 +14,7 @@
         <div
             data-vue-component="add-game-to-list"
             data-list-id="{{ $list->id }}"
-            data-platforms="{{ json_encode(\App\Enums\PlatformEnum::getActivePlatforms()->map(fn($enum) => ['id' => $enum->value, 'label' => $enum->label(), 'color' => $enum->color()])->values()) }}"
+            data-platforms="{{ json_encode(\App\Enums\PlatformEnum::displayList()) }}"
             data-route-prefix="{{ route('admin.system-lists.games.add', [$list->list_type->toSlug(), $list->slug]) }}"
             data-show-genre-selection="{{ $showGenreSelection ? 'true' : 'false' }}"
             data-available-genres="{{ $genres->toJson() }}"

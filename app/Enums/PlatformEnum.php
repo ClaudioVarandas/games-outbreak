@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use Illuminate\Support\Collection;
+
 enum PlatformEnum: int
 {
     // IGDB ID's
@@ -66,6 +68,24 @@ enum PlatformEnum: int
         };
     }
 
+    public function group(): PlatformDisplayGroupEnum
+    {
+        return match ($this) {
+            self::PC, self::LINUX, self::MACOS => PlatformDisplayGroupEnum::Computer,
+            self::PS5, self::XBOX_SX, self::SWITCH2 => PlatformDisplayGroupEnum::CurrentGen,
+            self::ANDROID, self::IOS => PlatformDisplayGroupEnum::Mobile,
+            self::PS4, self::XBOX_ONE, self::SWITCH => PlatformDisplayGroupEnum::LastGen,
+        };
+    }
+
+    public function isDefaultSelection(): bool
+    {
+        return match ($this) {
+            self::PC, self::PS5, self::XBOX_SX, self::SWITCH2 => true,
+            default => false,
+        };
+    }
+
     // Optional: get by IGDB ID
     public static function fromIgdbId(int $id): ?self
     {
@@ -73,10 +93,30 @@ enum PlatformEnum: int
     }
 
     /**
+     * Active platforms for the game form picker, ordered by display group then priority.
+     * Each entry is tagged with its display group and whether it is a default selection.
+     *
+     * @return Collection<int, array{id: int, label: string, color: string, group: string, default: bool}>
+     */
+    public static function displayList(): Collection
+    {
+        return self::getActivePlatforms()
+            ->sortBy(fn (self $enum): int => $enum->group()->order() * 100 + self::getPriority($enum->value))
+            ->map(fn (self $enum): array => [
+                'id' => $enum->value,
+                'label' => $enum->label(),
+                'color' => $enum->color(),
+                'group' => $enum->group()->value,
+                'default' => $enum->isDefaultSelection(),
+            ])
+            ->values();
+    }
+
+    /**
      * Get only active platforms for frontend display
      * Reads from config/platforms.php to determine which platforms are active
      */
-    public static function getActivePlatforms(): \Illuminate\Support\Collection
+    public static function getActivePlatforms(): Collection
     {
         $activeIds = config('platforms.active', []);
 

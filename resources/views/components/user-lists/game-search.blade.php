@@ -22,7 +22,7 @@
         <div
             data-vue-component="add-game-to-list"
             data-list-id="{{ $listId }}"
-            data-platforms="{{ json_encode(\App\Enums\PlatformEnum::getActivePlatforms()->map(fn($enum) => ['id' => $enum->value, 'label' => $enum->label(), 'color' => $enum->color()])->values()) }}"
+            data-platforms="{{ json_encode(\App\Enums\PlatformEnum::displayList()) }}"
             data-route-prefix="{{ route('user.lists.games.add', [$user, $type]) }}"
         ></div>
     @else

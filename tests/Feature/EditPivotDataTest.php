@@ -250,7 +250,7 @@ describe('Edit Pivot Data', function () {
         'events' => ['events', ListTypeEnum::EVENTS->value],
     ]);
 
-    it('validates genre_ids max of 3', function () {
+    it('allows more than 3 genres', function () {
         $list = GameList::factory()->create([
             'name' => 'January 2026',
             'list_type' => ListTypeEnum::YEARLY,
@@ -270,7 +270,9 @@ describe('Edit Pivot Data', function () {
                 'genre_ids' => $genres->pluck('id')->toArray(),
             ]);
 
-        $response->assertUnprocessable();
-        $response->assertJsonValidationErrors('genre_ids');
+        $response->assertSuccessful();
+
+        $pivot = $list->games()->where('game_id', $game->id)->first()->pivot;
+        expect(json_decode($pivot->genre_ids, true))->toHaveCount(4);
     });
 });

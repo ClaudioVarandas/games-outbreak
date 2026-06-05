@@ -346,7 +346,7 @@ class AdminListController extends Controller
 
         $request->validate([
             'game_id' => ['required'],
-            'genre_ids' => ['nullable', 'array', 'max:3'],
+            'genre_ids' => ['nullable', 'array'],
             'genre_ids.*' => ['exists:genres,id'],
             'primary_genre_id' => ['nullable', 'exists:genres,id'],
             'is_tba' => ['nullable', 'boolean'],
@@ -561,13 +561,10 @@ class AdminListController extends Controller
 
         if ($newValue) {
             $primaryGenreId = $request->input('primary_genre_id');
-            if (! $primaryGenreId) {
-                return response()->json(['error' => 'Genre is required when marking as highlight.'], 400);
-            }
 
-            $genreIds = $request->input('genre_ids', [$primaryGenreId]);
+            $genreIds = $request->input('genre_ids', $primaryGenreId ? [$primaryGenreId] : []);
             if (is_string($genreIds)) {
-                $genreIds = json_decode($genreIds, true) ?? [$primaryGenreId];
+                $genreIds = json_decode($genreIds, true) ?? ($primaryGenreId ? [$primaryGenreId] : []);
             }
 
             $isTba = (bool) $request->input('is_tba', false);
@@ -585,7 +582,7 @@ class AdminListController extends Controller
             $list->games()->updateExistingPivot($game->id, [
                 'is_highlight' => true,
                 'genre_ids' => json_encode(array_map('intval', $genreIds)),
-                'primary_genre_id' => (int) $primaryGenreId,
+                'primary_genre_id' => $primaryGenreId ? (int) $primaryGenreId : null,
                 'release_date' => $releaseDate,
                 'is_tba' => $isTba,
                 'is_early_access' => $isEarlyAccess,
@@ -622,13 +619,10 @@ class AdminListController extends Controller
 
         if ($newValue) {
             $primaryGenreId = $request->input('primary_genre_id');
-            if (! $primaryGenreId) {
-                return response()->json(['error' => 'Genre is required when marking as indie.'], 400);
-            }
 
-            $genreIds = $request->input('genre_ids', [$primaryGenreId]);
+            $genreIds = $request->input('genre_ids', $primaryGenreId ? [$primaryGenreId] : []);
             if (is_string($genreIds)) {
-                $genreIds = json_decode($genreIds, true) ?? [$primaryGenreId];
+                $genreIds = json_decode($genreIds, true) ?? ($primaryGenreId ? [$primaryGenreId] : []);
             }
 
             $isTba = (bool) $request->input('is_tba', false);
@@ -646,7 +640,7 @@ class AdminListController extends Controller
             $list->games()->updateExistingPivot($game->id, [
                 'is_indie' => true,
                 'genre_ids' => json_encode(array_map('intval', $genreIds)),
-                'primary_genre_id' => (int) $primaryGenreId,
+                'primary_genre_id' => $primaryGenreId ? (int) $primaryGenreId : null,
                 'release_date' => $releaseDate,
                 'is_tba' => $isTba,
                 'is_early_access' => $isEarlyAccess,
@@ -797,7 +791,7 @@ class AdminListController extends Controller
             'platforms' => ['nullable', 'array'],
             'is_tba' => ['nullable', 'boolean'],
             'is_early_access' => ['nullable', 'boolean'],
-            'genre_ids' => ['nullable', 'array', 'max:3'],
+            'genre_ids' => ['nullable', 'array'],
             'genre_ids.*' => ['exists:genres,id'],
             'primary_genre_id' => ['nullable', 'exists:genres,id'],
             'video_url' => ['nullable', 'string', $this->youtubeUrlRule()],
@@ -858,7 +852,7 @@ class AdminListController extends Controller
         }
 
         $validated = $request->validate([
-            'genre_ids' => ['nullable', 'array', 'max:3'],
+            'genre_ids' => ['nullable', 'array'],
             'genre_ids.*' => ['exists:genres,id'],
             'primary_genre_id' => ['nullable', 'exists:genres,id'],
         ]);
