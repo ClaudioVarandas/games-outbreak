@@ -88,6 +88,21 @@ it('applies release, platforms and genres together with --accept-all', function 
         ->and(json_decode($pivot->genre_ids, true))->toBe([$genre->id]);
 });
 
+it('applies a change picked from the interactive checklist', function () {
+    $list = GameList::factory()->create();
+    $game = Game::factory()->create(['first_release_date' => null]);
+    $game->platforms()->attach(Platform::factory()->create(['igdb_id' => 6])->id);
+    // is_tba pivot + no release dates → only the platforms row is offered.
+    $list->games()->attach($game->id, ['order' => 1, 'is_tba' => true, 'platforms' => json_encode([])]);
+
+    $this->artisan('igdb:gamelist:sync-pivot', ['game_list_id' => $list->id])
+        ->expectsQuestion('Check the changes to apply', ['c0'])
+        ->expectsOutputToContain('Applied 1 change')
+        ->assertExitCode(0);
+
+    expect(json_decode(pivotRow($list, $game)->platforms, true))->toBe([6]);
+});
+
 it('derives the early-access flag from the IGDB release status', function () {
     $status = ReleaseDateStatus::factory()->create(['name' => 'Early Access', 'igdb_id' => 3]);
     $list = GameList::factory()->create();

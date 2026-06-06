@@ -11,7 +11,6 @@ use App\Support\PivotChange;
 use Illuminate\Console\Command;
 
 use function Laravel\Prompts\multiselect;
-use function Laravel\Prompts\table;
 
 class SyncGameListPivot extends Command
 {
@@ -47,7 +46,7 @@ class SyncGameListPivot extends Command
         $rows = [];
         foreach ($list->games as $game) {
             foreach ($suggester->changesFor($game) as $change) {
-                $rows[] = ['key' => (string) count($rows), 'game' => $game, 'change' => $change];
+                $rows[] = ['key' => 'c'.count($rows), 'game' => $game, 'change' => $change];
             }
         }
 
@@ -57,24 +56,11 @@ class SyncGameListPivot extends Command
             return self::SUCCESS;
         }
 
-        table(
-            ['#', 'Game', 'Field', 'Current', 'Suggested (IGDB)'],
-            array_map(fn (array $row) => [
-                $row['key'],
-                $row['game']->name,
-                $row['change']->label,
-                $row['change']->current,
-                $row['change']->suggested,
-            ], $rows),
-        );
-
         $selectedKeys = $this->option('accept-all')
             ? array_column($rows, 'key')
             : multiselect(
                 label: 'Check the changes to apply',
-                options: collect($rows)->mapWithKeys(fn (array $row) => [
-                    $row['key'] => "{$row['game']->name} · {$row['change']->label}: {$row['change']->current} → {$row['change']->suggested}",
-                ])->all(),
+                options: $this->columnarOptions($rows),
                 default: [],
                 scroll: 20,
                 hint: 'Space to toggle, Enter to confirm. Nothing checked = no changes.',
@@ -91,6 +77,34 @@ class SyncGameListPivot extends Command
         $this->info("Applied {$applied} change(s) across the list.");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Column-aligned checklist labels so the multiselect reads like a table:
+     * "Game        Field       Current → Suggested". Keys stay non-numeric so
+     * the options array is not treated as a list by Laravel Prompts.
+     *
+     * @param  list<array{key: string, game: Game, change: PivotChange}>  $rows
+     * @return array<string, string>
+     */
+    private function columnarOptions(array $rows): array
+    {
+        $gameWidth = max(array_map(fn (array $row) => mb_strlen($row['game']->name), $rows));
+        $fieldWidth = max(array_map(fn (array $row) => mb_strlen($row['change']->label), $rows));
+        $currentWidth = max(array_map(fn (array $row) => mb_strlen($row['change']->current), $rows));
+
+        $options = [];
+        foreach ($rows as $row) {
+            $options[$row['key']] = sprintf(
+                '%s   %s   %s → %s',
+                str_pad($row['game']->name, $gameWidth),
+                str_pad($row['change']->label, $fieldWidth),
+                str_pad($row['change']->current, $currentWidth),
+                $row['change']->suggested,
+            );
+        }
+
+        return $options;
     }
 
     /**
