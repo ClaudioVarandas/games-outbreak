@@ -35,6 +35,13 @@ Schedule::command('igdb:update-stale --min-days=90 --batch-size=50')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Live events: pull in games IGDB adds during an open event window - Every 30 min
+Schedule::command('igdb:events:sync-live')
+    ->everyThirtyMinutes()
+    ->name('igdb-events-sync-live')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // === EXTERNAL SOURCES SCHEDULES ===
 
 // Sync external game source definitions (Steam, GOG, Epic, etc.) - Monthly on 1st at 1 AM

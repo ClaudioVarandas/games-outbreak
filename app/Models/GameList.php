@@ -32,6 +32,7 @@ class GameList extends Model
         'start_at',
         'end_at',
         'list_type',
+        'igdb_event_id',
     ];
 
     protected $casts = [
@@ -45,6 +46,7 @@ class GameList extends Model
         'start_at' => 'datetime',
         'end_at' => 'datetime',
         'list_type' => ListTypeEnum::class,
+        'igdb_event_id' => 'integer',
     ];
 
     public function user(): BelongsTo

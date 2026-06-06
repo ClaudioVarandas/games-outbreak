@@ -2,15 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\PlatformEnum;
 use App\Models\Game;
 use App\Models\GameList;
-use App\Models\GameMode;
-use App\Models\Genre;
-use App\Models\Platform;
 use App\Services\IgdbService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class CreateGameList extends Command
@@ -168,7 +165,7 @@ class CreateGameList extends Command
                 // Attach game to list with order, release_date, and platforms
                 $game->load('platforms');
                 $platformIds = $game->platforms
-                    ->filter(fn ($p) => \App\Enums\PlatformEnum::getActivePlatforms()->has($p->igdb_id))
+                    ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
                     ->map(fn ($p) => $p->igdb_id)
                     ->values()
                     ->toArray();
@@ -206,132 +203,13 @@ class CreateGameList extends Command
 
     /**
      * Get game from database or fetch from IGDB if not exists.
+     *
+     * Delegates to the canonical Game::fetchFromIgdbIfMissing() so a single
+     * code path handles fetching, relation syncing and async image retrieval.
      */
     private function getOrFetchGame(int $igdbId, IgdbService $igdbService): ?Game
     {
-        // Check if game exists in database
-        $game = Game::where('igdb_id', $igdbId)->first();
-
-        if ($game) {
-            $this->line("  Game found in database: {$game->name}");
-
-            return $game;
-        }
-
-        // Fetch from IGDB
-        $this->line('  Fetching game from IGDB...');
-
-        try {
-            $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
-                             genres.name, genres.id,
-                             game_modes.name, game_modes.id,
-                             similar_games.name, similar_games.cover.image_id, similar_games.id,
-                             screenshots.image_id,
-                             videos.video_id,
-                             external_games.external_game_source, external_games.uid, external_games.url,
-                             websites.category, websites.url, game_type,
-                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
-                             involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
-                             game_engines.name, game_engines.id,
-                             player_perspectives.name, player_perspectives.id;
-                         where id = {$igdbId}; limit 1;";
-
-            $response = Http::igdb()
-                ->withBody($query, 'text/plain')
-                ->post('https://api.igdb.com/v4/games');
-
-            if ($response->failed() || empty($response->json())) {
-                $this->warn('  Game not found in IGDB.');
-
-                return null;
-            }
-
-            $igdbGame = $response->json()[0];
-
-            // Enrich with Steam data
-            $igdbGame = $igdbService->enrichWithSteamData([$igdbGame])[0] ?? $igdbGame;
-
-            $gameName = $igdbGame['name'] ?? 'Unknown Game';
-            $steamAppId = $igdbGame['steam']['appid'] ?? null;
-            $igdbGameId = $igdbGame['id'] ?? null;
-
-            // Store IGDB cover.image_id in cover_image_id
-            $coverImageId = $igdbGame['cover']['image_id'] ?? null;
-
-            // If IGDB didn't provide a cover, try SteamGridDB
-            if (! $coverImageId) {
-                $steamGridDbCover = $igdbService->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
-                if ($steamGridDbCover) {
-                    $coverImageId = $steamGridDbCover;
-                }
-            }
-
-            // For hero: Use IGDB cover if available, else fetch from SteamGridDB
-            $heroImageId = $igdbGame['cover']['image_id'] ?? null;
-            if (! $heroImageId) {
-                $steamGridDbHero = $igdbService->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
-                if ($steamGridDbHero) {
-                    $heroImageId = $steamGridDbHero;
-                }
-            }
-
-            // For logo: Fetch from SteamGridDB
-            $logoImageId = $igdbService->fetchImageFromSteamGridDb($gameName, 'logo', $steamAppId, $igdbGameId);
-
-            // Create game in database
-            $game = Game::create([
-                'igdb_id' => $igdbGame['id'],
-                'name' => $gameName,
-                'summary' => $igdbGame['summary'] ?? null,
-                'first_release_date' => isset($igdbGame['first_release_date'])
-                    ? Carbon::createFromTimestamp($igdbGame['first_release_date'])
-                    : null,
-                'cover_image_id' => $coverImageId,
-                'hero_image_id' => $heroImageId,
-                'logo_image_id' => $logoImageId,
-                'game_type' => $igdbGame['game_type'] ?? 0,
-                'steam_data' => $igdbGame['steam'] ?? null,
-                'screenshots' => $igdbGame['screenshots'] ?? null,
-                'trailers' => $igdbGame['videos'] ?? null,
-                'similar_games' => $igdbGame['similar_games'] ?? null,
-            ]);
-
-            // Sync relations and release dates
-            $this->syncRelations($game, $igdbGame);
-            Game::syncReleaseDates($game, $igdbGame['release_dates'] ?? null);
-
-            $this->line("  Game created in database: {$game->name}");
-
-            return $game;
-        } catch (\Exception $e) {
-            $this->error("  Error fetching from IGDB: {$e->getMessage()}");
-
-            return null;
-        }
-    }
-
-    /**
-     * Sync game relations (platforms, genres, game modes).
-     */
-    private function syncRelations(Game $game, array $igdbGame): void
-    {
-        if (! empty($igdbGame['platforms'])) {
-            $ids = collect($igdbGame['platforms'])->map(fn ($p) => Platform::firstOrCreate(['igdb_id' => $p['id']], ['name' => $p['name'] ?? 'Unknown'])->id
-            );
-            $game->platforms()->sync($ids);
-        }
-
-        if (! empty($igdbGame['genres'])) {
-            $ids = collect($igdbGame['genres'])->map(fn ($g) => Genre::firstOrCreate(['igdb_id' => $g['id']], ['name' => $g['name'] ?? 'Unknown'])->id
-            );
-            $game->genres()->sync($ids);
-        }
-
-        if (! empty($igdbGame['game_modes'])) {
-            $ids = collect($igdbGame['game_modes'])->map(fn ($m) => GameMode::firstOrCreate(['igdb_id' => $m['id']], ['name' => $m['name'] ?? 'Unknown'])->id
-            );
-            $game->gameModes()->sync($ids);
-        }
+        return Game::fetchFromIgdbIfMissing($igdbId, $igdbService);
     }
 
     /**

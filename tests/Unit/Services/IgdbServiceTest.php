@@ -7,6 +7,7 @@ use App\Models\ExternalGameSource;
 use App\Models\Game;
 use App\Services\IgdbService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -344,7 +345,7 @@ class IgdbServiceTest extends TestCase
 
         $games = $this->service->fetchSteamPopularUpcoming(10);
 
-        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $games);
+        $this->assertInstanceOf(Collection::class, $games);
         $this->assertGreaterThan(0, $games->count());
     }
 
@@ -358,7 +359,7 @@ class IgdbServiceTest extends TestCase
 
         $games = $this->service->fetchSteamPopularUpcoming(10);
 
-        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $games);
+        $this->assertInstanceOf(Collection::class, $games);
         $this->assertEmpty($games);
     }
 
@@ -370,7 +371,7 @@ class IgdbServiceTest extends TestCase
 
         $games = $this->service->fetchSteamPopularUpcoming(10);
 
-        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $games);
+        $this->assertInstanceOf(Collection::class, $games);
         $this->assertEmpty($games);
     }
 
@@ -397,7 +398,7 @@ class IgdbServiceTest extends TestCase
 
         $sources = $this->service->extractExternalSources($igdbGame);
 
-        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $sources);
+        $this->assertInstanceOf(Collection::class, $sources);
         $this->assertCount(2, $sources);
         $this->assertInstanceOf(ExternalSourceData::class, $sources->first());
     }
@@ -436,7 +437,7 @@ class IgdbServiceTest extends TestCase
 
         $sources = $this->service->extractExternalSources($igdbGame);
 
-        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $sources);
+        $this->assertInstanceOf(Collection::class, $sources);
         $this->assertEmpty($sources);
     }
 
@@ -449,7 +450,7 @@ class IgdbServiceTest extends TestCase
 
         $sources = $this->service->extractExternalSources($igdbGame);
 
-        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $sources);
+        $this->assertInstanceOf(Collection::class, $sources);
         $this->assertEmpty($sources);
     }
 
@@ -672,5 +673,76 @@ class IgdbServiceTest extends TestCase
         $steamAppId = $this->service->getSteamAppIdFromSources($game);
 
         $this->assertNull($steamAppId);
+    }
+
+    // === Event Tests ===
+
+    public function test_fetch_event_returns_the_event_row(): void
+    {
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'token'], 200),
+            'api.igdb.com/v4/events' => Http::response([
+                ['id' => 137, 'name' => 'Summer Game Fest', 'games' => [1, 2]],
+            ], 200),
+        ]);
+
+        $event = $this->service->fetchEvent(137);
+
+        $this->assertIsArray($event);
+        $this->assertEquals('Summer Game Fest', $event['name']);
+        Http::assertSent(fn ($request) => str_contains($request->body(), 'where id = 137'));
+    }
+
+    public function test_fetch_event_returns_null_when_not_found(): void
+    {
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'token'], 200),
+            'api.igdb.com/v4/events' => Http::response([], 200),
+        ]);
+
+        $this->assertNull($this->service->fetchEvent(999));
+    }
+
+    public function test_fetch_event_returns_null_on_failure(): void
+    {
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'token'], 200),
+            'api.igdb.com/v4/events' => Http::response([], 500),
+        ]);
+
+        $this->assertNull($this->service->fetchEvent(137));
+    }
+
+    public function test_search_events_returns_matching_events(): void
+    {
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'token'], 200),
+            'api.igdb.com/v4/events' => Http::response([
+                ['id' => 1, 'name' => 'Summer Game Fest 2026'],
+                ['id' => 2, 'name' => 'Summer Game Fest 2025'],
+            ], 200),
+        ]);
+
+        $events = $this->service->searchEvents('Summer Game Fest');
+
+        $this->assertCount(2, $events);
+        $this->assertEquals('Summer Game Fest 2026', $events[0]['name']);
+        Http::assertSent(fn ($request) => str_contains($request->body(), 'search "Summer Game Fest"'));
+    }
+
+    public function test_search_events_falls_back_to_name_filter_when_search_is_empty(): void
+    {
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'token'], 200),
+            'api.igdb.com/v4/events' => Http::sequence()
+                ->push([], 200)
+                ->push([['id' => 9, 'name' => 'Nacon Connect']], 200),
+        ]);
+
+        $events = $this->service->searchEvents('Nacon');
+
+        $this->assertCount(1, $events);
+        $this->assertEquals('Nacon Connect', $events[0]['name']);
+        Http::assertSent(fn ($request) => str_contains($request->body(), 'name ~ *"Nacon"*'));
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Console\Commands\SteamSpySync;
 use App\DTOs\ExternalSourceData;
 use App\Enums\PlatformEnum;
 use App\Models\ExternalGameSource;
@@ -36,6 +37,71 @@ class IgdbService
 
             return $response->json('access_token');
         });
+    }
+
+    private const EVENT_FIELDS = 'id, name, description, start_time, end_time, time_zone, live_stream_url, event_logo.image_id, event_networks.url, event_networks.network_type.name, games, videos.video_id';
+
+    /**
+     * Fetch a single IGDB event by its id.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function fetchEvent(int $eventId): ?array
+    {
+        $query = 'fields '.self::EVENT_FIELDS.'; where id = '.$eventId.'; limit 1;';
+
+        $response = Http::igdb()
+            ->withBody($query, 'text/plain')
+            ->post('https://api.igdb.com/v4/events');
+
+        if ($response->failed()) {
+            \Log::warning('Failed to fetch IGDB event', ['event_id' => $eventId, 'status' => $response->status()]);
+
+            return null;
+        }
+
+        return $response->json()[0] ?? null;
+    }
+
+    /**
+     * Search IGDB events by name. Falls back to a name filter when full-text
+     * search returns nothing (IGDB event search is unreliable).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function searchEvents(string $term, int $limit = 15): array
+    {
+        $escaped = str_replace('"', '\\"', $term);
+
+        $results = $this->postEventsQuery(
+            'fields '.self::EVENT_FIELDS.'; search "'.$escaped.'"; limit '.$limit.';'
+        );
+
+        if ($results === []) {
+            $results = $this->postEventsQuery(
+                'fields '.self::EVENT_FIELDS.'; where name ~ *"'.$escaped.'"*; limit '.$limit.';'
+            );
+        }
+
+        return $results;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function postEventsQuery(string $query): array
+    {
+        $response = Http::igdb()
+            ->withBody($query, 'text/plain')
+            ->post('https://api.igdb.com/v4/events');
+
+        if ($response->failed()) {
+            \Log::warning('Failed to search IGDB events', ['status' => $response->status()]);
+
+            return [];
+        }
+
+        return $response->json() ?? [];
     }
 
     /**
@@ -235,7 +301,7 @@ class IgdbService
      *
      * @deprecated Will be removed in future version.
      *             Steam upcoming games now fetched via SteamSpy.
-     * @see \App\Services\SteamSpyService::fetchTop100InTwoWeeks()
+     * @see SteamSpyService::fetchTop100InTwoWeeks()
      */
     public function fetchSteamPopularUpcoming(int $count = 50): Collection
     {
@@ -286,7 +352,7 @@ class IgdbService
      *
      * @deprecated Will be removed in future version.
      *             Direct Steam API access replaced by SteamSpy integration.
-     * @see \App\Services\SteamSpyService::fetchGameDetails()
+     * @see SteamSpyService::fetchGameDetails()
      */
     public function getSteamAppDetails(array $appIds): array
     {
@@ -324,8 +390,8 @@ class IgdbService
      * @deprecated Will be removed in future version.
      *             Steam data enrichment has been replaced by separate SteamSpy sync.
      *             This method now returns the input unchanged.
-     * @see \App\Services\SteamSpyService::fetchGameDetails()
-     * @see \App\Console\Commands\SteamSpySync
+     * @see SteamSpyService::fetchGameDetails()
+     * @see SteamSpySync
      */
     public function enrichWithSteamData(array $igdbGames): array
     {
