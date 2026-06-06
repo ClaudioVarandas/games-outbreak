@@ -205,6 +205,7 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
         Route::get('/system-lists', [AdminListController::class, 'systemLists'])->name('system-lists');
 
         // System lists management
+        Route::get('/system-lists/igdb-events/search', [AdminListController::class, 'searchIgdbEvents'])->name('system-lists.igdb-events.search');
         Route::get('/system-lists/create', [AdminListController::class, 'createSystemList'])->name('system-lists.create');
         Route::post('/system-lists', [AdminListController::class, 'storeSystemList'])->name('system-lists.store');
         Route::get('/system-lists/{type}/{slug}/edit', [AdminListController::class, 'editSystemList'])->name('system-lists.edit');
@@ -212,6 +213,7 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
         Route::patch('/system-lists/{type}/{slug}/toggle', [AdminListController::class, 'toggleSystemListActive'])->name('system-lists.toggle');
         Route::delete('/system-lists/{type}/{slug}', [AdminListController::class, 'destroySystemList'])->name('system-lists.destroy');
         Route::post('/system-lists/{type}/{slug}/refresh', [AdminListController::class, 'refreshGameList'])->name('system-lists.refresh');
+        Route::post('/system-lists/{type}/{slug}/sync-igdb', [AdminListController::class, 'syncIgdbEvent'])->name('system-lists.sync-igdb');
 
         // System list game management
         Route::post('/system-lists/{type}/{slug}/games', [AdminListController::class, 'addGame'])->name('system-lists.games.add');

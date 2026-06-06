@@ -2,6 +2,7 @@ import './bootstrap';
 import {createApp, defineAsyncComponent, h} from 'vue';
 import GlobalSearch from './components/GlobalSearch.vue';
 import AddGameToList from './components/AddGameToList.vue';
+import IgdbEventSearch from './components/IgdbEventSearch.vue';
 import UserGameSearch from './components/UserGameSearch.vue';
 import './components/AuthModals.js';
 import './video-lightbox.js';
@@ -60,6 +61,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         availablePlatforms: platforms,
                         showGenreSelection: showGenreSelection,
                         availableGenres: availableGenres
+                    });
+                }
+            }).mount(element);
+        }
+    });
+
+    // Mount IGDB event search components (admin event edit page)
+    document.querySelectorAll('[data-vue-component="igdb-event-search"]').forEach(element => {
+        const searchUrl = element.getAttribute('data-search-url');
+
+        if (searchUrl) {
+            createApp({
+                render() {
+                    return h(IgdbEventSearch, {
+                        searchUrl,
+                        initialEventId: element.getAttribute('data-event-id') || null,
+                        initialSlug: element.getAttribute('data-slug') || '',
+                        initialName: element.getAttribute('data-name') || '',
                     });
                 }
             }).mount(element);

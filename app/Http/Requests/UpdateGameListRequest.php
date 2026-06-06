@@ -2,7 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ListTypeEnum;
+use App\Models\GameList;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateGameListRequest extends FormRequest
 {
@@ -21,12 +25,12 @@ class UpdateGameListRequest extends FormRequest
         }
 
         // Load the game list by type and slug
-        $listType = \App\Enums\ListTypeEnum::fromSlug($type);
+        $listType = ListTypeEnum::fromSlug($type);
         if ($listType === null) {
             return false;
         }
 
-        $gameList = \App\Models\GameList::where('slug', $slug)
+        $gameList = GameList::where('slug', $slug)
             ->where('list_type', $listType->value)
             ->first();
 
@@ -40,7 +44,7 @@ class UpdateGameListRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -50,9 +54,9 @@ class UpdateGameListRequest extends FormRequest
 
         $gameList = null;
         if ($type && $slug) {
-            $listTypeEnum = \App\Enums\ListTypeEnum::fromSlug($type);
+            $listTypeEnum = ListTypeEnum::fromSlug($type);
             if ($listTypeEnum) {
-                $gameList = \App\Models\GameList::where('slug', $slug)
+                $gameList = GameList::where('slug', $slug)
                     ->where('list_type', $listTypeEnum->value)
                     ->first();
             }
@@ -70,7 +74,7 @@ class UpdateGameListRequest extends FormRequest
                 'string',
                 'alpha_dash',
                 // Slug must be unique per list_type
-                \Illuminate\Validation\Rule::unique('game_lists', 'slug')
+                Rule::unique('game_lists', 'slug')
                     ->where('list_type', $listType)
                     ->ignore($gameListId),
             ],
@@ -94,6 +98,12 @@ class UpdateGameListRequest extends FormRequest
             $rules['end_at'] = ['nullable', 'date'];
             $rules['is_active'] = ['boolean'];
             $rules['og_image_path'] = ['nullable', 'string', 'max:500'];
+            $rules['igdb_event_id'] = [
+                'nullable',
+                'integer',
+                'min:1',
+                Rule::unique('game_lists', 'igdb_event_id')->ignore($gameListId),
+            ];
 
             // If both dates are provided, end_at must be after start_at
             if ($this->filled('start_at') && $this->filled('end_at')) {

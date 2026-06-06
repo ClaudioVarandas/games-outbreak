@@ -4,13 +4,15 @@ use App\Enums\ListTypeEnum;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
+    $this->withoutMiddleware(VerifyCsrfToken::class);
 
     Http::fake([
         'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'test-token'], 200),
@@ -251,7 +253,7 @@ it('getEventTime returns Carbon instance with correct timezone', function () {
 
     $eventTime = $list->getEventTime();
 
-    expect($eventTime)->toBeInstanceOf(\Carbon\Carbon::class);
+    expect($eventTime)->toBeInstanceOf(Carbon::class);
     expect($eventTime->format('Y-m-d H:i'))->toBe('2026-01-15 19:00');
     expect($eventTime->timezone->getName())->toBe('America/New_York');
 });
@@ -545,4 +547,130 @@ it('admin edit page does not show event fields for non-events list', function ()
     $response->assertDontSee('Event Details');
     $response->assertDontSee('Event Time');
     $response->assertDontSee('social_twitter');
+});
+
+it('admin edit page shows the IGDB event id field for events list', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    GameList::factory()->events()->system()->create([
+        'name' => 'IGDB Field Event',
+        'slug' => 'igdb-field-event',
+    ]);
+
+    $response = $this->actingAs($admin)->get('/admin/system-lists/events/igdb-field-event/edit');
+
+    $response->assertStatus(200);
+    $response->assertSee('IGDB Event ID');
+    $response->assertSee('data-vue-component="igdb-event-search"', false);
+    $response->assertSee(route('admin.system-lists.igdb-events.search'), false);
+});
+
+it('shows the Sync from IGDB button on every events list, enabled only when linked', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    GameList::factory()->events()->system()->create(['slug' => 'linked-ev', 'igdb_event_id' => 137]);
+    GameList::factory()->events()->system()->create(['slug' => 'unlinked-ev', 'igdb_event_id' => null]);
+
+    // Linked: button present and active (carries the sync url, not disabled).
+    $this->actingAs($admin)->get('/admin/system-lists/events/linked-ev/edit')
+        ->assertSee('Sync from IGDB')
+        ->assertSee(route('admin.system-lists.sync-igdb', ['events', 'linked-ev']), false);
+
+    // Unlinked: button still visible but disabled with a hint.
+    $this->actingAs($admin)->get('/admin/system-lists/events/unlinked-ev/edit')
+        ->assertSee('Sync from IGDB')
+        ->assertSee('Set and save an IGDB Event ID first', false);
+});
+
+it('does not show the Sync from IGDB button on non-events lists', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    GameList::factory()->yearly()->system()->create(['slug' => 'yearly-2026', 'start_at' => now()]);
+
+    $this->actingAs($admin)->get('/admin/system-lists/yearly/yearly-2026/edit')
+        ->assertDontSee('Sync from IGDB');
+});
+
+it('can save the igdb_event_id when updating an events list', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $list = GameList::factory()->events()->system()->create([
+        'name' => 'Link Event',
+        'slug' => 'link-event',
+        'igdb_event_id' => null,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->patch('/admin/system-lists/events/link-event', [
+            'name' => 'Link Event',
+            'igdb_event_id' => 251,
+        ]);
+
+    $response->assertRedirect();
+
+    expect($list->refresh()->igdb_event_id)->toBe(251);
+});
+
+it('can clear the igdb_event_id by submitting it empty', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $list = GameList::factory()->events()->system()->create([
+        'name' => 'Unlink Event',
+        'slug' => 'unlink-event',
+        'igdb_event_id' => 999,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->patch('/admin/system-lists/events/unlink-event', [
+            'name' => 'Unlink Event',
+            'igdb_event_id' => '',
+        ]);
+
+    $response->assertRedirect();
+
+    expect($list->refresh()->igdb_event_id)->toBeNull();
+});
+
+it('persists the igdb_slug into event_data when updating an events list', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $list = GameList::factory()->events()->system()->create([
+        'name' => 'Slug Event',
+        'slug' => 'slug-event',
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->patch('/admin/system-lists/events/slug-event', [
+            'name' => 'Slug Event',
+            'igdb_event_id' => 251,
+            'igdb_slug' => 'future-games-show',
+        ]);
+
+    $response->assertRedirect();
+
+    expect($list->refresh()->event_data['igdb_slug'])->toBe('future-games-show');
+});
+
+it('rejects an igdb_event_id already used by another events list', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    GameList::factory()->events()->system()->create([
+        'name' => 'Owner Event',
+        'slug' => 'owner-event',
+        'igdb_event_id' => 251,
+    ]);
+    $other = GameList::factory()->events()->system()->create([
+        'name' => 'Other Event',
+        'slug' => 'other-event',
+        'igdb_event_id' => null,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->patch('/admin/system-lists/events/other-event', [
+            'name' => 'Other Event',
+            'igdb_event_id' => 251,
+        ]);
+
+    $response->assertSessionHasErrors('igdb_event_id');
+    expect($other->refresh()->igdb_event_id)->toBeNull();
 });

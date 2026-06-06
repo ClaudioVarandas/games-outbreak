@@ -180,7 +180,22 @@
                                 </select>
                             </div>
 
-                            <div class="md:col-span-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    IGDB Event ID
+                                </label>
+                                <div
+                                    data-vue-component="igdb-event-search"
+                                    data-search-url="{{ route('admin.system-lists.igdb-events.search') }}"
+                                    data-event-id="{{ old('igdb_event_id', $list->igdb_event_id) }}"
+                                    data-slug="{{ old('igdb_slug', $list->event_data['igdb_slug'] ?? '') }}"
+                                ></div>
+                                @error('igdb_event_id')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
                                 <label for="video_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Video URL
                                 </label>
@@ -443,5 +458,40 @@
                 window.location.reload();
             });
         }
+
+        function syncEventFromIgdb(button) {
+            const original = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = 'Syncing…';
+
+            fetch(button.dataset.syncUrl, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+                .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if (ok && data.success) {
+                        alert(data.message);
+                        if (data.added > 0) {
+                            window.location.reload();
+                            return;
+                        }
+                    } else {
+                        alert(data.message || 'Sync failed.');
+                    }
+                    button.disabled = false;
+                    button.innerHTML = original;
+                })
+                .catch(() => {
+                    alert('Sync failed. Please try again.');
+                    button.disabled = false;
+                    button.innerHTML = original;
+                });
+        }
+
     </script>
 @endsection

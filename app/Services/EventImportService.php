@@ -198,6 +198,7 @@ class EventImportService
                     : null,
                 'event_timezone' => $timezone,
                 'about' => $description,
+                'igdb_slug' => $event['slug'] ?? null,
                 'video_url' => $this->resolveVideoUrl($event),
                 'social_links' => $this->mapSocialLinks($event['event_networks'] ?? []),
             ],

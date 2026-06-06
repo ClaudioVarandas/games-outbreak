@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreGameListRequest extends FormRequest
 {
@@ -22,7 +24,7 @@ class StoreGameListRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -39,7 +41,7 @@ class StoreGameListRequest extends FormRequest
                 'string',
                 'alpha_dash',
                 // Slug must be unique per list_type
-                \Illuminate\Validation\Rule::unique('game_lists', 'slug')->where('list_type', $listType),
+                Rule::unique('game_lists', 'slug')->where('list_type', $listType),
             ],
         ];
 
@@ -49,6 +51,12 @@ class StoreGameListRequest extends FormRequest
             $rules['is_active'] = ['boolean'];
             $rules['start_at'] = ['nullable', 'date'];
             $rules['end_at'] = ['nullable', 'date'];
+            $rules['igdb_event_id'] = [
+                'nullable',
+                'integer',
+                'min:1',
+                Rule::unique('game_lists', 'igdb_event_id'),
+            ];
 
             // If both dates are provided, end_at must be after start_at
             if ($this->filled('start_at') && $this->filled('end_at')) {

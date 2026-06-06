@@ -713,7 +713,7 @@ class IgdbServiceTest extends TestCase
         $this->assertNull($this->service->fetchEvent(137));
     }
 
-    public function test_search_events_returns_matching_events(): void
+    public function test_search_events_queries_the_name_filter_only(): void
     {
         Http::fake([
             'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'token'], 200),
@@ -727,22 +727,65 @@ class IgdbServiceTest extends TestCase
 
         $this->assertCount(2, $events);
         $this->assertEquals('Summer Game Fest 2026', $events[0]['name']);
-        Http::assertSent(fn ($request) => str_contains($request->body(), 'search "Summer Game Fest"'));
+        // The unsupported `search` clause must NOT be used on the events endpoint (it 400s).
+        Http::assertSent(fn ($request) => ! str_contains($request->body(), 'search "')
+            && str_contains($request->body(), 'name ~ *"Summer"*'));
+        Http::assertSentCount(2); // token + one events query, no wasted search call
     }
 
-    public function test_search_events_falls_back_to_name_filter_when_search_is_empty(): void
+    public function test_search_events_matches_each_word_independently(): void
     {
         Http::fake([
             'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'token'], 200),
-            'api.igdb.com/v4/events' => Http::sequence()
-                ->push([], 200)
-                ->push([['id' => 9, 'name' => 'Nacon Connect']], 200),
+            'api.igdb.com/v4/events' => Http::response([
+                ['id' => 7, 'name' => 'Future Games Show: Summer Showcase 2026', 'slug' => 'future-games-show-summer-showcase-2026'],
+            ], 200),
         ]);
 
-        $events = $this->service->searchEvents('Nacon');
+        $events = $this->service->searchEvents('Future Games Show 2026');
 
         $this->assertCount(1, $events);
-        $this->assertEquals('Nacon Connect', $events[0]['name']);
-        Http::assertSent(fn ($request) => str_contains($request->body(), 'name ~ *"Nacon"*'));
+        Http::assertSent(function ($request) {
+            $body = $request->body();
+
+            return str_contains($body, 'name ~ *"Future"*')
+                && str_contains($body, 'name ~ *"Games"*')
+                && str_contains($body, 'name ~ *"Show"*')
+                && str_contains($body, 'name ~ *"2026"*')
+                && str_contains($body, ' & ');
+        });
+    }
+
+    public function test_search_events_ignores_bracketed_tags_in_the_query(): void
+    {
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'token'], 200),
+            'api.igdb.com/v4/events' => Http::response([], 200),
+        ]);
+
+        $this->service->searchEvents('[SGF26] Future Game Show');
+
+        Http::assertSent(function ($request) {
+            $body = $request->body();
+
+            // The "[SGF26]" tag is dropped; only the real name words are matched.
+            return str_contains($body, 'name ~ *"Future"*')
+                && str_contains($body, 'name ~ *"Game"*')
+                && str_contains($body, 'name ~ *"Show"*')
+                && ! str_contains($body, 'SGF26')
+                && ! str_contains($body, '[')
+                && ! str_contains($body, ']');
+        });
+    }
+
+    public function test_search_events_returns_empty_for_a_blank_query(): void
+    {
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'token'], 200),
+            'api.igdb.com/v4/events' => Http::response([['id' => 1]], 200),
+        ]);
+
+        $this->assertSame([], $this->service->searchEvents('  '));
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/v4/events'));
     }
 }

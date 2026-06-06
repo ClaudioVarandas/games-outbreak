@@ -77,6 +77,12 @@ it('stores an event_time that getEventTime() resolves to the correct instant', f
     expect($list->getEventTime()->timestamp)->toBe(1749500000);
 });
 
+it('stores the IGDB slug in event_data for the external link', function () {
+    $attrs = makeEventImportService()->mapEventToAttributes(sampleIgdbEvent());
+
+    expect($attrs['event_data']['igdb_slug'])->toBe('summer-game-fest-2026-igdb-owned');
+});
+
 it('falls back to the first video when there is no live stream url', function () {
     $event = sampleIgdbEvent(['live_stream_url' => null]);
 

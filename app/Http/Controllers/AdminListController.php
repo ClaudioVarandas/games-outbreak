@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateGameListRequest;
 use App\Jobs\RefreshGameListGamesJob;
 use App\Models\Game;
 use App\Models\GameList;
+use App\Services\EventImportService;
 use App\Services\GameListSyncService;
 use App\Services\IgdbService;
 use App\Support\YouTube;
@@ -227,6 +228,7 @@ class AdminListController extends Controller
                 'event_time' => $request->input('event_time'),
                 'event_timezone' => $request->input('event_timezone'),
                 'about' => $request->input('event_about'),
+                'igdb_slug' => $request->input('igdb_slug'),
                 'video_url' => $request->input('video_url'),
                 'social_links' => array_filter([
                     'twitter' => $request->input('social_twitter'),
@@ -245,6 +247,65 @@ class AdminListController extends Controller
 
         return redirect()->route('admin.system-lists.edit', [$newType->toSlug(), $newSlug])
             ->with('success', 'System list updated successfully.');
+    }
+
+    public function searchIgdbEvents(Request $request, EventImportService $events): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:255'],
+        ]);
+
+        $results = collect($events->searchEvents($validated['q']))
+            ->map(fn (array $event): array => [
+                'id' => (int) $event['id'],
+                'name' => $event['name'] ?? 'Untitled Event',
+                'slug' => $event['slug'] ?? null,
+                'date' => isset($event['start_time'])
+                    ? Carbon::createFromTimestamp($event['start_time'])->format('M j, Y')
+                    : null,
+                'url' => isset($event['slug'])
+                    ? 'https://www.igdb.com/events/'.$event['slug']
+                    : null,
+            ])
+            ->values();
+
+        return response()->json(['results' => $results]);
+    }
+
+    public function syncIgdbEvent(string $type, string $slug, EventImportService $events): JsonResponse
+    {
+        $listType = ListTypeEnum::fromSlug($type);
+        if ($listType === null) {
+            abort(404, 'Invalid list type');
+        }
+
+        $list = GameList::where('slug', $slug)
+            ->where('list_type', $listType->value)
+            ->where('is_system', true)
+            ->firstOrFail();
+
+        if (! $list->isEvents()) {
+            return response()->json(['success' => false, 'message' => 'This list is not an events list.'], 422);
+        }
+
+        if (! $list->igdb_event_id) {
+            return response()->json(['success' => false, 'message' => 'Set and save an IGDB Event ID first.'], 422);
+        }
+
+        $event = $events->fetchEvent($list->igdb_event_id);
+        if ($event === null) {
+            return response()->json(['success' => false, 'message' => "IGDB event #{$list->igdb_event_id} not found."], 422);
+        }
+
+        $report = $events->syncGames($list, $event);
+
+        return response()->json([
+            'success' => true,
+            'added' => $report['added'],
+            'skipped' => $report['skipped'],
+            'failed' => $report['failed'],
+            'message' => "Synced from IGDB: {$report['added']} added, {$report['skipped']} already present, {$report['failed']} failed.",
+        ]);
     }
 
     public function toggleSystemListActive(string $type, string $slug): RedirectResponse|JsonResponse

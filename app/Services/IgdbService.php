@@ -39,7 +39,7 @@ class IgdbService
         });
     }
 
-    private const EVENT_FIELDS = 'id, name, description, start_time, end_time, time_zone, live_stream_url, event_logo.image_id, event_networks.url, event_networks.network_type.name, games, videos.video_id';
+    private const EVENT_FIELDS = 'id, name, slug, description, start_time, end_time, time_zone, live_stream_url, event_logo.image_id, event_networks.url, event_networks.network_type.name, games, videos.video_id';
 
     /**
      * Fetch a single IGDB event by its id.
@@ -64,26 +64,45 @@ class IgdbService
     }
 
     /**
-     * Search IGDB events by name. Falls back to a name filter when full-text
-     * search returns nothing (IGDB event search is unreliable).
+     * Search IGDB events by name.
+     *
+     * The IGDB `search` clause is NOT supported on the events endpoint (it 400s),
+     * so we match each word of the query independently against the name. This
+     * means "Future Games Show 2026" still finds "Future Games Show: Summer Showcase 2026".
      *
      * @return list<array<string, mixed>>
      */
     public function searchEvents(string $term, int $limit = 15): array
     {
-        $escaped = str_replace('"', '\\"', $term);
+        $where = $this->buildNameMatchClause($term);
 
-        $results = $this->postEventsQuery(
-            'fields '.self::EVENT_FIELDS.'; search "'.$escaped.'"; limit '.$limit.';'
-        );
-
-        if ($results === []) {
-            $results = $this->postEventsQuery(
-                'fields '.self::EVENT_FIELDS.'; where name ~ *"'.$escaped.'"*; limit '.$limit.';'
-            );
+        if ($where === null) {
+            return [];
         }
 
-        return $results;
+        return $this->postEventsQuery(
+            'fields '.self::EVENT_FIELDS.'; where '.$where.'; limit '.$limit.';'
+        );
+    }
+
+    private function buildNameMatchClause(string $term): ?string
+    {
+        // Drop bracketed/parenthesised tags (e.g. "[SGF26]", "(2026)") that list
+        // names carry but IGDB names do not, so they don't break the match.
+        $cleaned = preg_replace('/[\[(][^\])]*[\])]/u', ' ', $term) ?? $term;
+
+        $words = array_filter(
+            preg_split('/[^\p{L}\p{N}]+/u', trim($cleaned)) ?: [],
+            static fn (string $word): bool => mb_strlen($word) >= 2,
+        );
+
+        if ($words === []) {
+            return null;
+        }
+
+        return collect($words)
+            ->map(static fn (string $word): string => 'name ~ *"'.$word.'"*')
+            ->implode(' & ');
     }
 
     /**
