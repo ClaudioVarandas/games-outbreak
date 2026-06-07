@@ -229,6 +229,9 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
         // All users' lists overview
         Route::get('/user-lists', [AdminListController::class, 'userLists'])->name('user-lists');
 
+        // Read-only reference for the IGDB / game-list maintenance CLI commands
+        Route::view('/cli-reference', 'admin.cli-reference')->name('cli-reference');
+
         // Genre management
         Route::prefix('genres')
             ->name('genres.')

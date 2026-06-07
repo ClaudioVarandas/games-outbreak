@@ -120,6 +120,9 @@
                                         <a href="{{ route('admin.video-categories.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
                                             <span>Video Categories</span>
                                         </a>
+                                        <a href="{{ route('admin.cli-reference') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
+                                            <span>CLI Reference</span>
+                                        </a>
                                     @endif
 
                                     <div class="border-t border-cyan-300/10">
@@ -263,6 +266,9 @@
                                         </a>
                                         <a href="{{ route('admin.video-categories.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
                                             <span>Video Categories</span>
+                                        </a>
+                                        <a href="{{ route('admin.cli-reference') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
+                                            <span>CLI Reference</span>
                                         </a>
                                     @endif
 
