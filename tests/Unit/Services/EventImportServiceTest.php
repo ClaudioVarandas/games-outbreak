@@ -4,6 +4,9 @@ use App\Enums\ListTypeEnum;
 use App\Models\GameList;
 use App\Services\EventImportService;
 use Carbon\Carbon;
+use Tests\TestCase;
+
+uses(TestCase::class);
 
 function makeEventImportService(): EventImportService
 {
@@ -59,6 +62,14 @@ it('generates our own slug from the name and ignores the IGDB slug', function ()
 
     expect($attrs['slug'])->toBe('summer-game-fest-2026')
         ->and($attrs['slug'])->not->toBe('summer-game-fest-2026-igdb-owned');
+});
+
+it('derives start_at as the event_data instant, stored in the app timezone', function () {
+    $attrs = makeEventImportService()->mapEventToAttributes(sampleIgdbEvent());
+    $list = new GameList(['event_data' => $attrs['event_data']]);
+
+    expect($attrs['start_at']->equalTo($list->getEventTime()))->toBeTrue()
+        ->and($attrs['start_at']->timezoneName)->toBe(config('app.timezone'));
 });
 
 it('maps start and end unix timestamps to datetime attributes', function () {

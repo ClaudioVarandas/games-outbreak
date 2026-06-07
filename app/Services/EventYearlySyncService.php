@@ -21,7 +21,7 @@ class EventYearlySyncService
      */
     public function plan(GameList $eventList): array
     {
-        $eventYear = $eventList->start_at?->year ?? now()->year;
+        $eventYear = $eventList->getEventTime()?->year ?? $eventList->start_at?->year ?? now()->year;
         $plan = [];
 
         foreach ($eventList->games as $game) {
@@ -55,7 +55,7 @@ class EventYearlySyncService
      */
     public function apply(GameList $eventList, array $gameIds): array
     {
-        $eventYear = $eventList->start_at?->year ?? now()->year;
+        $eventYear = $eventList->getEventTime()?->year ?? $eventList->start_at?->year ?? now()->year;
         $result = [
             'created_years' => [],
             'inserted' => 0,

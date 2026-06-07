@@ -235,6 +235,8 @@ it('can save event data when updating events list', function () {
     expect($list->event_data)->toBeArray();
     expect($list->event_data['event_time'])->toBe('2026-01-15T19:00');
     expect($list->event_data['event_timezone'])->toBe('America/New_York');
+    // start_at is derived from event_data: 19:00 EST (-5) = 00:00 UTC next day.
+    expect($list->start_at->utc()->toIso8601String())->toBe('2026-01-16T00:00:00+00:00');
     expect($list->event_data['about'])->toBe('This is a test event description.');
     expect($list->event_data['video_url'])->toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
     expect($list->event_data['social_links']['twitter'])->toBe('https://x.com/testevent');

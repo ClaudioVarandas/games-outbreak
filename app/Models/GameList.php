@@ -240,6 +240,26 @@ class GameList extends Model
     }
 
     /**
+     * Derive the canonical start_at instant from an event_data array, converted to the
+     * app timezone so it round-trips correctly through the datetime cast. This is the
+     * single source for an event's start_at — event_data (event_time + event_timezone)
+     * is authoritative; start_at is its queryable mirror.
+     *
+     * @param  array<string, mixed>|null  $eventData
+     */
+    public static function eventStartAtFor(?array $eventData): ?Carbon
+    {
+        $eventTime = $eventData['event_time'] ?? null;
+
+        if (! $eventTime) {
+            return null;
+        }
+
+        return Carbon::parse($eventTime, $eventData['event_timezone'] ?? 'UTC')
+            ->setTimezone(config('app.timezone'));
+    }
+
+    /**
      * Get event timezone string
      */
     public function getEventTimezone(): ?string

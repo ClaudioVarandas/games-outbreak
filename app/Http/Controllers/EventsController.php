@@ -12,16 +12,16 @@ class EventsController extends Controller
         $events = GameList::events()
             ->where('is_active', true)
             ->where('is_public', true)
-            ->orderBy('start_at', 'desc')
             ->get();
 
         $upcoming = $events
             ->filter(fn (GameList $e) => ! ($e->getEventTime()?->isPast() ?? false))
-            ->sortBy('start_at')
+            ->sortBy(fn (GameList $e) => $e->getEventTime()?->getTimestamp() ?? PHP_INT_MAX)
             ->values();
 
         $past = $events
             ->filter(fn (GameList $e) => $e->getEventTime()?->isPast() ?? false)
+            ->sortByDesc(fn (GameList $e) => $e->getEventTime()?->getTimestamp() ?? 0)
             ->values();
 
         return view('events.index', compact('upcoming', 'past'));

@@ -240,6 +240,8 @@ class AdminListController extends Controller
                 ]),
             ];
             $data['event_data'] = array_filter($eventData, fn ($value) => $value !== null && $value !== '');
+            // start_at is derived from event_data for events; the form input is ignored.
+            $data['start_at'] = GameList::eventStartAtFor($data['event_data']);
         }
 
         $list->update($data);

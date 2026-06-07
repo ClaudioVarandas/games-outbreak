@@ -211,6 +211,17 @@ class EventImportService
             ? Carbon::createFromTimestamp($event['end_time'])
             : null;
 
+        $eventData = [
+            'event_time' => $startAt
+                ? $startAt->copy()->setTimezone($timezone)->format('Y-m-d H:i:s')
+                : null,
+            'event_timezone' => $timezone,
+            'about' => $description,
+            'igdb_slug' => $event['slug'] ?? null,
+            'video_url' => $this->resolveVideoUrl($event),
+            'social_links' => $this->mapSocialLinks($event['event_networks'] ?? []),
+        ];
+
         return [
             'igdb_event_id' => (int) $event['id'],
             'name' => $name,
@@ -220,18 +231,10 @@ class EventImportService
             'is_active' => true,
             'is_public' => true,
             'user_id' => null,
-            'start_at' => $startAt,
+            // start_at is the queryable UTC mirror of event_data's start instant.
+            'start_at' => GameList::eventStartAtFor($eventData),
             'end_at' => $endAt,
-            'event_data' => [
-                'event_time' => $startAt
-                    ? $startAt->copy()->setTimezone($timezone)->format('Y-m-d H:i:s')
-                    : null,
-                'event_timezone' => $timezone,
-                'about' => $description,
-                'igdb_slug' => $event['slug'] ?? null,
-                'video_url' => $this->resolveVideoUrl($event),
-                'social_links' => $this->mapSocialLinks($event['event_networks'] ?? []),
-            ],
+            'event_data' => $eventData,
         ];
     }
 

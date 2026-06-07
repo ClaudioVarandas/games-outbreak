@@ -66,18 +66,7 @@ class EventTrailerService
      */
     private function eventStartInstant(GameList $list): ?Carbon
     {
-        $eventTime = $list->event_data['event_time'] ?? null;
-        $eventTimezone = $list->event_data['event_timezone'] ?? null;
-
-        if ($eventTime && $eventTimezone) {
-            try {
-                return Carbon::parse($eventTime, $eventTimezone);
-            } catch (\Throwable $e) {
-                // Fall back to start_at below.
-            }
-        }
-
-        return $list->start_at;
+        return GameList::eventStartAtFor($list->event_data) ?? $list->start_at;
     }
 
     /**

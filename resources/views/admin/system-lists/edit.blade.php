@@ -61,11 +61,18 @@
                         <label for="start_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Start Date
                         </label>
-                        <input type="datetime-local"
-                               name="start_at"
-                               id="start_at"
-                               value="{{ old('start_at', $list->start_at?->format('Y-m-d\TH:i')) }}"
-                               class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                        @if($list->isEvents())
+                            <p class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                                {{ $list->getEventTime()?->format('M j, Y \a\t H:i') ?? '—' }}
+                                <span class="block text-xs">Derived from the event time &amp; timezone below.</span>
+                            </p>
+                        @else
+                            <input type="datetime-local"
+                                   name="start_at"
+                                   id="start_at"
+                                   value="{{ old('start_at', $list->start_at?->format('Y-m-d\TH:i')) }}"
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                        @endif
                     </div>
 
                     <div>
