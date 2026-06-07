@@ -81,15 +81,17 @@ class EventImportService
     }
 
     /**
-     * Attach any games on the event that are not already in the list. Existing
-     * games are left untouched (pivot refresh is igdb:gamelist:sync-pivot's job).
+     * Attach any games on the event that are not already in the list. New games
+     * get their trailer in the pivot video_url; already-attached games keep their
+     * pivot but have an empty video_url backfilled from the IGDB trailer (other
+     * pivot fields are left to igdb:gamelist:sync-pivot).
      *
      * @param  array<string, mixed>  $event
-     * @return array{added: int, skipped: int, failed: int, errors: array<int, string>}
+     * @return array{added: int, skipped: int, failed: int, videos_set: int, errors: array<int, string>}
      */
     public function syncGames(GameList $list, array $event): array
     {
-        $report = ['added' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []];
+        $report = ['added' => 0, 'skipped' => 0, 'failed' => 0, 'videos_set' => 0, 'errors' => []];
 
         $gameIds = array_values(array_unique(array_map('intval', $event['games'] ?? [])));
 
@@ -97,7 +99,9 @@ class EventImportService
             return $report;
         }
 
-        $attachedGameIds = $list->games()->pluck('games.id')->all();
+        $attached = $list->games()->get(['games.id']);
+        $attachedGameIds = $attached->pluck('id')->all();
+        $existingVideoUrls = $attached->mapWithKeys(fn (Game $game) => [$game->id => $game->pivot->video_url])->all();
         $order = (int) $list->games()->max('game_list_game.order');
 
         foreach ($gameIds as $igdbId) {
@@ -111,8 +115,16 @@ class EventImportService
                     continue;
                 }
 
+                $trailerUrl = $this->gameTrailerUrl($game);
+
                 if (in_array($game->id, $attachedGameIds, true)) {
                     $report['skipped']++;
+
+                    if ($trailerUrl !== null && empty($existingVideoUrls[$game->id])) {
+                        $list->games()->updateExistingPivot($game->id, ['video_url' => $trailerUrl]);
+                        $existingVideoUrls[$game->id] = $trailerUrl;
+                        $report['videos_set']++;
+                    }
 
                     continue;
                 }
@@ -128,9 +140,13 @@ class EventImportService
                     'order' => ++$order,
                     'release_date' => $game->first_release_date,
                     'platforms' => json_encode($platformIds),
+                    'video_url' => $trailerUrl,
                 ]);
 
                 $attachedGameIds[] = $game->id;
+                if ($trailerUrl !== null) {
+                    $report['videos_set']++;
+                }
                 $report['added']++;
             } catch (\Throwable $e) {
                 $report['failed']++;
@@ -139,6 +155,17 @@ class EventImportService
         }
 
         return $report;
+    }
+
+    private function gameTrailerUrl(Game $game): ?string
+    {
+        $first = collect($game->trailers)->first();
+
+        if (! is_array($first) || empty($first['video_id'])) {
+            return null;
+        }
+
+        return 'https://www.youtube.com/watch?v='.$first['video_id'];
     }
 
     private function uniqueEventSlug(string $base, ?int $ignoreId = null): string

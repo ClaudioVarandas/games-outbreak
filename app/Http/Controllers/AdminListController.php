@@ -304,7 +304,8 @@ class AdminListController extends Controller
             'added' => $report['added'],
             'skipped' => $report['skipped'],
             'failed' => $report['failed'],
-            'message' => "Synced from IGDB: {$report['added']} added, {$report['skipped']} already present, {$report['failed']} failed.",
+            'videos_set' => $report['videos_set'],
+            'message' => "Synced from IGDB: {$report['added']} added, {$report['skipped']} already present, {$report['failed']} failed, {$report['videos_set']} trailers set.",
         ]);
     }
 

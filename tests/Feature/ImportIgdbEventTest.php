@@ -42,6 +42,7 @@ function igdbGamePayload(int $id): array
         'websites' => [],
         'game_type' => 0,
         'release_dates' => null,
+        'videos' => [['video_id' => 'tr'.$id]],
     ];
 }
 
@@ -97,6 +98,51 @@ it('creates an events list from a numeric IGDB event id', function () {
 
     $pivot = $list->games()->where('games.igdb_id', 111)->first()->pivot;
     expect(json_decode($pivot->platforms, true))->toBe([6]);
+});
+
+it('sets each new game pivot video_url from its IGDB trailer', function () {
+    fakeIgdb(igdbEventPayload(137, [111]));
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--accept-all' => true])
+        ->assertSuccessful();
+
+    $pivot = GameList::events()->where('igdb_event_id', 137)->first()
+        ->games()->where('games.igdb_id', 111)->first()->pivot;
+
+    expect($pivot->video_url)->toBe('https://www.youtube.com/watch?v=tr111');
+});
+
+it('backfills an already-attached game pivot video_url when it is empty', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'igdb_event_id' => 137,
+        'slug' => 'summer-game-fest',
+    ]);
+    $game = Game::factory()->create(['igdb_id' => 111, 'trailers' => [['video_id' => 'tr111']]]);
+    $list->games()->attach($game->id, ['order' => 1, 'video_url' => null]);
+
+    fakeIgdb(igdbEventPayload(137, [111]));
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--update' => true])
+        ->assertSuccessful();
+
+    expect($list->games()->where('games.id', $game->id)->first()->pivot->video_url)
+        ->toBe('https://www.youtube.com/watch?v=tr111');
+});
+
+it('does not overwrite an admin-set pivot video_url on a re-sync', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'igdb_event_id' => 137,
+        'slug' => 'summer-game-fest',
+    ]);
+    $game = Game::factory()->create(['igdb_id' => 111, 'trailers' => [['video_id' => 'tr111']]]);
+    $list->games()->attach($game->id, ['order' => 1, 'video_url' => 'https://www.youtube.com/watch?v=CURATED']);
+
+    fakeIgdb(igdbEventPayload(137, [111]));
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--update' => true])->assertSuccessful();
+
+    expect($list->games()->where('games.id', $game->id)->first()->pivot->video_url)
+        ->toBe('https://www.youtube.com/watch?v=CURATED');
 });
 
 it('updates an existing list and adds only the newly-appeared games', function () {
