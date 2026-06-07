@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Services\GameListPivotSuggester;
+use App\Services\GameListRefreshService;
 use App\Support\PivotChange;
 use Illuminate\Console\Command;
 
@@ -16,11 +17,12 @@ class SyncGameListPivot extends Command
 {
     protected $signature = 'igdb:gamelist:sync-pivot
                             {game_list_id : Game list — numeric id or slug}
-                            {--accept-all : Apply every suggested change without prompting}';
+                            {--accept-all : Apply every suggested change without prompting}
+                            {--no-refresh : Skip the IGDB game refresh and suggest from stored data}';
 
-    protected $description = 'Review and apply IGDB-derived pivot changes (release / early access / platforms / genres) for the games in a list, picked from a single checklist.';
+    protected $description = 'Refresh the list\'s games from IGDB, then review and apply IGDB-derived pivot changes (release / early access / platforms / genres), picked from a single checklist.';
 
-    public function handle(GameListPivotSuggester $suggester): int
+    public function handle(GameListPivotSuggester $suggester, GameListRefreshService $refreshService): int
     {
         $arg = (string) $this->argument('game_list_id');
 
@@ -32,6 +34,10 @@ class SyncGameListPivot extends Command
             $this->error("Game list \"{$arg}\" not found.");
 
             return self::FAILURE;
+        }
+
+        if (! $this->option('no-refresh')) {
+            $this->refreshGames($list, $refreshService);
         }
 
         $list->load(['games.releaseDates.status', 'games.platforms', 'games.genres']);
@@ -77,6 +83,30 @@ class SyncGameListPivot extends Command
         $this->info("Applied {$applied} change(s) across the list.");
 
         return self::SUCCESS;
+    }
+
+    private function refreshGames(GameList $list, GameListRefreshService $refreshService): void
+    {
+        $list->loadMissing('games');
+
+        if ($list->games->isEmpty()) {
+            return;
+        }
+
+        $this->info("Refreshing {$list->games->count()} game(s) from IGDB…");
+
+        $bar = null;
+        $refreshService->refreshList($list, true, function (string $event, ?int $total, $game) use (&$bar): void {
+            if ($event === 'start') {
+                $bar = $this->output->createProgressBar($total);
+                $bar->start();
+            } elseif ($event === 'advance' && $bar) {
+                $bar->advance();
+            } elseif ($event === 'finish' && $bar) {
+                $bar->finish();
+                $this->newLine();
+            }
+        });
     }
 
     /**

@@ -124,9 +124,10 @@ class AdminCliReference
                         'name' => 'igdb:gamelist:sync-pivot {id}',
                         'flags' => [
                             '--accept-all' => 'Apply every suggested change without prompting.',
+                            '--no-refresh' => 'Skip the IGDB refresh and suggest from stored data.',
                         ],
-                        'does' => 'Review/apply IGDB-derived pivot changes for games already in a list (reads stored game data).',
-                        'writes' => 'Pivots of EXISTING games: release (date / is_tba / release_year), early access, platforms, genres.',
+                        'does' => "Refresh the list's games from IGDB, then review/apply IGDB-derived pivot changes for games already in a list.",
+                        'writes' => 'Refreshes game records (Tier 1), then pivots of EXISTING games: release (date / is_tba / release_year), early access, platforms, genres.',
                     ],
                     [
                         'name' => 'system-list:create {type} {year}',
@@ -145,7 +146,7 @@ class AdminCliReference
     public static function rules(): array
     {
         return [
-            'Tier 1 before Tier 2 — sync-pivot and the list display read stored game data, so refresh games first.',
+            'Tier 1 before Tier 2 — Tier-2 commands read stored game data. sync-pivot and the event syncs now refresh games from IGDB first; the list display still shows whatever the pivots hold.',
             'Event syncs auto-refresh stale games (older than services.igdb.event_game_refresh_hours, default 24h), but only set pivots for NEW games — existing games\' pivots still need sync-pivot.',
             '--force differs per command: gamelist:refresh --force ignores the 24h "recently synced" skip; update-stale --force ignores the 90-day threshold.',
             'The admin "Sync from IGDB" button mirrors igdb:events:import\'s game sync (new games + stale refresh + trailers), without rewriting metadata.',
