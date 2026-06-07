@@ -18,6 +18,7 @@
     :initial-genre-ids="initialGenreIds"
     :initial-video-url="initialVideoUrl"
     :initial-release-year="initialReleaseYear"
+    :candidates-url="currentTrailerCandidatesUrl"
     @close="closeModal"
     @submit="handleSubmit"
   />
@@ -78,6 +79,10 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  trailerCandidatesUrl: {
+    type: String,
+    default: ''
+  },
   csrfToken: {
     type: String,
     required: true
@@ -110,6 +115,7 @@ const initialPlatforms = ref([]);
 const initialGenreIds = ref([]);
 const initialVideoUrl = ref('');
 const initialReleaseYear = ref('');
+const currentTrailerCandidatesUrl = ref('');
 
 const notification = ref({ show: false, message: '', type: 'success' });
 
@@ -126,6 +132,9 @@ const openModal = async (event) => {
   currentGameId.value = gameId;
   modalMode.value = mode;
   targetListName.value = props.listName;
+  currentTrailerCandidatesUrl.value = props.trailerCandidatesUrl
+    ? props.trailerCandidatesUrl.replace('__GAME_ID__', gameId)
+    : '';
 
   // Set basic game data from event
   gameData.value = {
@@ -198,6 +207,7 @@ const openModal = async (event) => {
 const closeModal = () => {
   showModal.value = false;
   currentGameId.value = null;
+  currentTrailerCandidatesUrl.value = '';
   availableGenres.value = [];
   initialReleaseDate.value = '';
   initialPrimaryGenreId.value = '';

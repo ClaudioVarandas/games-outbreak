@@ -848,6 +848,28 @@ class AdminListController extends Controller
         ]);
     }
 
+    public function trailerCandidates(string $type, string $slug, Game $game, EventTrailerService $trailers): JsonResponse
+    {
+        $list = $this->getSystemListByTypeAndSlug($type, $slug);
+
+        if (! $list->isEvents()) {
+            return response()->json(['error' => 'Trailer search is only available for event lists.'], 404);
+        }
+
+        if (! $list->games()->where('games.id', $game->id)->exists()) {
+            return response()->json(['error' => 'Game not found in this list.'], 404);
+        }
+
+        try {
+            $candidates = $trailers->candidates($list, $game);
+        } catch (\Throwable $e) {
+            report($e);
+            $candidates = [];
+        }
+
+        return response()->json(['candidates' => $candidates]);
+    }
+
     public function updateGamePivotData(Request $request, string $type, string $slug, Game $game): JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);

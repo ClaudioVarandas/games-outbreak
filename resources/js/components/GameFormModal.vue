@@ -10,7 +10,8 @@
     <div
       v-if="show"
       class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      @click.self="$emit('close')"
+      @mousedown="onBackdropMouseDown"
+      @mouseup="onBackdropMouseUp"
     >
       <div class="bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
@@ -94,16 +95,74 @@
               <label class="block text-sm font-medium text-gray-300 mb-2">
                 Trailer URL (YouTube)
               </label>
-              <input
-                v-model="formData.videoUrl"
-                type="url"
-                placeholder="https://www.youtube.com/watch?v=…"
-                class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2"
-                :class="modeStyles.focusRing"
-              >
+              <div class="flex gap-2">
+                <input
+                  v-model="formData.videoUrl"
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=…"
+                  class="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2"
+                  :class="modeStyles.focusRing"
+                >
+                <button
+                  v-if="enableTrailerSearch"
+                  type="button"
+                  @click="searchTrailers"
+                  :disabled="searching"
+                  class="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white border border-gray-600 transition"
+                >
+                  <svg v-if="!searching" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                  </svg>
+                  <svg v-else class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+                  <span>{{ searching ? 'Searching…' : 'Search' }}</span>
+                </button>
+              </div>
               <p class="mt-1 text-xs text-gray-400">
                 Shown as a play button on the list row. Leave empty for none.
               </p>
+
+              <!-- Trailer search results -->
+              <div v-if="enableTrailerSearch && searchOpen" class="mt-3 rounded-lg border border-gray-600 bg-gray-900/40 overflow-hidden">
+                <div v-if="searchError" class="px-4 py-3 text-sm text-red-300">
+                  {{ searchError }}
+                </div>
+                <div v-else-if="candidates.length === 0" class="px-4 py-3 text-sm text-gray-400">
+                  No trailers found for this game.
+                </div>
+                <ul v-else class="divide-y divide-gray-700 max-h-72 overflow-y-auto">
+                  <li v-for="candidate in candidates" :key="candidate.video_id">
+                    <button
+                      type="button"
+                      @click="selectCandidate(candidate)"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-700/60 transition"
+                      :class="{ 'bg-gray-700/40': formData.videoUrl === candidate.url }"
+                    >
+                      <img
+                        :src="candidate.thumbnail_url || '/images/game-cover-placeholder.svg'"
+                        alt=""
+                        class="w-20 h-12 object-cover rounded shadow shrink-0 bg-gray-800"
+                        @error="$event.target.src = '/images/game-cover-placeholder.svg'"
+                      >
+                      <div class="min-w-0 flex-1">
+                        <div class="text-sm text-white truncate">{{ candidate.title }}</div>
+                        <div class="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                          <span
+                            class="px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide rounded"
+                            :class="sourceBadgeClass(candidate.source)"
+                          >
+                            {{ sourceLabel(candidate.source) }}
+                          </span>
+                          <span v-if="candidate.channel_name" class="truncate">{{ candidate.channel_name }}</span>
+                          <span v-if="candidate.channel_name && candidate.published_at">•</span>
+                          <span v-if="candidate.published_at">{{ timeAgo(candidate.published_at) }}</span>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                </ul>
+              </div>
             </div>
 
             <!-- Platforms -->
@@ -322,10 +381,37 @@ const props = defineProps({
   initialReleaseYear: {
     type: [Number, String],
     default: ''
+  },
+  candidatesUrl: {
+    type: String,
+    default: ''
   }
 });
 
 const emit = defineEmits(['close', 'submit']);
+
+// Only treat a backdrop click as "close" when the press AND release both land on the
+// backdrop itself — otherwise a text selection that starts in an input and drags onto the
+// backdrop releases there and would wrongly close the modal.
+const backdropPressed = ref(false);
+
+const onBackdropMouseDown = (event) => {
+  backdropPressed.value = event.target === event.currentTarget;
+};
+
+const onBackdropMouseUp = (event) => {
+  if (backdropPressed.value && event.target === event.currentTarget) {
+    emit('close');
+  }
+  backdropPressed.value = false;
+};
+
+const enableTrailerSearch = computed(() => props.mode === 'edit' && !!props.candidatesUrl);
+
+const searching = ref(false);
+const searchOpen = ref(false);
+const searchError = ref('');
+const candidates = ref([]);
 
 const genreSelectRef = ref(null);
 let tomSelectInstance = null;
@@ -525,6 +611,8 @@ const resetForm = () => {
     videoUrl: props.initialVideoUrl || '',
     releaseYear: props.initialReleaseYear || ''
   };
+
+  resetTrailerSearch();
 };
 
 // TBA and Early Access are mutually exclusive.
@@ -549,6 +637,99 @@ const onEarlyAccessToggle = () => {
 const applySuggestedEarlyAccess = () => {
   formData.value.isEarlyAccess = true;
   onEarlyAccessToggle();
+};
+
+const resetTrailerSearch = () => {
+  searching.value = false;
+  searchOpen.value = false;
+  searchError.value = '';
+  candidates.value = [];
+};
+
+const searchTrailers = async () => {
+  if (!props.candidatesUrl || searching.value) {
+    return;
+  }
+
+  searching.value = true;
+  searchError.value = '';
+  searchOpen.value = true;
+
+  try {
+    const response = await fetch(props.candidatesUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/json' }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status})`);
+    }
+
+    const data = await response.json();
+    candidates.value = Array.isArray(data.candidates) ? data.candidates : [];
+  } catch (error) {
+    console.error('Trailer search failed:', error);
+    candidates.value = [];
+    searchError.value = 'Trailer search failed. Please try again.';
+  } finally {
+    searching.value = false;
+  }
+};
+
+const selectCandidate = (candidate) => {
+  formData.value.videoUrl = candidate.url;
+  searchOpen.value = false;
+};
+
+const sourceLabel = (source) => {
+  switch (source) {
+    case 'channel':
+      return 'Channel';
+    case 'igdb':
+      return 'IGDB';
+    default:
+      return 'YouTube';
+  }
+};
+
+const sourceBadgeClass = (source) => {
+  switch (source) {
+    case 'channel':
+      return 'bg-orange-600/80 text-white';
+    case 'igdb':
+      return 'bg-purple-600/80 text-white';
+    default:
+      return 'bg-blue-600/80 text-white';
+  }
+};
+
+const timeAgo = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const locale = document.documentElement.lang || navigator.language || 'en';
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const divisions = [
+    { amount: 60, unit: 'second' },
+    { amount: 60, unit: 'minute' },
+    { amount: 24, unit: 'hour' },
+    { amount: 7, unit: 'day' },
+    { amount: 4.34524, unit: 'week' },
+    { amount: 12, unit: 'month' },
+    { amount: Infinity, unit: 'year' },
+  ];
+
+  let duration = (date.getTime() - Date.now()) / 1000;
+  for (const division of divisions) {
+    if (Math.abs(duration) < division.amount) {
+      return rtf.format(Math.round(duration), division.unit);
+    }
+    duration /= division.amount;
+  }
+
+  return '';
 };
 
 const handleSubmit = () => {
@@ -577,6 +758,7 @@ watch(() => props.show, async (newVal) => {
     }
   } else {
     destroyTomSelect();
+    resetTrailerSearch();
   }
 });
 

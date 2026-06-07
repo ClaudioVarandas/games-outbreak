@@ -16,6 +16,8 @@ class YoutubeDataService
 
     private const PLAYLIST_ITEMS_ENDPOINT = 'https://www.googleapis.com/youtube/v3/playlistItems';
 
+    private const SEARCH_ENDPOINT = 'https://www.googleapis.com/youtube/v3/search';
+
     private const YOUTUBE_ID_PATTERN = '/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/';
 
     public function extractYoutubeId(string $url): ?string
@@ -118,6 +120,122 @@ class YoutubeDataService
                 && $oldest['published_at'] !== null
                 && $oldest['published_at']->lt($since);
         } while ($pageToken && $pages < $maxPages && ! ($reachedSince ?? false));
+
+        return $videos;
+    }
+
+    /**
+     * General YouTube search for videos matching a free-text query (newest-relevance first).
+     *
+     * search.list costs 100 quota units per call vs 1 for playlistItems, so this is meant as a
+     * last-resort fallback (see EventTrailerService::candidates()), not a routine lookup.
+     *
+     * @return list<array{video_id: string, title: string, published_at: ?Carbon, thumbnail_url: ?string}>
+     */
+    public function searchVideos(string $query, int $max = 10): array
+    {
+        $apiKey = config('services.youtube.api_key');
+
+        if (! $apiKey) {
+            throw new RuntimeException('YOUTUBE_API_KEY is not configured.');
+        }
+
+        $response = Http::get(self::SEARCH_ENDPOINT, [
+            'part' => 'snippet',
+            'type' => 'video',
+            'q' => $query,
+            'maxResults' => $max,
+            'key' => $apiKey,
+        ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException('YouTube search request failed: '.$response->status().' '.$response->body());
+        }
+
+        $videos = [];
+
+        foreach ($response->json('items', []) as $item) {
+            $videoId = $item['id']['videoId'] ?? null;
+
+            if (empty($videoId)) {
+                continue;
+            }
+
+            $thumbnails = $item['snippet']['thumbnails'] ?? [];
+
+            $videos[] = [
+                'video_id' => $videoId,
+                'title' => $item['snippet']['title'] ?? '',
+                'published_at' => isset($item['snippet']['publishedAt'])
+                    ? Carbon::parse($item['snippet']['publishedAt'])
+                    : null,
+                'thumbnail_url' => $thumbnails['maxres']['url']
+                    ?? $thumbnails['high']['url']
+                    ?? $thumbnails['medium']['url']
+                    ?? $thumbnails['default']['url']
+                    ?? null,
+            ];
+        }
+
+        return $videos;
+    }
+
+    /**
+     * Batch-fetch metadata for up to 50 videos in a single videos.list call (1 quota unit),
+     * keyed by video id. Used to enrich trailer candidates with channel name + upload date.
+     *
+     * @param  list<string>  $youtubeIds
+     * @return array<string, array{title: ?string, channel_name: ?string, published_at: ?Carbon, thumbnail_url: ?string}>
+     */
+    public function fetchVideos(array $youtubeIds): array
+    {
+        $ids = array_values(array_unique(array_filter($youtubeIds)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $apiKey = config('services.youtube.api_key');
+
+        if (! $apiKey) {
+            throw new RuntimeException('YOUTUBE_API_KEY is not configured.');
+        }
+
+        $response = Http::get(self::ENDPOINT, [
+            'part' => 'snippet',
+            'id' => implode(',', array_slice($ids, 0, 50)),
+            'key' => $apiKey,
+        ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException('YouTube videos request failed: '.$response->status().' '.$response->body());
+        }
+
+        $videos = [];
+
+        foreach ($response->json('items', []) as $item) {
+            $id = $item['id'] ?? null;
+
+            if (empty($id)) {
+                continue;
+            }
+
+            $snippet = $item['snippet'] ?? [];
+            $thumbnails = $snippet['thumbnails'] ?? [];
+
+            $videos[$id] = [
+                'title' => $snippet['title'] ?? null,
+                'channel_name' => $snippet['channelTitle'] ?? null,
+                'published_at' => isset($snippet['publishedAt'])
+                    ? Carbon::parse($snippet['publishedAt'])
+                    : null,
+                'thumbnail_url' => $thumbnails['maxres']['url']
+                    ?? $thumbnails['high']['url']
+                    ?? $thumbnails['medium']['url']
+                    ?? $thumbnails['default']['url']
+                    ?? null,
+            ];
+        }
 
         return $videos;
     }

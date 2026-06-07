@@ -241,3 +241,173 @@ it('sets nothing when there is no channel url and the game has no trailers', fun
     expect($list->games()->first()->pivot->video_url)->toBeNull()
         ->and($report)->toBe(['matched' => 0, 'channel' => 0, 'igdb' => 0, 'scanned' => 0]);
 });
+
+it('candidates returns channel matches first, then igdb trailers', function () {
+    fakeTrailerSources([
+        channelItem('EXODUS Extended Gameplay - Future Games Show', 'chanVid', '2026-06-06T20:00:00Z'),
+    ]);
+
+    $list = trailerEvent();
+    $game = Game::factory()->create(['name' => 'EXODUS', 'igdb_id' => 279621, 'trailers' => [['id' => 9, 'video_id' => 'igdbVid']]]);
+    attachGame($list, $game);
+
+    $candidates = app(EventTrailerService::class)->candidates($list, $game);
+
+    expect($candidates)->toHaveCount(2)
+        ->and($candidates[0]['source'])->toBe('channel')
+        ->and($candidates[0]['video_id'])->toBe('chanVid')
+        ->and($candidates[0]['url'])->toBe('https://www.youtube.com/watch?v=chanVid')
+        ->and($candidates[1]['source'])->toBe('igdb')
+        ->and($candidates[1]['video_id'])->toBe('igdbVid');
+});
+
+it('candidates shows channel name matches even outside the bulk-matcher window', function () {
+    // A teaser uploaded a week before the event would be excluded by resolve()'s window,
+    // but the interactive picker should still surface it.
+    fakeTrailerSources([
+        channelItem('EXODUS Teaser - Future Games Show', 'teaserVid', '2026-05-29T16:00:00Z'),
+    ]);
+
+    $list = trailerEvent();
+    $game = Game::factory()->create(['name' => 'EXODUS', 'igdb_id' => 279621, 'trailers' => null]);
+    attachGame($list, $game);
+
+    $candidates = app(EventTrailerService::class)->candidates($list, $game);
+
+    expect($candidates)->toHaveCount(1)
+        ->and($candidates[0]['video_id'])->toBe('teaserVid')
+        ->and($candidates[0]['source'])->toBe('channel');
+});
+
+it('candidates orders igdb trailers newest id first', function () {
+    fakeTrailerSources([
+        channelItem('Totally Unrelated - Future Games Show', 'nope', '2026-06-06T20:00:00Z'),
+    ]);
+
+    $list = trailerEvent();
+    $game = Game::factory()->create([
+        'name' => 'Blight Survival',
+        'igdb_id' => 211470,
+        'trailers' => [['id' => 1, 'video_id' => 'oldTrailer'], ['id' => 9, 'video_id' => 'newTrailer']],
+    ]);
+    attachGame($list, $game);
+
+    $candidates = app(EventTrailerService::class)->candidates($list, $game);
+
+    expect(array_column($candidates, 'video_id'))->toBe(['newTrailer', 'oldTrailer'])
+        ->and(array_column($candidates, 'source'))->toBe(['igdb', 'igdb']);
+});
+
+it('candidates dedupes a video present in both channel and igdb, keeping the channel entry', function () {
+    fakeTrailerSources([
+        channelItem('EXODUS Reveal - Future Games Show', 'dupVid', '2026-06-06T20:00:00Z'),
+    ]);
+
+    $list = trailerEvent();
+    $game = Game::factory()->create(['name' => 'EXODUS', 'igdb_id' => 279621, 'trailers' => [['id' => 9, 'video_id' => 'dupVid']]]);
+    attachGame($list, $game);
+
+    $candidates = app(EventTrailerService::class)->candidates($list, $game);
+
+    expect($candidates)->toHaveCount(1)
+        ->and($candidates[0]['source'])->toBe('channel');
+});
+
+it('candidates falls back to a youtube search only when channel and igdb are empty', function () {
+    config(['services.youtube.api_key' => 'test-key']);
+    Http::fake(function ($request) {
+        $url = $request->url();
+        if (str_contains($url, 'id.twitch.tv')) {
+            return Http::response(['access_token' => 'token'], 200);
+        }
+        if (str_contains($url, 'youtube/v3/channels')) {
+            return Http::response(['items' => [['contentDetails' => ['relatedPlaylists' => ['uploads' => 'UU']]]]], 200);
+        }
+        if (str_contains($url, 'youtube/v3/playlistItems')) {
+            return Http::response(['items' => []], 200);
+        }
+        if (str_contains($url, 'youtube/v3/search')) {
+            return Http::response(['items' => [
+                ['id' => ['videoId' => 'searchVid'], 'snippet' => ['title' => 'EXODUS Trailer', 'publishedAt' => '2026-06-01T10:00:00Z', 'thumbnails' => ['high' => ['url' => 'https://i.ytimg.com/x.jpg']]]],
+            ]], 200);
+        }
+
+        return Http::response([], 200);
+    });
+
+    $list = trailerEvent();
+    $game = Game::factory()->create(['name' => 'EXODUS', 'igdb_id' => 279621, 'trailers' => null]);
+    attachGame($list, $game);
+
+    $candidates = app(EventTrailerService::class)->candidates($list, $game);
+
+    expect($candidates)->toHaveCount(1)
+        ->and($candidates[0]['source'])->toBe('search')
+        ->and($candidates[0]['video_id'])->toBe('searchVid')
+        ->and($candidates[0]['thumbnail_url'])->toBe('https://i.ytimg.com/x.jpg');
+});
+
+it('candidates does not call the youtube search endpoint when channel or igdb results exist', function () {
+    fakeTrailerSources([
+        channelItem('EXODUS Reveal - Future Games Show', 'chanVid', '2026-06-06T20:00:00Z'),
+    ]);
+
+    $list = trailerEvent();
+    $game = Game::factory()->create(['name' => 'EXODUS', 'igdb_id' => 279621, 'trailers' => null]);
+    attachGame($list, $game);
+
+    app(EventTrailerService::class)->candidates($list, $game);
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), 'youtube/v3/search'));
+});
+
+it('candidates are enriched with channel name and sorted newest first', function () {
+    config(['services.youtube.api_key' => 'test-key']);
+    Http::fake(function ($request) {
+        $url = $request->url();
+        if (str_contains($url, 'id.twitch.tv')) {
+            return Http::response(['access_token' => 'token'], 200);
+        }
+        if (str_contains($url, 'youtube/v3/channels')) {
+            return Http::response(['items' => [['contentDetails' => ['relatedPlaylists' => ['uploads' => 'UU']]]]], 200);
+        }
+        if (str_contains($url, 'youtube/v3/playlistItems')) {
+            return Http::response(['items' => [
+                channelItem('EXODUS Reveal - Future Games Show', 'older', '2026-06-06T19:00:00Z'),
+                channelItem('EXODUS Extended - Future Games Show', 'newer', '2026-06-06T21:00:00Z'),
+            ]], 200);
+        }
+        if (str_contains($url, 'youtube/v3/videos')) {
+            return Http::response(['items' => [
+                ['id' => 'older', 'snippet' => ['title' => 'EXODUS Reveal', 'channelTitle' => 'Future Games Show', 'publishedAt' => '2026-06-06T19:00:00Z']],
+                ['id' => 'newer', 'snippet' => ['title' => 'EXODUS Extended', 'channelTitle' => 'Future Games Show', 'publishedAt' => '2026-06-06T21:00:00Z']],
+            ]], 200);
+        }
+
+        return Http::response([], 200);
+    });
+
+    $list = trailerEvent();
+    $game = Game::factory()->create(['name' => 'EXODUS', 'igdb_id' => 279621, 'trailers' => null]);
+    attachGame($list, $game);
+
+    $candidates = app(EventTrailerService::class)->candidates($list, $game);
+
+    expect(array_column($candidates, 'video_id'))->toBe(['newer', 'older'])
+        ->and($candidates[0]['channel_name'])->toBe('Future Games Show')
+        ->and($candidates[0]['published_at']->toIso8601String())->toContain('2026-06-06T21:00');
+});
+
+it('candidates reads stored igdb trailers without refreshing from igdb', function () {
+    fakeTrailerSources([
+        channelItem('Totally Unrelated - Future Games Show', 'nope', '2026-06-06T20:00:00Z'),
+    ]);
+
+    $list = trailerEvent();
+    $game = Game::factory()->create(['name' => 'Blight Survival', 'igdb_id' => 211470, 'trailers' => [['id' => 1, 'video_id' => 'igdbVid']]]);
+    attachGame($list, $game);
+
+    app(EventTrailerService::class)->candidates($list, $game);
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/v4/games'));
+});

@@ -143,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const toggleIndieUrl = gameEditModalsElement.getAttribute('data-toggle-indie-url');
         const getGenresUrl = gameEditModalsElement.getAttribute('data-get-genres-url');
         const updatePivotUrl = gameEditModalsElement.getAttribute('data-update-pivot-url') || '';
+        const trailerCandidatesUrl = gameEditModalsElement.getAttribute('data-trailer-candidates-url') || '';
         const csrfToken = gameEditModalsElement.getAttribute('data-csrf-token');
         const platformsData = gameEditModalsElement.getAttribute('data-platforms');
         const systemGenresData = gameEditModalsElement.getAttribute('data-system-genres');
@@ -175,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     toggleIndieUrl,
                     getGenresUrl,
                     updatePivotUrl,
+                    trailerCandidatesUrl,
                     csrfToken,
                     availablePlatforms: platforms,
                     systemGenres: systemGenres

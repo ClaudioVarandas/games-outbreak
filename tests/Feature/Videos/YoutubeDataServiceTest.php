@@ -154,6 +154,61 @@ it('pages through the uploads playlist until the oldest item predates the since 
     Http::assertSent(fn ($r) => str_contains($r->url(), 'pageToken=p2'));
 });
 
+it('searches videos via the search.list endpoint, skipping non-video results', function () {
+    Http::fake([
+        'googleapis.com/youtube/v3/search*' => Http::response([
+            'items' => [
+                ['id' => ['videoId' => 'abc'], 'snippet' => ['title' => 'X Trailer', 'publishedAt' => '2026-06-01T10:00:00Z', 'thumbnails' => ['high' => ['url' => 'https://i.ytimg.com/vi/abc/hq.jpg']]]],
+                ['id' => ['kind' => 'youtube#channel'], 'snippet' => ['title' => 'A Channel, not a video']],
+            ],
+        ], 200),
+    ]);
+
+    $videos = (new YoutubeDataService)->searchVideos('X trailer');
+
+    expect($videos)->toHaveCount(1)
+        ->and($videos[0]['video_id'])->toBe('abc')
+        ->and($videos[0]['title'])->toBe('X Trailer')
+        ->and($videos[0]['thumbnail_url'])->toBe('https://i.ytimg.com/vi/abc/hq.jpg')
+        ->and($videos[0]['published_at']->toIso8601String())->toContain('2026-06-01');
+
+    Http::assertSent(fn ($r) => str_contains($r->url(), 'type=video') && str_contains($r->url(), 'q=X'));
+});
+
+it('throws when API key is missing for a search', function () {
+    config(['services.youtube.api_key' => null]);
+    (new YoutubeDataService)->searchVideos('test');
+})->throws(RuntimeException::class, 'YOUTUBE_API_KEY');
+
+it('throws when the search request fails', function () {
+    Http::fake(['googleapis.com/youtube/v3/search*' => Http::response(['error' => 'quotaExceeded'], 403)]);
+    (new YoutubeDataService)->searchVideos('test');
+})->throws(RuntimeException::class);
+
+it('batch-fetches video metadata keyed by id', function () {
+    Http::fake([
+        'googleapis.com/youtube/v3/videos*' => Http::response(['items' => [
+            ['id' => 'a', 'snippet' => ['title' => 'A', 'channelTitle' => 'Chan', 'publishedAt' => '2026-06-01T10:00:00Z', 'thumbnails' => ['high' => ['url' => 'https://t/a.jpg']]]],
+        ]], 200),
+    ]);
+
+    $map = (new YoutubeDataService)->fetchVideos(['a', 'b']);
+
+    expect($map)->toHaveKey('a')
+        ->and($map['a']['title'])->toBe('A')
+        ->and($map['a']['channel_name'])->toBe('Chan')
+        ->and($map['a']['thumbnail_url'])->toBe('https://t/a.jpg')
+        ->and($map['a']['published_at']->toIso8601String())->toContain('2026-06-01');
+});
+
+it('returns an empty map for no ids without calling the api', function () {
+    Http::fake();
+
+    expect((new YoutubeDataService)->fetchVideos([]))->toBe([]);
+
+    Http::assertNothingSent();
+});
+
 it('stops paging at the maxPages cap even when more pages exist', function () {
     Http::fake(function ($request) {
         $url = $request->url();

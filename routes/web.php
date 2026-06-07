@@ -223,6 +223,7 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
         Route::patch('/system-lists/{type}/{slug}/games/{game:id}/highlight', [AdminListController::class, 'toggleGameHighlight'])->name('system-lists.games.toggle-highlight');
         Route::patch('/system-lists/{type}/{slug}/games/{game:id}/indie', [AdminListController::class, 'toggleGameIndie'])->name('system-lists.games.toggle-indie');
         Route::get('/system-lists/{type}/{slug}/games/{game:id}/genres', [AdminListController::class, 'getGameGenres'])->name('system-lists.games.genres');
+        Route::get('/system-lists/{type}/{slug}/games/{game:id}/trailer-candidates', [AdminListController::class, 'trailerCandidates'])->name('system-lists.games.trailer-candidates');
         Route::patch('/system-lists/{type}/{slug}/games/{game:id}/genres', [AdminListController::class, 'updateGameGenres'])->name('system-lists.games.update-genres');
         Route::patch('/system-lists/{type}/{slug}/games/{game:id}/pivot', [AdminListController::class, 'updateGamePivotData'])->name('system-lists.games.update-pivot');
 

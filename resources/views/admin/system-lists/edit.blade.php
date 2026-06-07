@@ -392,6 +392,9 @@
                              data-get-genres-url="{{ route('admin.system-lists.games.genres', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
                              data-update-pivot-url="{{ route('admin.system-lists.games.update-pivot', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
                              data-csrf-token="{{ csrf_token() }}"
+                             @if($list->isEvents())
+                             data-trailer-candidates-url="{{ route('admin.system-lists.games.trailer-candidates', [$list->list_type->toSlug(), $list->slug, '__GAME_ID__']) }}"
+                             @endif
                              data-platforms="{{ $activePlatforms->toJson() }}"
                              data-system-genres="{{ $systemGenres->toJson() }}">
                         </div>
