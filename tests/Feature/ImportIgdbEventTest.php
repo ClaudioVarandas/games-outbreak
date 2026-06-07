@@ -136,7 +136,7 @@ it('does not overwrite an admin-set pivot video_url on a re-sync', function () {
         'slug' => 'summer-game-fest',
     ]);
     $game = Game::factory()->create(['igdb_id' => 111, 'trailers' => [['video_id' => 'tr111']]]);
-    $list->games()->attach($game->id, ['order' => 1, 'video_url' => 'https://www.youtube.com/watch?v=CURATED']);
+    $list->games()->attach($game->id, ['order' => 1, 'video_url' => 'https://www.youtube.com/watch?v=CURATED', 'video_url_manual' => true]);
 
     fakeIgdb(igdbEventPayload(137, [111]));
 
@@ -178,7 +178,8 @@ it('matches channel trailers on a manual --update', function () {
             return Http::response(['access_token' => 'token'], 200);
         }
         if (str_contains($url, '/v4/events')) {
-            return Http::response([igdbEventPayload(137, [111])], 200);
+            // start_time 2026-06-06 18:00 UTC, one hour before the channel reveal below.
+            return Http::response([igdbEventPayload(137, [111], ['start_time' => 1780768800])], 200);
         }
         if (str_contains($url, '/v4/games')) {
             return Http::response([igdbGamePayload(111)], 200);
@@ -198,7 +199,7 @@ it('matches channel trailers on a manual --update', function () {
     $list = GameList::factory()->events()->system()->create(['igdb_event_id' => 137, 'slug' => 'summer-game-fest']);
 
     $this->artisan('igdb:events:import', ['event' => '137', '--update' => true])
-        ->expectsOutputToContain('Channel trailers matched: 1')
+        ->expectsOutputToContain('channel 1')
         ->assertSuccessful();
 
     // Channel match wins over the IGDB trailer (tr111).

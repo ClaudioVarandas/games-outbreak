@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\GameList;
-use App\Services\ChannelTrailerService;
 use App\Services\EventImportService;
+use App\Services\EventTrailerService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -24,7 +24,7 @@ class ImportIgdbEvent extends Command
 
     protected $description = 'Import an IGDB event (metadata + games) into an events list. Re-runnable: existing lists are updated, only newly-appeared games are added.';
 
-    public function handle(EventImportService $service, ChannelTrailerService $channelTrailers): int
+    public function handle(EventImportService $service, EventTrailerService $trailerService): int
     {
         $event = $this->resolveEvent($service, (string) $this->argument('event'));
 
@@ -64,25 +64,29 @@ class ImportIgdbEvent extends Command
         $report = $service->syncGames($list, $event);
 
         $this->info(sprintf(
-            'Games: added %d, skipped %d, failed %d. Trailers set: %d.',
+            'Games: added %d, skipped %d, failed %d.',
             $report['added'],
             $report['skipped'],
             $report['failed'],
-            $report['videos_set'],
         ));
 
         foreach ($report['errors'] as $igdbId => $message) {
             $this->warn("  IGDB game #{$igdbId}: {$message}");
         }
 
-        $matchedTrailers = 0;
+        $trailers = ['matched' => 0, 'channel' => 0, 'igdb' => 0];
         try {
-            $matchedTrailers = $channelTrailers->syncFromChannel($list)['matched'];
+            $trailers = $trailerService->resolve($list);
         } catch (\Throwable $e) {
-            $this->warn("Channel trailer match failed: {$e->getMessage()}");
+            $this->warn("Trailer resolution failed: {$e->getMessage()}");
         }
 
-        $this->info("Channel trailers matched: {$matchedTrailers}.");
+        $this->info(sprintf(
+            'Trailers set: %d (channel %d, IGDB %d).',
+            $trailers['matched'],
+            $trailers['channel'],
+            $trailers['igdb'],
+        ));
 
         return self::SUCCESS;
     }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\YoutubeDataService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -119,4 +120,60 @@ it('returns empty when the channel handle cannot be resolved', function () {
     ]);
 
     expect((new YoutubeDataService)->recentChannelVideos('https://www.youtube.com/@Unknown/videos'))->toBe([]);
+});
+
+it('pages through the uploads playlist until the oldest item predates the since cutoff', function () {
+    Http::fake(function ($request) {
+        $url = $request->url();
+        if (str_contains($url, '/channels')) {
+            return Http::response(['items' => [['contentDetails' => ['relatedPlaylists' => ['uploads' => 'UU_fgs']]]]], 200);
+        }
+        if (str_contains($url, 'pageToken=p2')) {
+            return Http::response(['items' => [
+                ['snippet' => ['title' => 'Older Video', 'publishedAt' => '2026-06-05T10:00:00Z', 'resourceId' => ['videoId' => 'v3']]],
+            ]], 200);
+        }
+
+        return Http::response([
+            'nextPageToken' => 'p2',
+            'items' => [
+                ['snippet' => ['title' => 'Newest', 'publishedAt' => '2026-06-06T20:00:00Z', 'resourceId' => ['videoId' => 'v1']]],
+                ['snippet' => ['title' => 'Second', 'publishedAt' => '2026-06-06T19:00:00Z', 'resourceId' => ['videoId' => 'v2']]],
+            ],
+        ], 200);
+    });
+
+    $videos = (new YoutubeDataService)->recentChannelVideos(
+        'https://www.youtube.com/@FutureGamesShow/videos',
+        since: Carbon::parse('2026-06-06T00:00:00Z'),
+    );
+
+    expect($videos)->toHaveCount(3)
+        ->and(array_column($videos, 'video_id'))->toBe(['v1', 'v2', 'v3']);
+
+    Http::assertSent(fn ($r) => str_contains($r->url(), 'pageToken=p2'));
+});
+
+it('stops paging at the maxPages cap even when more pages exist', function () {
+    Http::fake(function ($request) {
+        $url = $request->url();
+        if (str_contains($url, '/channels')) {
+            return Http::response(['items' => [['contentDetails' => ['relatedPlaylists' => ['uploads' => 'UU_fgs']]]]], 200);
+        }
+
+        return Http::response([
+            'nextPageToken' => 'always-more',
+            'items' => [
+                ['snippet' => ['title' => 'A', 'publishedAt' => '2026-06-06T20:00:00Z', 'resourceId' => ['videoId' => 'a']]],
+            ],
+        ], 200);
+    });
+
+    $videos = (new YoutubeDataService)->recentChannelVideos(
+        'https://www.youtube.com/@FutureGamesShow/videos',
+        since: Carbon::parse('2000-01-01T00:00:00Z'),
+        maxPages: 2,
+    );
+
+    expect($videos)->toHaveCount(2);
 });

@@ -788,4 +788,29 @@ class IgdbServiceTest extends TestCase
         $this->assertSame([], $this->service->searchEvents('  '));
         Http::assertNotSent(fn ($request) => str_contains($request->url(), '/v4/events'));
     }
+
+    public function test_fetch_games_videos_returns_videos_keyed_by_game_id(): void
+    {
+        Http::fake([
+            'id.twitch.tv/oauth2/token' => Http::response(['access_token' => 'token'], 200),
+            'api.igdb.com/v4/games' => Http::response([
+                ['id' => 111, 'videos' => [['id' => 1, 'video_id' => 'a'], ['id' => 9, 'video_id' => 'z']]],
+                ['id' => 222, 'videos' => [['id' => 4, 'video_id' => 'q']]],
+            ], 200),
+        ]);
+
+        $videos = $this->service->fetchGamesVideos([111, 222, 111]);
+
+        $this->assertSame(['a', 'z'], array_column($videos[111], 'video_id'));
+        $this->assertSame([['id' => 4, 'video_id' => 'q']], $videos[222]);
+        Http::assertSent(fn ($request) => str_contains($request->body(), 'where id = (111,222)'));
+    }
+
+    public function test_fetch_games_videos_returns_empty_without_calling_igdb_for_no_ids(): void
+    {
+        Http::fake();
+
+        $this->assertSame([], $this->service->fetchGamesVideos([]));
+        Http::assertNothingSent();
+    }
 }

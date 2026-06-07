@@ -38,6 +38,10 @@ return [
         'rate_limit_delay_ms' => env('IGDB_RATE_LIMIT_DELAY_MS', 280000), // Default 280ms
         // How many hours after an event's start_at the live re-sync keeps polling IGDB for new games.
         'event_sync_window_hours' => (int) env('IGDB_EVENT_SYNC_WINDOW_HOURS', 3),
+        // Per-game trailer matching window relative to the event start_at: how many hours before
+        // start a reveal may post (lead) and how many hours after start to still consider it.
+        'event_trailer_lead_hours' => (int) env('IGDB_EVENT_TRAILER_LEAD_HOURS', 1),
+        'event_trailer_window_hours' => (int) env('IGDB_EVENT_TRAILER_WINDOW_HOURS', 24),
         // External sources to sync (IGDB IDs): 1=Steam, 5=GOG, 26=Epic, 36=PlayStation
         'active_external_sources' => array_map('intval', array_filter(
             explode(',', env('IGDB_ACTIVE_EXTERNAL_SOURCES', '1'))
@@ -76,5 +80,7 @@ return [
 
     'youtube' => [
         'api_key' => env('YOUTUBE_API_KEY'),
+        // How many pages (50 uploads each) of a channel's recent videos to walk when matching trailers.
+        'channel_max_pages' => (int) env('YOUTUBE_CHANNEL_MAX_PAGES', 6),
     ],
 ];

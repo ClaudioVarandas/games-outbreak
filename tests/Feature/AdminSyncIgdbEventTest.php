@@ -3,6 +3,7 @@
 use App\Models\Game;
 use App\Models\GameList;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -104,6 +105,7 @@ it('matches channel trailers when the Sync button runs', function () {
     $list = GameList::factory()->events()->system()->create([
         'slug' => 'summer-game-fest',
         'igdb_event_id' => 137,
+        'start_at' => Carbon::parse('2026-06-06T18:00:00Z'),
         'event_data' => ['youtube_channel_url' => 'https://www.youtube.com/@SummerGameFest/videos'],
     ]);
 

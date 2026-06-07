@@ -106,6 +106,40 @@ class IgdbService
     }
 
     /**
+     * Fetch the current videos (trailers) for a batch of games in a single query.
+     * Used to refresh stale game records during an event so newly-added trailers appear.
+     *
+     * @param  list<int>  $igdbIds
+     * @return array<int, list<array<string, mixed>>> Keyed by IGDB game id.
+     */
+    public function fetchGamesVideos(array $igdbIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $igdbIds)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $response = Http::igdb()
+            ->withBody(
+                'fields id, videos.id, videos.video_id; where id = ('.implode(',', $ids).'); limit '.count($ids).';',
+                'text/plain'
+            )
+            ->post('https://api.igdb.com/v4/games');
+
+        if ($response->failed()) {
+            \Log::warning('Failed to fetch IGDB game videos', ['count' => count($ids), 'status' => $response->status()]);
+
+            return [];
+        }
+
+        return collect($response->json() ?? [])
+            ->filter(fn ($game): bool => isset($game['id']))
+            ->mapWithKeys(fn (array $game): array => [(int) $game['id'] => $game['videos'] ?? []])
+            ->all();
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function postEventsQuery(string $query): array

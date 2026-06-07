@@ -10,8 +10,8 @@ use App\Http\Requests\UpdateGameListRequest;
 use App\Jobs\RefreshGameListGamesJob;
 use App\Models\Game;
 use App\Models\GameList;
-use App\Services\ChannelTrailerService;
 use App\Services\EventImportService;
+use App\Services\EventTrailerService;
 use App\Services\GameListSyncService;
 use App\Services\IgdbService;
 use App\Support\YouTube;
@@ -274,7 +274,7 @@ class AdminListController extends Controller
         return response()->json(['results' => $results]);
     }
 
-    public function syncIgdbEvent(string $type, string $slug, EventImportService $events, ChannelTrailerService $channelTrailers): JsonResponse
+    public function syncIgdbEvent(string $type, string $slug, EventImportService $events, EventTrailerService $trailerService): JsonResponse
     {
         $listType = ListTypeEnum::fromSlug($type);
         if ($listType === null) {
@@ -301,9 +301,9 @@ class AdminListController extends Controller
 
         $report = $events->syncGames($list, $event);
 
-        $trailersMatched = 0;
+        $trailers = ['matched' => 0, 'channel' => 0, 'igdb' => 0];
         try {
-            $trailersMatched = $channelTrailers->syncFromChannel($list)['matched'];
+            $trailers = $trailerService->resolve($list);
         } catch (\Throwable $e) {
             report($e);
         }
@@ -313,9 +313,9 @@ class AdminListController extends Controller
             'added' => $report['added'],
             'skipped' => $report['skipped'],
             'failed' => $report['failed'],
-            'videos_set' => $report['videos_set'],
-            'trailers_matched' => $trailersMatched,
-            'message' => "Synced from IGDB: {$report['added']} added, {$report['skipped']} already present, {$report['failed']} failed, {$report['videos_set']} trailers set, {$trailersMatched} matched from channel.",
+            'trailers_set' => $trailers['matched'],
+            'trailers_matched' => $trailers['channel'],
+            'message' => "Synced from IGDB: {$report['added']} added, {$report['skipped']} already present, {$report['failed']} failed. Trailers set: {$trailers['matched']} ({$trailers['channel']} from channel, {$trailers['igdb']} from IGDB).",
         ]);
     }
 

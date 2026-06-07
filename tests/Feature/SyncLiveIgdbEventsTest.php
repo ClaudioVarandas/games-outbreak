@@ -146,7 +146,7 @@ it('matches channel trailers to event games during sync-live', function () {
         }
         if (str_contains($url, 'youtube/v3/playlistItems')) {
             return Http::response(['items' => [
-                ['snippet' => ['title' => 'EXODUS Extended Gameplay Reveal', 'publishedAt' => '2026-06-06T19:00:00Z', 'resourceId' => ['videoId' => 'exoVid']]],
+                ['snippet' => ['title' => 'EXODUS Extended Gameplay Reveal', 'publishedAt' => now()->subMinutes(30)->toIso8601String(), 'resourceId' => ['videoId' => 'exoVid']]],
             ]], 200);
         }
 
@@ -160,7 +160,7 @@ it('matches channel trailers to event games during sync-live', function () {
     ]);
 
     $this->artisan('igdb:events:sync-live')
-        ->expectsOutputToContain('Channel trailers matched: 1')
+        ->expectsOutputToContain('channel 1')
         ->assertSuccessful();
 
     $pivot = $live->games()->where('games.igdb_id', 111)->first()->pivot;

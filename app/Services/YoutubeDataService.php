@@ -39,9 +39,13 @@ class YoutubeDataService
     /**
      * Fetch a channel's most-recent uploads (newest first) from its @handle or channel URL.
      *
+     * Pages through the uploads playlist until the oldest item on a page predates $since,
+     * the channel has no further pages, or $maxPages is reached. Without $since it returns
+     * the first page only.
+     *
      * @return list<array{video_id: string, title: string, published_at: ?Carbon}>
      */
-    public function recentChannelVideos(string $channelUrlOrHandle, int $limit = 50): array
+    public function recentChannelVideos(string $channelUrlOrHandle, ?Carbon $since = null, ?int $maxPages = null): array
     {
         $apiKey = config('services.youtube.api_key');
 
@@ -71,28 +75,51 @@ class YoutubeDataService
             return [];
         }
 
-        $playlistResponse = Http::get(self::PLAYLIST_ITEMS_ENDPOINT, [
-            'part' => 'snippet',
-            'playlistId' => $uploadsPlaylist,
-            'maxResults' => min($limit, 50),
-            'key' => $apiKey,
-        ]);
+        $maxPages = max(1, $maxPages ?? (int) config('services.youtube.channel_max_pages', 6));
+        $videos = [];
+        $pageToken = null;
+        $pages = 0;
 
-        if ($playlistResponse->failed()) {
-            throw new RuntimeException('YouTube playlistItems request failed: '.$playlistResponse->status().' '.$playlistResponse->body());
-        }
+        do {
+            $playlistResponse = Http::get(self::PLAYLIST_ITEMS_ENDPOINT, array_filter([
+                'part' => 'snippet',
+                'playlistId' => $uploadsPlaylist,
+                'maxResults' => 50,
+                'pageToken' => $pageToken,
+                'key' => $apiKey,
+            ], fn ($value): bool => $value !== null));
 
-        return collect($playlistResponse->json('items', []))
-            ->map(fn (array $item): array => [
-                'video_id' => $item['snippet']['resourceId']['videoId'] ?? null,
-                'title' => $item['snippet']['title'] ?? '',
-                'published_at' => isset($item['snippet']['publishedAt'])
-                    ? Carbon::parse($item['snippet']['publishedAt'])
-                    : null,
-            ])
-            ->filter(fn (array $video): bool => ! empty($video['video_id']))
-            ->values()
-            ->all();
+            if ($playlistResponse->failed()) {
+                throw new RuntimeException('YouTube playlistItems request failed: '.$playlistResponse->status().' '.$playlistResponse->body());
+            }
+
+            foreach ($playlistResponse->json('items', []) as $item) {
+                $videoId = $item['snippet']['resourceId']['videoId'] ?? null;
+
+                if (empty($videoId)) {
+                    continue;
+                }
+
+                $videos[] = [
+                    'video_id' => $videoId,
+                    'title' => $item['snippet']['title'] ?? '',
+                    'published_at' => isset($item['snippet']['publishedAt'])
+                        ? Carbon::parse($item['snippet']['publishedAt'])
+                        : null,
+                ];
+            }
+
+            $pageToken = $playlistResponse->json('nextPageToken');
+            $pages++;
+
+            $oldest = end($videos) ?: null;
+            $reachedSince = $since !== null
+                && $oldest !== null
+                && $oldest['published_at'] !== null
+                && $oldest['published_at']->lt($since);
+        } while ($pageToken && $pages < $maxPages && ! ($reachedSince ?? false));
+
+        return $videos;
     }
 
     /**
