@@ -31,20 +31,25 @@ class GameListPivotSuggester
     }
 
     /**
-     * Precision-driven release-date suggestion: a known day gives a concrete
-     * date; a known year without a day gives TBA + year; less gives plain TBA.
+     * Precision-driven release-date suggestion, keyed on IGDB's date_format granularity:
+     * full date (0/YYYYMMDD) → concrete date; month (1/YYYYMM) → concrete 1st of month;
+     * year or coarser (2/YYYY, quarters) → TBA + year; TBD/unknown → plain TBA. A legacy
+     * row without captured granularity falls back to the game's first_release_date.
      */
     public function releaseSuggestion(Game $game): ReleaseDateSuggestion
     {
         $primary = $this->primaryReleaseDate($game);
 
-        if ($primary) {
-            if ($primary->year && $primary->month && $primary->day) {
-                $date = $primary->date ?? Carbon::create($primary->year, $primary->month, $primary->day);
+        if ($primary && $primary->date_format !== null) {
+            if ($primary->date_format === 0 && $primary->date) {
+                return ReleaseDateSuggestion::concrete($primary->date->copy(), $primary->human_readable);
+            }
 
-                if ($date) {
-                    return ReleaseDateSuggestion::concrete($date instanceof Carbon ? $date : Carbon::parse($date), $primary->human_readable);
-                }
+            if ($primary->date_format === 1 && $primary->year && $primary->month) {
+                return ReleaseDateSuggestion::concrete(
+                    Carbon::create($primary->year, $primary->month, 1),
+                    $primary->human_readable,
+                );
             }
 
             if ($primary->year) {
@@ -54,6 +59,7 @@ class GameListPivotSuggester
             return ReleaseDateSuggestion::tba(null, $primary->human_readable);
         }
 
+        // No release row, or a legacy row missing granularity (refresh the game to capture it).
         if ($game->first_release_date) {
             return ReleaseDateSuggestion::concrete($game->first_release_date->copy());
         }

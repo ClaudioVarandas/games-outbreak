@@ -22,6 +22,7 @@ class GameReleaseDateFactory extends Factory
             'year' => (int) now()->format('Y'),
             'month' => (int) now()->format('n'),
             'day' => (int) now()->format('j'),
+            'date_format' => 0, // YYYYMMDD (full date) — matches the full date above
             'human_readable' => now()->format('j M Y'),
             'is_manual' => false,
         ];

@@ -2,13 +2,17 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Company;
 use App\Models\Game;
+use App\Models\GameEngine;
 use App\Models\GameMode;
 use App\Models\Genre;
 use App\Models\Platform;
+use App\Models\PlayerPerspective;
 use App\Services\IgdbService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
 
 class UpdateUpcomingGames extends Command
 {
@@ -39,13 +43,13 @@ class UpdateUpcomingGames extends Command
                              videos.video_id,
                              external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
-                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.status,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.date_format, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
                              game_engines.name, game_engines.id,
                              player_perspectives.name, player_perspectives.id;
                          where id = {$igdbId}; limit 1;";
 
-                $response = \Illuminate\Support\Facades\Http::igdb()
+                $response = Http::igdb()
                     ->withBody($query, 'text/plain')
                     ->post('https://api.igdb.com/v4/games');
 
@@ -271,7 +275,7 @@ class UpdateUpcomingGames extends Command
                         continue;
                     }
 
-                    $company = \App\Models\Company::firstOrCreate(
+                    $company = Company::firstOrCreate(
                         ['igdb_id' => $involvedCompany['company']['id']],
                         ['name' => $involvedCompany['company']['name'] ?? 'Unknown']
                     );
@@ -287,7 +291,7 @@ class UpdateUpcomingGames extends Command
             // Sync game engines
             if (! empty($igdbGame['game_engines'])) {
                 $engineIds = collect($igdbGame['game_engines'])->map(function ($engine) {
-                    return \App\Models\GameEngine::firstOrCreate(
+                    return GameEngine::firstOrCreate(
                         ['igdb_id' => $engine['id']],
                         ['name' => $engine['name'] ?? 'Unknown']
                     )->id;
@@ -299,7 +303,7 @@ class UpdateUpcomingGames extends Command
             // Sync player perspectives
             if (! empty($igdbGame['player_perspectives'])) {
                 $perspectiveIds = collect($igdbGame['player_perspectives'])->map(function ($perspective) {
-                    return \App\Models\PlayerPerspective::firstOrCreate(
+                    return PlayerPerspective::firstOrCreate(
                         ['igdb_id' => $perspective['id']],
                         ['name' => $perspective['name'] ?? 'Unknown']
                     )->id;

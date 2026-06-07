@@ -446,6 +446,12 @@ class Game extends Model
                 }
             }
 
+            // IGDB carries granularity in date_format (0=YYYYMMDD, 1=YYYYMM, 2=YYYY, …),
+            // not a `d` field. The day only exists for a full date, derived from the timestamp.
+            $rawFormat = $igdbReleaseDate['date_format'] ?? null;
+            $dateFormat = is_array($rawFormat) ? ($rawFormat['id'] ?? null) : $rawFormat;
+            $dateFormat = $dateFormat !== null ? (int) $dateFormat : null;
+
             $data = [
                 'game_id' => $game->id,
                 'platform_id' => $platformId,
@@ -454,7 +460,8 @@ class Game extends Model
                 'date' => $date,
                 'year' => $igdbReleaseDate['y'] ?? null,
                 'month' => $igdbReleaseDate['m'] ?? null,
-                'day' => $igdbReleaseDate['d'] ?? null,
+                'day' => ($dateFormat === 0 && $date) ? $date->day : null,
+                'date_format' => $dateFormat,
                 'region' => $igdbReleaseDate['region'] ?? null,
                 'human_readable' => $igdbReleaseDate['human'] ?? null,
                 'is_manual' => false,
@@ -556,7 +563,7 @@ class Game extends Model
                              videos.video_id,
                              external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
-                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.date_format, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
                              game_engines.name, game_engines.id,
                              player_perspectives.name, player_perspectives.id;
@@ -833,7 +840,7 @@ class Game extends Model
                              videos.video_id,
                              external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
-                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.date_format, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
                              game_engines.name, game_engines.id,
                              player_perspectives.name, player_perspectives.id;

@@ -59,7 +59,7 @@ it('suggests TBA + year when only the year is known', function () {
     $game = Game::factory()->create(['first_release_date' => null]);
     releaseDate($game, [
         'date' => null,
-        'year' => 2028, 'month' => null, 'day' => null,
+        'year' => 2028, 'month' => null, 'day' => null, 'date_format' => 2, // YYYY
         'human_readable' => '2028',
     ]);
 
@@ -70,18 +70,18 @@ it('suggests TBA + year when only the year is known', function () {
         ->and($suggestion->releaseDate)->toBeNull();
 });
 
-it('treats month precision without a day as TBA + year', function () {
+it('suggests the first of the month for month precision', function () {
     $game = Game::factory()->create(['first_release_date' => null]);
     releaseDate($game, [
         'date' => null,
-        'year' => 2027, 'month' => 11, 'day' => null,
+        'year' => 2027, 'month' => 11, 'day' => null, 'date_format' => 1, // YYYYMM
         'human_readable' => 'Nov 2027',
     ]);
 
     $suggestion = app(GameListPivotSuggester::class)->releaseSuggestion($game->fresh('releaseDates'));
 
-    expect($suggestion->isTba)->toBeTrue()
-        ->and($suggestion->releaseYear)->toBe(2027);
+    expect($suggestion->isTba)->toBeFalse()
+        ->and($suggestion->releaseDate->toDateString())->toBe('2027-11-01');
 });
 
 it('falls back to the game first_release_date when there are no release-date rows', function () {

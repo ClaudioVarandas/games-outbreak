@@ -57,7 +57,7 @@ class GameListRefreshService
                              videos.video_id,
                              external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
-                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.date_format, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
                              game_engines.name, game_engines.id,
                              player_perspectives.name, player_perspectives.id;

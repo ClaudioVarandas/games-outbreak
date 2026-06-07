@@ -315,6 +315,7 @@ class AdminListController extends Controller
             'added' => $report['added'],
             'skipped' => $report['skipped'],
             'failed' => $report['failed'],
+            'refreshed' => $report['refreshed'],
             'trailers_set' => $trailers['matched'],
             'trailers_matched' => $trailers['channel'],
             'message' => "Synced from IGDB: {$report['added']} added, {$report['skipped']} already present, {$report['failed']} failed. Trailers set: {$trailers['matched']} ({$trailers['channel']} from channel, {$trailers['igdb']} from IGDB).",

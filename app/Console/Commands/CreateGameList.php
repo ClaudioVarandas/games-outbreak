@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\PlatformEnum;
 use App\Models\Game;
 use App\Models\GameList;
+use App\Services\GameListPivotSuggester;
 use App\Services\IgdbService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -23,7 +24,7 @@ class CreateGameList extends Command
 
     protected $description = 'Create a game list with games from IGDB. Fetches missing games from IGDB if needed.';
 
-    public function handle(IgdbService $igdbService): int
+    public function handle(IgdbService $igdbService, GameListPivotSuggester $suggester): int
     {
         // Get or ask for required options with validation
         $name = $this->option('name');
@@ -162,19 +163,19 @@ class CreateGameList extends Command
                     continue;
                 }
 
-                // Attach game to list with order, release_date, and platforms
-                $game->load('platforms');
+                // Attach game with order, platforms, and a precision-driven release:
+                // a known day gives a concrete date; a year without a day gives TBA + year.
+                $game->load(['platforms', 'releaseDates']);
                 $platformIds = $game->platforms
                     ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
                     ->map(fn ($p) => $p->igdb_id)
                     ->values()
                     ->toArray();
 
-                $gameList->games()->attach($game->id, [
+                $gameList->games()->attach($game->id, array_merge([
                     'order' => $order,
-                    'release_date' => $game->first_release_date,
                     'platforms' => json_encode($platformIds),
-                ]);
+                ], $suggester->releaseSuggestion($game)->toPivot()));
                 $this->info("  ✓ Added: {$game->name}");
                 $successCount++;
                 $order++;

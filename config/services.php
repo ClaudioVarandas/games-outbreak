@@ -38,6 +38,9 @@ return [
         'rate_limit_delay_ms' => env('IGDB_RATE_LIMIT_DELAY_MS', 280000), // Default 280ms
         // How many hours after an event's start_at the live re-sync keeps polling IGDB for new games.
         'event_sync_window_hours' => (int) env('IGDB_EVENT_SYNC_WINDOW_HOURS', 3),
+        // During an event sync, refresh an already-known game from IGDB when its data is older
+        // than this many hours (keeps list game data fresh without a separate refresh command).
+        'event_game_refresh_hours' => (int) env('IGDB_EVENT_GAME_REFRESH_HOURS', 24),
         // Per-game trailer matching window relative to the event start_at: how many hours before
         // start a reveal may post (lead) and how many hours after start to still consider it.
         'event_trailer_lead_hours' => (int) env('IGDB_EVENT_TRAILER_LEAD_HOURS', 1),

@@ -12,6 +12,9 @@ use App\Models\GameMode;
 use App\Models\Genre;
 use App\Models\Platform;
 use App\Models\User;
+use App\Services\IgdbService;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -198,7 +201,7 @@ class UserListController extends Controller
     /**
      * Add a game to a list (owner-only).
      */
-    public function addGame(Request $request, User $user, string $type): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function addGame(Request $request, User $user, string $type): RedirectResponse|JsonResponse
     {
         $list = $this->getListByType($user, $type);
 
@@ -234,7 +237,7 @@ class UserListController extends Controller
                 // Only fetch from IGDB if still not found
                 if (! $game) {
                     try {
-                        $igdbService = app(\App\Services\IgdbService::class);
+                        $igdbService = app(IgdbService::class);
                         $query = "fields name, first_release_date, summary, platforms.name, platforms.id, cover.image_id,
                              genres.name, genres.id,
                              game_modes.name, game_modes.id,
@@ -243,7 +246,7 @@ class UserListController extends Controller
                              videos.video_id,
                              external_games.external_game_source, external_games.uid, external_games.url,
                              websites.category, websites.url, game_type,
-                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.d, release_dates.status,
+                             release_dates.platform, release_dates.date, release_dates.region, release_dates.human, release_dates.y, release_dates.m, release_dates.date_format, release_dates.status,
                              involved_companies.company.id, involved_companies.company.name, involved_companies.developer, involved_companies.publisher,
                              game_engines.name, game_engines.id,
                              player_perspectives.name, player_perspectives.id;
@@ -296,7 +299,7 @@ class UserListController extends Controller
                             'name' => $gameName,
                             'summary' => $igdbGame['summary'] ?? null,
                             'first_release_date' => isset($igdbGame['first_release_date'])
-                                ? \Carbon\Carbon::createFromTimestamp($igdbGame['first_release_date'])
+                                ? Carbon::createFromTimestamp($igdbGame['first_release_date'])
                                 : null,
                             'cover_image_id' => $coverImageId,
                             'hero_image_id' => $heroImageId,
@@ -339,7 +342,7 @@ class UserListController extends Controller
         $releaseDate = $request->input('release_date');
         if ($releaseDate) {
             try {
-                $releaseDate = \Carbon\Carbon::parse($releaseDate);
+                $releaseDate = Carbon::parse($releaseDate);
             } catch (\Exception $e) {
                 $releaseDate = $game->first_release_date;
             }
@@ -379,7 +382,7 @@ class UserListController extends Controller
     /**
      * Remove a game from a list (owner-only).
      */
-    public function removeGame(User $user, string $type, Game $game): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function removeGame(User $user, string $type, Game $game): RedirectResponse|JsonResponse
     {
         $list = $this->getListByType($user, $type);
 
@@ -398,7 +401,7 @@ class UserListController extends Controller
     /**
      * Reorder games in a list (owner-only).
      */
-    public function reorderGames(Request $request, User $user, string $type): \Illuminate\Http\JsonResponse
+    public function reorderGames(Request $request, User $user, string $type): JsonResponse
     {
         $list = $this->getListByType($user, $type);
 
@@ -422,7 +425,7 @@ class UserListController extends Controller
     /**
      * Toggle view mode (grid/list) in session.
      */
-    public function toggleViewMode(Request $request): \Illuminate\Http\JsonResponse
+    public function toggleViewMode(Request $request): JsonResponse
     {
         $mode = $request->input('mode', 'grid');
         session(['game_view_mode' => $mode]);

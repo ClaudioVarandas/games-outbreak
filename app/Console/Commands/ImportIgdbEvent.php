@@ -64,10 +64,11 @@ class ImportIgdbEvent extends Command
         $report = $service->syncGames($list, $event);
 
         $this->info(sprintf(
-            'Games: added %d, skipped %d, failed %d.',
+            'Games: added %d, skipped %d, failed %d, refreshed %d.',
             $report['added'],
             $report['skipped'],
             $report['failed'],
+            $report['refreshed'],
         ));
 
         foreach ($report['errors'] as $igdbId => $message) {

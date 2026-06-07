@@ -18,6 +18,7 @@ class GameReleaseDate extends Model
         'year' => 'integer',
         'month' => 'integer',
         'day' => 'integer',
+        'date_format' => 'integer',
         'region' => 'integer',
     ];
 

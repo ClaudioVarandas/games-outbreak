@@ -50,11 +50,12 @@ class SyncLiveIgdbEvents extends Command
             }
 
             $this->info(sprintf(
-                '%s: added %d, skipped %d, failed %d. Trailers set: %d (channel %d, IGDB %d).',
+                '%s: added %d, skipped %d, failed %d, refreshed %d. Trailers set: %d (channel %d, IGDB %d).',
                 $list->name,
                 $report['added'],
                 $report['skipped'],
                 $report['failed'],
+                $report['refreshed'],
                 $trailers['matched'],
                 $trailers['channel'],
                 $trailers['igdb'],

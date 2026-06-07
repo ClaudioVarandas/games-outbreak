@@ -2,6 +2,7 @@
 
 use App\Models\Game;
 use App\Models\GameList;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -144,6 +145,113 @@ it('does not overwrite an admin-set pivot video_url on a re-sync', function () {
 
     expect($list->games()->where('games.id', $game->id)->first()->pivot->video_url)
         ->toBe('https://www.youtube.com/watch?v=CURATED');
+});
+
+it('flags a year-only game as TBA with the year on import', function () {
+    Http::fake(function ($request) {
+        $url = $request->url();
+        if (str_contains($url, 'id.twitch.tv')) {
+            return Http::response(['access_token' => 'token'], 200);
+        }
+        if (str_contains($url, '/v4/events')) {
+            return Http::response([igdbEventPayload(137, [403885])], 200);
+        }
+        if (str_contains($url, '/v4/games')) {
+            return Http::response([array_replace(igdbGamePayload(403885), [
+                'first_release_date' => 1830211200, // ~2027-12-31, the misleading concrete date
+                'release_dates' => [[
+                    'id' => 923495, 'date' => 1830211200, 'human' => '2027',
+                    'm' => 12, 'y' => 2027, 'date_format' => 2, 'platform' => 6, 'status' => 6, // YYYY → year only
+                ]],
+            ])], 200);
+        }
+
+        return Http::response([], 200);
+    });
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--accept-all' => true])->assertSuccessful();
+
+    $pivot = GameList::events()->where('igdb_event_id', 137)->first()
+        ->games()->where('games.igdb_id', 403885)->first()->pivot;
+
+    expect((bool) $pivot->is_tba)->toBeTrue()
+        ->and((int) $pivot->release_year)->toBe(2027)
+        ->and($pivot->release_date)->toBeNull();
+});
+
+it('sets a concrete release date for a fully-dated game on import', function () {
+    Http::fake(function ($request) {
+        $url = $request->url();
+        if (str_contains($url, 'id.twitch.tv')) {
+            return Http::response(['access_token' => 'token'], 200);
+        }
+        if (str_contains($url, '/v4/events')) {
+            return Http::response([igdbEventPayload(137, [555])], 200);
+        }
+        if (str_contains($url, '/v4/games')) {
+            return Http::response([array_replace(igdbGamePayload(555), [
+                'release_dates' => [[
+                    'id' => 1, 'date' => 1773532800, 'human' => 'Mar 15, 2026',
+                    'm' => 3, 'y' => 2026, 'date_format' => 0, 'platform' => 6, 'status' => 6, // YYYYMMDD → full date
+                ]],
+            ])], 200);
+        }
+
+        return Http::response([], 200);
+    });
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--accept-all' => true])->assertSuccessful();
+
+    $pivot = GameList::events()->where('igdb_event_id', 137)->first()
+        ->games()->where('games.igdb_id', 555)->first()->pivot;
+
+    expect((bool) $pivot->is_tba)->toBeFalse()
+        ->and($pivot->release_year)->toBeNull()
+        ->and($pivot->release_date)->not->toBeNull()
+        ->and(Carbon::parse($pivot->release_date)->year)->toBe(2026);
+});
+
+it('refreshes a stale already-known game from IGDB during sync', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'igdb_event_id' => 137,
+        'slug' => 'summer-game-fest',
+    ]);
+    $game = Game::factory()->create([
+        'igdb_id' => 111,
+        'first_release_date' => Carbon::create(2030, 1, 1),
+        'last_igdb_sync_at' => now()->subDays(10),
+    ]);
+    $list->games()->attach($game->id, ['order' => 1]);
+
+    fakeIgdb(igdbEventPayload(137, [111]));
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--update' => true])
+        ->expectsOutputToContain('refreshed 1')
+        ->assertSuccessful();
+
+    // Tier-1 game data is refreshed from IGDB (igdbGamePayload first_release_date 1749600000 → 2025).
+    expect($game->fresh()->first_release_date->year)->toBe(2025);
+});
+
+it('does not refresh a recently-synced game', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'igdb_event_id' => 137,
+        'slug' => 'summer-game-fest',
+    ]);
+    $game = Game::factory()->create([
+        'igdb_id' => 111,
+        'first_release_date' => Carbon::create(2030, 1, 1),
+        'last_igdb_sync_at' => now()->subHour(),
+    ]);
+    $list->games()->attach($game->id, ['order' => 1]);
+
+    fakeIgdb(igdbEventPayload(137, [111]));
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--update' => true])
+        ->expectsOutputToContain('refreshed 0')
+        ->assertSuccessful();
+
+    expect($game->fresh()->first_release_date->year)->toBe(2030); // untouched
 });
 
 it('prefills the youtube channel url from the YouTube social link on create', function () {

@@ -11,7 +11,10 @@ use Illuminate\Support\Str;
 
 class EventImportService
 {
-    public function __construct(private IgdbService $igdb) {}
+    public function __construct(
+        private IgdbService $igdb,
+        private GameListPivotSuggester $suggester,
+    ) {}
 
     /**
      * @return array<string, mixed>|null
@@ -116,11 +119,11 @@ class EventImportService
      * igdb:gamelist:sync-pivot.
      *
      * @param  array<string, mixed>  $event
-     * @return array{added: int, skipped: int, failed: int, errors: array<int, string>}
+     * @return array{added: int, skipped: int, failed: int, refreshed: int, errors: array<int, string>}
      */
     public function syncGames(GameList $list, array $event): array
     {
-        $report = ['added' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []];
+        $report = ['added' => 0, 'skipped' => 0, 'failed' => 0, 'refreshed' => 0, 'errors' => []];
 
         $gameIds = array_values(array_unique(array_map('intval', $event['games'] ?? [])));
 
@@ -142,24 +145,33 @@ class EventImportService
                     continue;
                 }
 
+                // We have IGDB in hand for this event, so keep the game record fresh:
+                // refresh an already-known game whose data has gone stale. (Newly-fetched
+                // games are current.) Tier-2 pivots of existing games stay with sync-pivot.
+                if ($this->gameNeedsRefresh($game)) {
+                    $game->refreshFromIgdb($this->igdb);
+                    $report['refreshed']++;
+                }
+
                 if (in_array($game->id, $attachedGameIds, true)) {
                     $report['skipped']++;
 
                     continue;
                 }
 
-                $game->loadMissing('platforms');
+                $game->load(['platforms', 'releaseDates']);
                 $platformIds = $game->platforms
                     ->filter(fn (object $platform): bool => PlatformEnum::getActivePlatforms()->has($platform->igdb_id))
                     ->map(fn (object $platform) => $platform->igdb_id)
                     ->values()
                     ->all();
 
-                $list->games()->attach($game->id, [
+                // Precision-driven release: a known day gives a concrete date; a year
+                // without a day gives TBA + year (e.g. "TBA 2027") instead of a fake date.
+                $list->games()->attach($game->id, array_merge([
                     'order' => ++$order,
-                    'release_date' => $game->first_release_date,
                     'platforms' => json_encode($platformIds),
-                ]);
+                ], $this->suggester->releaseSuggestion($game)->toPivot()));
 
                 $attachedGameIds[] = $game->id;
                 $report['added']++;
@@ -170,6 +182,14 @@ class EventImportService
         }
 
         return $report;
+    }
+
+    private function gameNeedsRefresh(Game $game): bool
+    {
+        $hours = (int) config('services.igdb.event_game_refresh_hours', 24);
+
+        return $game->last_igdb_sync_at === null
+            || $game->last_igdb_sync_at->lt(now()->subHours($hours));
     }
 
     private function uniqueEventSlug(string $base, ?int $ignoreId = null): string
