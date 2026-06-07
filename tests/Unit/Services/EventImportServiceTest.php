@@ -35,11 +35,23 @@ it('maps core IGDB event fields to game list attributes', function () {
 
     expect($attrs['igdb_event_id'])->toBe(137)
         ->and($attrs['name'])->toBe('Summer Game Fest 2026')
-        ->and($attrs['description'])->toBe('The big showcase.')
         ->and($attrs['list_type'])->toBe(ListTypeEnum::EVENTS)
         ->and($attrs['is_system'])->toBeTrue()
         ->and($attrs['is_active'])->toBeTrue()
         ->and($attrs['user_id'])->toBeNull();
+});
+
+it('does not store the youtube channel url in the mapped attributes (set at persist time)', function () {
+    $attrs = makeEventImportService()->mapEventToAttributes(sampleIgdbEvent());
+
+    expect($attrs['event_data'])->not->toHaveKey('youtube_channel_url');
+});
+
+it('does not map a top-level description (frontend uses event_data.about only)', function () {
+    $attrs = makeEventImportService()->mapEventToAttributes(sampleIgdbEvent());
+
+    expect($attrs)->not->toHaveKey('description')
+        ->and($attrs['event_data']['about'])->toBe('The big showcase.');
 });
 
 it('generates our own slug from the name and ignores the IGDB slug', function () {

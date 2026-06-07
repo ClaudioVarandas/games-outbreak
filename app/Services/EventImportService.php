@@ -58,18 +58,28 @@ class EventImportService
     public function createOrUpdateList(array $event, ?GameList $existing, array $overrides = []): GameList
     {
         $attrs = $this->mapEventToAttributes($event);
+        $channelUrl = $this->deriveChannelUrl($event);
 
         if ($existing === null) {
             $attrs['slug'] = $this->uniqueEventSlug($attrs['slug']);
+
+            if ($channelUrl !== null) {
+                $attrs['event_data']['youtube_channel_url'] = $channelUrl;
+            }
 
             return GameList::create(array_replace($attrs, $overrides));
         }
 
         $existing->igdb_event_id = $attrs['igdb_event_id'];
-        $existing->description = $attrs['description'];
         $existing->start_at = $attrs['start_at'];
         $existing->end_at = $attrs['end_at'];
-        $existing->event_data = array_replace($existing->event_data ?? [], $attrs['event_data']);
+
+        $eventData = array_replace($existing->event_data ?? [], $attrs['event_data']);
+        // Only backfill the channel url when the admin hasn't set one — never overwrite it.
+        if ($channelUrl !== null && empty($eventData['youtube_channel_url'])) {
+            $eventData['youtube_channel_url'] = $channelUrl;
+        }
+        $existing->event_data = $eventData;
 
         if (array_key_exists('is_public', $overrides)) {
             $existing->is_public = $overrides['is_public'];
@@ -78,6 +88,25 @@ class EventImportService
         $existing->save();
 
         return $existing;
+    }
+
+    /**
+     * Derive the channel "/videos" URL from the event's YouTube network link.
+     *
+     * @param  array<string, mixed>  $event
+     */
+    private function deriveChannelUrl(array $event): ?string
+    {
+        foreach ($event['event_networks'] ?? [] as $network) {
+            $url = $network['url'] ?? null;
+            $name = $network['network_type']['name'] ?? '';
+
+            if ($url && (stripos($name, 'youtube') !== false || str_contains($url, 'youtube.com'))) {
+                return str_ends_with($url, '/videos') ? $url : rtrim($url, '/').'/videos';
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -210,7 +239,6 @@ class EventImportService
         return [
             'igdb_event_id' => (int) $event['id'],
             'name' => $name,
-            'description' => $description,
             'slug' => Str::slug($name),
             'list_type' => ListTypeEnum::EVENTS,
             'is_system' => true,

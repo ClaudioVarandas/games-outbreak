@@ -21,6 +21,7 @@ function igdbEventPayload(int $id, array $gameIds, array $overrides = []): array
         'live_stream_url' => 'https://www.youtube.com/watch?v=ABC123',
         'event_networks' => [
             ['url' => 'https://twitter.com/sgf', 'network_type' => ['name' => 'Twitter']],
+            ['url' => 'https://www.youtube.com/@SummerGameFest', 'network_type' => ['name' => 'YouTube']],
         ],
         'games' => $gameIds,
         'videos' => [['video_id' => 'XYZ789']],
@@ -143,6 +144,45 @@ it('does not overwrite an admin-set pivot video_url on a re-sync', function () {
 
     expect($list->games()->where('games.id', $game->id)->first()->pivot->video_url)
         ->toBe('https://www.youtube.com/watch?v=CURATED');
+});
+
+it('prefills the youtube channel url from the YouTube social link on create', function () {
+    fakeIgdb(igdbEventPayload(137, []));
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--accept-all' => true])->assertSuccessful();
+
+    $list = GameList::events()->where('igdb_event_id', 137)->first();
+    expect($list->event_data['youtube_channel_url'])->toBe('https://www.youtube.com/@SummerGameFest/videos');
+});
+
+it('does not overwrite an admin-set youtube channel url on update', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'igdb_event_id' => 137,
+        'slug' => 'summer-game-fest',
+        'event_data' => ['youtube_channel_url' => 'https://www.youtube.com/@Custom/videos'],
+    ]);
+
+    fakeIgdb(igdbEventPayload(137, []));
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--update' => true])->assertSuccessful();
+
+    expect($list->refresh()->event_data['youtube_channel_url'])->toBe('https://www.youtube.com/@Custom/videos');
+});
+
+it('leaves an existing list description untouched on update', function () {
+    $list = GameList::factory()->events()->system()->create([
+        'igdb_event_id' => 137,
+        'slug' => 'summer-game-fest',
+        'description' => 'Hand-written description',
+    ]);
+
+    fakeIgdb(igdbEventPayload(137, []));
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--update' => true])->assertSuccessful();
+
+    $list->refresh();
+    expect($list->description)->toBe('Hand-written description')
+        ->and($list->getEventAbout())->toBe('The big showcase.');
 });
 
 it('updates an existing list and adds only the newly-appeared games', function () {

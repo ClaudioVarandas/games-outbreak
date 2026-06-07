@@ -220,6 +220,22 @@
                         </div>
 
                         <div class="mt-6">
+                            <label for="youtube_channel_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                YouTube channel (videos) URL
+                            </label>
+                            <input type="url"
+                                   name="youtube_channel_url"
+                                   id="youtube_channel_url"
+                                   value="{{ old('youtube_channel_url', $list->event_data['youtube_channel_url'] ?? '') }}"
+                                   placeholder="https://www.youtube.com/@FutureGamesShow/videos"
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                During the live window, the scheduler scans this channel's recent uploads and matches them to games by title,
+                                filling each game's trailer (it won't overwrite a trailer you set by hand).
+                            </p>
+                        </div>
+
+                        <div class="mt-6">
                             <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Social Links</h4>
                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div>

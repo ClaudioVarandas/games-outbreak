@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\GameList;
+use App\Services\ChannelTrailerService;
 use App\Services\EventImportService;
 use Illuminate\Console\Command;
 
@@ -14,7 +15,7 @@ class SyncLiveIgdbEvents extends Command
 
     protected $description = 'Re-sync games for every imported events list within its live window (start_at .. start_at + services.igdb.event_sync_window_hours). Picks up games IGDB adds during the event.';
 
-    public function handle(EventImportService $service): int
+    public function handle(EventImportService $service, ChannelTrailerService $channelTrailers): int
     {
         $capHours = (int) config('services.igdb.event_sync_window_hours', 3);
 
@@ -41,12 +42,20 @@ class SyncLiveIgdbEvents extends Command
 
             $report = $service->syncGames($list, $event);
 
+            $matchedTrailers = 0;
+            try {
+                $matchedTrailers = $channelTrailers->syncFromChannel($list)['matched'];
+            } catch (\Throwable $e) {
+                $this->warn("  Channel trailer match failed for {$list->name}: {$e->getMessage()}");
+            }
+
             $this->info(sprintf(
-                '%s: added %d, skipped %d, failed %d.',
+                '%s: added %d, skipped %d, failed %d. Channel trailers matched: %d.',
                 $list->name,
                 $report['added'],
                 $report['skipped'],
                 $report['failed'],
+                $matchedTrailers,
             ));
         }
 

@@ -631,6 +631,35 @@ it('can clear the igdb_event_id by submitting it empty', function () {
     expect($list->refresh()->igdb_event_id)->toBeNull();
 });
 
+it('persists the youtube channel url when updating an events list', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $list = GameList::factory()->events()->system()->create(['slug' => 'channel-ev', 'name' => 'Channel Event']);
+
+    $this->actingAs($admin)->patch('/admin/system-lists/events/channel-ev', [
+        'name' => 'Channel Event',
+        'youtube_channel_url' => 'https://www.youtube.com/@TheEvent/videos',
+    ])->assertRedirect();
+
+    expect($list->refresh()->event_data['youtube_channel_url'])->toBe('https://www.youtube.com/@TheEvent/videos');
+});
+
+it('marks a trailer as manual when an admin sets a game pivot video_url', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $list = GameList::factory()->events()->system()->create(['slug' => 'pivot-ev']);
+    $game = Game::factory()->create();
+    $list->games()->attach($game->id, ['order' => 1, 'video_url' => null, 'video_url_manual' => false]);
+
+    $this->actingAs($admin)
+        ->withHeaders(['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'])
+        ->patch("/admin/system-lists/events/pivot-ev/games/{$game->id}/pivot", [
+            'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        ])->assertOk();
+
+    $pivot = $list->games()->first()->pivot;
+    expect((bool) $pivot->video_url_manual)->toBeTrue()
+        ->and($pivot->video_url)->toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+});
+
 it('persists the igdb_slug into event_data when updating an events list', function () {
     $admin = User::factory()->create(['is_admin' => true]);
 

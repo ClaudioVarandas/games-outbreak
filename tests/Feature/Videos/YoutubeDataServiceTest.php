@@ -81,3 +81,42 @@ it('throws on API failure', function () {
     ]);
     (new YoutubeDataService)->fetchVideo('abc');
 })->throws(RuntimeException::class);
+
+it('extracts the channel handle from a channel videos url', function () {
+    $svc = new YoutubeDataService;
+
+    expect($svc->extractChannelHandle('https://www.youtube.com/@FutureGamesShow/videos'))->toBe('FutureGamesShow')
+        ->and($svc->extractChannelHandle('@FutureGamesShow'))->toBe('FutureGamesShow')
+        ->and($svc->extractChannelHandle('FutureGamesShow'))->toBe('FutureGamesShow')
+        ->and($svc->extractChannelHandle(''))->toBeNull();
+});
+
+it('returns the recent uploads for a channel handle url', function () {
+    Http::fake([
+        'googleapis.com/youtube/v3/channels*' => Http::response([
+            'items' => [['contentDetails' => ['relatedPlaylists' => ['uploads' => 'UU_fgs']]]],
+        ], 200),
+        'googleapis.com/youtube/v3/playlistItems*' => Http::response([
+            'items' => [
+                ['snippet' => ['title' => 'EXODUS Extended Gameplay', 'publishedAt' => '2026-06-06T19:30:00Z', 'resourceId' => ['videoId' => 'vid1']]],
+                ['snippet' => ['title' => 'Some Other Trailer', 'publishedAt' => '2026-06-06T19:00:00Z', 'resourceId' => ['videoId' => 'vid2']]],
+            ],
+        ], 200),
+    ]);
+
+    $videos = (new YoutubeDataService)->recentChannelVideos('https://www.youtube.com/@FutureGamesShow/videos');
+
+    expect($videos)->toHaveCount(2)
+        ->and($videos[0]['video_id'])->toBe('vid1')
+        ->and($videos[0]['title'])->toBe('EXODUS Extended Gameplay');
+
+    Http::assertSent(fn ($r) => str_contains($r->url(), 'forHandle=FutureGamesShow'));
+});
+
+it('returns empty when the channel handle cannot be resolved', function () {
+    Http::fake([
+        'googleapis.com/youtube/v3/channels*' => Http::response(['items' => []], 200),
+    ]);
+
+    expect((new YoutubeDataService)->recentChannelVideos('https://www.youtube.com/@Unknown/videos'))->toBe([]);
+});

@@ -229,6 +229,7 @@ class AdminListController extends Controller
                 'event_timezone' => $request->input('event_timezone'),
                 'about' => $request->input('event_about'),
                 'igdb_slug' => $request->input('igdb_slug'),
+                'youtube_channel_url' => $request->input('youtube_channel_url'),
                 'video_url' => $request->input('video_url'),
                 'social_links' => array_filter([
                     'twitter' => $request->input('social_twitter'),
@@ -887,6 +888,9 @@ class AdminListController extends Controller
 
         if ($request->has('video_url')) {
             $pivotUpdate['video_url'] = $request->input('video_url') ?: null;
+            // Mark admin-set trailers so the channel matcher never overwrites them
+            // (clearing the url unlocks it again for automatic matching).
+            $pivotUpdate['video_url_manual'] = (bool) $request->input('video_url');
         }
 
         // release_year is fully derived from is_tba, so it is set unconditionally (unlike the

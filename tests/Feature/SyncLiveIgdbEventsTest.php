@@ -120,3 +120,49 @@ it('reports when there are no live events', function () {
         ->expectsOutputToContain('No live events')
         ->assertSuccessful();
 });
+
+it('matches channel trailers to event games during sync-live', function () {
+    config(['services.youtube.api_key' => 'test-key']);
+
+    Http::fake(function ($request) {
+        $url = $request->url();
+        if (str_contains($url, 'id.twitch.tv')) {
+            return Http::response(['access_token' => 'token'], 200);
+        }
+        if (str_contains($url, '/v4/events')) {
+            return Http::response([[
+                'id' => 137, 'name' => 'Future Games Show', 'start_time' => 1749500000, 'games' => [111],
+            ]], 200);
+        }
+        if (str_contains($url, '/v4/games')) {
+            return Http::response([[
+                'id' => 111, 'name' => 'EXODUS', 'cover' => ['image_id' => 'co111'],
+                'platforms' => [], 'genres' => [], 'game_modes' => [],
+                'external_games' => [], 'websites' => [], 'game_type' => 0, 'release_dates' => null,
+            ]], 200);
+        }
+        if (str_contains($url, 'youtube/v3/channels')) {
+            return Http::response(['items' => [['contentDetails' => ['relatedPlaylists' => ['uploads' => 'UU_fgs']]]]], 200);
+        }
+        if (str_contains($url, 'youtube/v3/playlistItems')) {
+            return Http::response(['items' => [
+                ['snippet' => ['title' => 'EXODUS Extended Gameplay Reveal', 'publishedAt' => '2026-06-06T19:00:00Z', 'resourceId' => ['videoId' => 'exoVid']]],
+            ]], 200);
+        }
+
+        return Http::response([], 200);
+    });
+
+    $live = GameList::factory()->events()->system()->create([
+        'igdb_event_id' => 137,
+        'start_at' => now()->subHour(),
+        'event_data' => ['youtube_channel_url' => 'https://www.youtube.com/@FutureGamesShow/videos'],
+    ]);
+
+    $this->artisan('igdb:events:sync-live')
+        ->expectsOutputToContain('Channel trailers matched: 1')
+        ->assertSuccessful();
+
+    $pivot = $live->games()->where('games.igdb_id', 111)->first()->pivot;
+    expect($pivot->video_url)->toBe('https://www.youtube.com/watch?v=exoVid');
+});
