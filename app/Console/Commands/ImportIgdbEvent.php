@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\GameList;
+use App\Services\ChannelTrailerService;
 use App\Services\EventImportService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -23,7 +24,7 @@ class ImportIgdbEvent extends Command
 
     protected $description = 'Import an IGDB event (metadata + games) into an events list. Re-runnable: existing lists are updated, only newly-appeared games are added.';
 
-    public function handle(EventImportService $service): int
+    public function handle(EventImportService $service, ChannelTrailerService $channelTrailers): int
     {
         $event = $this->resolveEvent($service, (string) $this->argument('event'));
 
@@ -73,6 +74,15 @@ class ImportIgdbEvent extends Command
         foreach ($report['errors'] as $igdbId => $message) {
             $this->warn("  IGDB game #{$igdbId}: {$message}");
         }
+
+        $matchedTrailers = 0;
+        try {
+            $matchedTrailers = $channelTrailers->syncFromChannel($list)['matched'];
+        } catch (\Throwable $e) {
+            $this->warn("Channel trailer match failed: {$e->getMessage()}");
+        }
+
+        $this->info("Channel trailers matched: {$matchedTrailers}.");
 
         return self::SUCCESS;
     }

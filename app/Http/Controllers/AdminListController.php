@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateGameListRequest;
 use App\Jobs\RefreshGameListGamesJob;
 use App\Models\Game;
 use App\Models\GameList;
+use App\Services\ChannelTrailerService;
 use App\Services\EventImportService;
 use App\Services\GameListSyncService;
 use App\Services\IgdbService;
@@ -273,7 +274,7 @@ class AdminListController extends Controller
         return response()->json(['results' => $results]);
     }
 
-    public function syncIgdbEvent(string $type, string $slug, EventImportService $events): JsonResponse
+    public function syncIgdbEvent(string $type, string $slug, EventImportService $events, ChannelTrailerService $channelTrailers): JsonResponse
     {
         $listType = ListTypeEnum::fromSlug($type);
         if ($listType === null) {
@@ -300,13 +301,21 @@ class AdminListController extends Controller
 
         $report = $events->syncGames($list, $event);
 
+        $trailersMatched = 0;
+        try {
+            $trailersMatched = $channelTrailers->syncFromChannel($list)['matched'];
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return response()->json([
             'success' => true,
             'added' => $report['added'],
             'skipped' => $report['skipped'],
             'failed' => $report['failed'],
             'videos_set' => $report['videos_set'],
-            'message' => "Synced from IGDB: {$report['added']} added, {$report['skipped']} already present, {$report['failed']} failed, {$report['videos_set']} trailers set.",
+            'trailers_matched' => $trailersMatched,
+            'message' => "Synced from IGDB: {$report['added']} added, {$report['skipped']} already present, {$report['failed']} failed, {$report['videos_set']} trailers set, {$trailersMatched} matched from channel.",
         ]);
     }
 

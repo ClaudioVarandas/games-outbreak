@@ -492,7 +492,7 @@
                 .then(({ ok, data }) => {
                     if (ok && data.success) {
                         alert(data.message);
-                        if (data.added > 0) {
+                        if (data.added > 0 || data.trailers_matched > 0) {
                             window.location.reload();
                             return;
                         }

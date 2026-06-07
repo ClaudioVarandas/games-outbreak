@@ -169,6 +169,43 @@ it('does not overwrite an admin-set youtube channel url on update', function () 
     expect($list->refresh()->event_data['youtube_channel_url'])->toBe('https://www.youtube.com/@Custom/videos');
 });
 
+it('matches channel trailers on a manual --update', function () {
+    config(['services.youtube.api_key' => 'test-key']);
+
+    Http::fake(function ($request) {
+        $url = $request->url();
+        if (str_contains($url, 'id.twitch.tv')) {
+            return Http::response(['access_token' => 'token'], 200);
+        }
+        if (str_contains($url, '/v4/events')) {
+            return Http::response([igdbEventPayload(137, [111])], 200);
+        }
+        if (str_contains($url, '/v4/games')) {
+            return Http::response([igdbGamePayload(111)], 200);
+        }
+        if (str_contains($url, 'youtube/v3/channels')) {
+            return Http::response(['items' => [['contentDetails' => ['relatedPlaylists' => ['uploads' => 'UU']]]]], 200);
+        }
+        if (str_contains($url, 'youtube/v3/playlistItems')) {
+            return Http::response(['items' => [
+                ['snippet' => ['title' => 'Game 111 Official Trailer', 'publishedAt' => '2026-06-06T19:00:00Z', 'resourceId' => ['videoId' => 'chanVid']]],
+            ]], 200);
+        }
+
+        return Http::response([], 200);
+    });
+
+    $list = GameList::factory()->events()->system()->create(['igdb_event_id' => 137, 'slug' => 'summer-game-fest']);
+
+    $this->artisan('igdb:events:import', ['event' => '137', '--update' => true])
+        ->expectsOutputToContain('Channel trailers matched: 1')
+        ->assertSuccessful();
+
+    // Channel match wins over the IGDB trailer (tr111).
+    expect($list->games()->where('games.igdb_id', 111)->first()->pivot->video_url)
+        ->toBe('https://www.youtube.com/watch?v=chanVid');
+});
+
 it('leaves an existing list description untouched on update', function () {
     $list = GameList::factory()->events()->system()->create([
         'igdb_event_id' => 137,
