@@ -511,3 +511,29 @@ enum VideoCategoryColorPresetEnum: string
 
 **Why:** testable, typed, reusable across controllers/jobs/tests; avoids drift between multiple Blade views holding the
 same list; avoids sprinkling domain constants across the view layer.
+
+**Tailwind + enum classes:** `tailwind.config.js` scans `./app/Enums/*.php` because badge/pill class
+lists live in enums. Keep full literal class names in enum methods (never build them by string
+concatenation — the JIT can't see those) and run `npm run build` after changing them. Removing that
+content glob silently purges every enum-held class from the CSS.
+
+### UI feedback: never use native alert()/confirm()
+
+A global toast + confirm system is mounted once in `layouts/app.blade.php`
+(`resources/js/ui-feedback.js`, `<x-toast-container />`, `<x-confirm-dialog />`):
+
+- `window.toast(message, type)` — types `success` (green), `info` (blue), `error` (red); auto-dismiss.
+- `await window.confirmDialog(message, { title, confirmLabel, danger })` — promise-based styled modal;
+  `danger: true` renders a red confirm button.
+- Delete forms: add `data-confirm="message"` to the `<form>` instead of `onsubmit="return confirm(...)"` —
+  a delegated handler shows the styled dialog and re-submits on approval.
+
+### Game list import (staging flow)
+
+Pasted release lists are imported via the `/import-game-list` Claude skill →
+token-authenticated `POST /api/v1/import/*` endpoints → a hidden staging list
+(`list_type = import`) → admin review (confidence/source pills, promote/reject,
+bulk selection) → per-year promote reusing `EventYearlySyncService`. Full spec:
+`docs/SPEC/GAME_LIST_IMPORT_SPEC.md`. Never create games outside IGDB; never make
+`import` lists publicly visible (`/releases/{year}` ignores is_active/is_public —
+that's why the type exists).
