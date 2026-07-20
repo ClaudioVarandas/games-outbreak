@@ -16,6 +16,7 @@ Alpine.plugin(collapse);
 import './components/list-filter.js';
 import './components/game-collection-actions.js';
 import './components/user-game-edit-modal.js';
+import './ui-feedback.js';
 
 Alpine.start();
 

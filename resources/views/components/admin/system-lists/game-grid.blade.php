@@ -186,6 +186,13 @@
                      data-is-highlight="{{ $game->pivot->is_highlight ? 'true' : 'false' }}"
                      data-is-indie="{{ $game->pivot->is_indie ? 'true' : 'false' }}"
                      data-primary-genre-id="{{ $game->pivot->primary_genre_id ?? '' }}">
+                    @if($canPromote)
+                        <!-- Promote selection checkbox -->
+                        <input type="checkbox"
+                               class="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 flex-shrink-0"
+                               :checked="selected.includes({{ $game->id }})"
+                               @change="toggleSelected({{ $game->id }})">
+                    @endif
                     @if(!$sectionKey)
                     <!-- Drag Handle -->
                     <div class="cursor-move drag-handle text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -338,7 +345,11 @@
             },
 
             async removeGame(gameId) {
-                if (!confirm('Remove this game from the list?')) {
+                const confirmed = await confirmDialog(
+                    @js($canPromote ? 'Reject this game and remove it from the staging list?' : 'Remove this game from the list?'),
+                    { danger: true, confirmLabel: @js($canPromote ? 'Reject' : 'Remove') }
+                );
+                if (!confirmed) {
                     return;
                 }
 
@@ -365,7 +376,7 @@
                     }
                 } catch (error) {
                     console.error('Remove game error:', error);
-                    alert('Failed to remove game. Please try again.');
+                    toast('Failed to remove game. Please try again.', 'error');
                 }
             },
 
@@ -419,11 +430,11 @@
                     if (data.success) {
                         console.log('Platform group updated');
                     } else {
-                        alert(data.error || 'Failed to update platform group');
+                        toast(data.error || 'Failed to update platform group', 'error');
                     }
                 } catch (error) {
                     console.error('Update platform group error:', error);
-                    alert('Failed to update platform group. Please try again.');
+                    toast('Failed to update platform group. Please try again.', 'error');
                 }
             },
             @endif

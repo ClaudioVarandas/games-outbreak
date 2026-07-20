@@ -187,7 +187,7 @@
                     </form>
 
                     <form method="POST" action="{{ route('admin.news-articles.destroy', $article) }}"
-                          onsubmit="return confirm('Delete this article?')">
+                          data-confirm="Delete this article?">
                         @csrf
                         @method('DELETE')
                         <button type="submit"

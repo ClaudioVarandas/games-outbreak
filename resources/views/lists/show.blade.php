@@ -838,7 +838,7 @@
                                         Edit
                                     </a>
                                     @if($gameList->canBeDeleted())
-                                        <form action="{{ route('lists.destroy', [$gameList->list_type->toSlug(), $gameList->slug]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this list?');">
+                                        <form action="{{ route('lists.destroy', [$gameList->list_type->toSlug(), $gameList->slug]) }}" method="POST" data-confirm="Are you sure you want to delete this list?">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"

@@ -255,7 +255,7 @@
                 <form action="{{ $removeRoute }}"
                       method="POST"
                       class="absolute top-2 right-2 z-20"
-                      onsubmit="return confirm('Remove this game from the list?');">
+                      data-confirm="Remove this game from the list?">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-lg">

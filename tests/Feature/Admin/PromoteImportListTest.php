@@ -132,8 +132,34 @@ it('shows promote controls on the staging edit page', function () {
     $this->actingAs($this->admin)
         ->get('/admin/system-lists/import/releases-2026-import/edit')
         ->assertSuccessful()
-        ->assertSee('Promote all to yearly lists')
+        ->assertSee('Promote all')
+        ->assertSee('Promote selected')
+        ->assertSee('Select all')
+        ->assertSee('toggleSelected(', false)
         ->assertSee('Import staging list.');
+});
+
+it('renders the global toast container and confirm dialog without native alerts', function () {
+    $game = Game::factory()->create(['igdb_id' => 304]);
+    $this->staging->games()->attach($game->id, ['order' => 1]);
+
+    $response = $this->actingAs($this->admin)
+        ->get('/admin/system-lists/import/releases-2026-import/edit')
+        ->assertSuccessful()
+        ->assertSee('id="toast-container"', false)
+        ->assertSee('id="confirm-dialog"', false);
+
+    $content = $response->getContent();
+
+    expect(str_contains($content, 'alert('))->toBeFalse()
+        ->and(preg_match('/(?<!\w)confirm\(/', $content))->toBe(0);
+});
+
+it('does not show promote selection controls on non-import lists', function () {
+    $this->actingAs($this->admin)
+        ->get('/admin/system-lists/yearly/releases-2026/edit')
+        ->assertSuccessful()
+        ->assertDontSee('Promote selected');
 });
 
 it('shows import review metadata and existing list membership on the staging page', function () {

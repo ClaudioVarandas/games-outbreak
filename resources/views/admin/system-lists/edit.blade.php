@@ -3,19 +3,49 @@
 @section('title', 'Edit ' . $list->name)
 
 @section('content')
-    <div class="container mx-auto px-4 py-8">
+    <div class="page-shell py-8"
+         @if($list->isImport())
+         x-data="{
+             allIds: {{ $list->games->pluck('id') }},
+             selected: [],
+             toggleSelected(id) {
+                 this.selected = this.selected.includes(id)
+                     ? this.selected.filter((i) => i !== id)
+                     : [...this.selected, id];
+             },
+             toggleAll() {
+                 this.selected = this.selected.length === this.allIds.length ? [] : [...this.allIds];
+             },
+         }"
+         @endif>
         <!-- Header -->
         <div class="mb-8 flex items-center justify-between gap-4 flex-wrap">
             <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100">
                 Edit {{ $list->name }}
             </h1>
             @if($list->isImport() && $list->games->count() > 0)
-                <button type="button"
-                        onclick="promoteAllGames(this)"
-                        data-promote-url="{{ route('admin.system-lists.games.promote', [$list->list_type->toSlug(), $list->slug]) }}"
-                        class="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition font-semibold">
-                    Promote all to yearly lists
-                </button>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                        <input type="checkbox"
+                               class="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                               :checked="selected.length === allIds.length && allIds.length > 0"
+                               @change="toggleAll()">
+                        Select all
+                    </label>
+                    <button type="button"
+                            @click="promoteSelectedGames($el, selected)"
+                            :disabled="selected.length === 0"
+                            data-promote-url="{{ route('admin.system-lists.games.promote', [$list->list_type->toSlug(), $list->slug]) }}"
+                            class="px-6 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                        Promote selected (<span x-text="selected.length"></span>)
+                    </button>
+                    <button type="button"
+                            onclick="promoteAllGames(this)"
+                            data-promote-url="{{ route('admin.system-lists.games.promote', [$list->list_type->toSlug(), $list->slug]) }}"
+                            class="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition font-semibold">
+                        Promote all
+                    </button>
+                </div>
             @endif
         </div>
 
@@ -506,8 +536,9 @@
             });
         }
 
-        function promoteGames(button, payload, confirmMessage) {
-            if (!confirm(confirmMessage)) {
+        async function promoteGames(button, payload, confirmMessage) {
+            const confirmed = await confirmDialog(confirmMessage, { title: 'Promote games', confirmLabel: 'Promote' });
+            if (!confirmed) {
                 return;
             }
 
@@ -528,16 +559,16 @@
                 .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
                 .then(({ ok, data }) => {
                     if (ok && data.success) {
-                        alert(data.message);
-                        window.location.reload();
+                        toast(data.message, 'success');
+                        setTimeout(() => window.location.reload(), 900);
                         return;
                     }
-                    alert(data.error || data.message || 'Promote failed.');
+                    toast(data.error || data.message || 'Promote failed.', 'error');
                     button.disabled = false;
                     button.innerHTML = original;
                 })
                 .catch(() => {
-                    alert('Promote failed. Please try again.');
+                    toast('Promote failed. Please try again.', 'error');
                     button.disabled = false;
                     button.innerHTML = original;
                 });
@@ -549,6 +580,10 @@
 
         function promoteSingleGame(button, gameId, gameName) {
             promoteGames(button, { game_ids: [gameId] }, 'Promote "' + gameName + '" to its yearly list?');
+        }
+
+        function promoteSelectedGames(button, gameIds) {
+            promoteGames(button, { game_ids: gameIds }, 'Promote ' + gameIds.length + ' selected game(s) to their yearly lists?');
         }
 
         function syncEventFromIgdb(button) {
@@ -567,19 +602,19 @@
                 .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
                 .then(({ ok, data }) => {
                     if (ok && data.success) {
-                        alert(data.message);
+                        toast(data.message, 'success');
                         if (data.added > 0 || data.trailers_set > 0) {
-                            window.location.reload();
+                            setTimeout(() => window.location.reload(), 900);
                             return;
                         }
                     } else {
-                        alert(data.message || 'Sync failed.');
+                        toast(data.message || 'Sync failed.', 'error');
                     }
                     button.disabled = false;
                     button.innerHTML = original;
                 })
                 .catch(() => {
-                    alert('Sync failed. Please try again.');
+                    toast('Sync failed. Please try again.', 'error');
                     button.disabled = false;
                     button.innerHTML = original;
                 });

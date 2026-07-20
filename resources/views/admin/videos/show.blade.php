@@ -160,7 +160,7 @@
                     </a>
                 @endif
 
-                <form method="POST" action="{{ route('admin.videos.destroy', $video) }}" onsubmit="return confirm('Delete this video?')">
+                <form method="POST" action="{{ route('admin.videos.destroy', $video) }}" data-confirm="Delete this video?">
                     @csrf
                     @method('DELETE')
                     <button type="submit"

@@ -107,7 +107,8 @@
             },
 
             async removeGame(gameId) {
-                if (!confirm('Remove this game from the list?')) {
+                const confirmed = await confirmDialog('Remove this game from the list?', { danger: true, confirmLabel: 'Remove' });
+                if (!confirmed) {
                     return;
                 }
 
@@ -134,7 +135,7 @@
                     }
                 } catch (error) {
                     console.error('Remove game error:', error);
-                    alert('Failed to remove game. Please try again.');
+                    toast('Failed to remove game. Please try again.', 'error');
                 }
             },
 

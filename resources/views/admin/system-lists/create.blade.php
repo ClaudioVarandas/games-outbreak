@@ -3,7 +3,7 @@
 @section('title', 'Create System List')
 
 @section('content')
-    <div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="page-shell py-8 max-w-2xl">
         <h1 class="text-4xl font-bold mb-10 text-gray-800 dark:text-gray-100">
             Create System List
         </h1>
