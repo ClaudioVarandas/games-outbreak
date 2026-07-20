@@ -8,6 +8,9 @@ export default {
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
         './resources/js/**/*.vue',
+        // Enums hold badge/pill class lists (project convention: config data
+        // lives in PHP enums, not Blade) — Tailwind must scan them too.
+        './app/Enums/*.php',
     ],
 
     safelist: [

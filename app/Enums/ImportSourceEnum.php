@@ -11,7 +11,7 @@ enum ImportSourceEnum: string
     case Press = 'press';
     case Web = 'web';
 
-    private const FALLBACK_BADGE_CLASS = 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+    private const FALLBACK_BADGE_CLASS = 'bg-gray-100 text-gray-700 border border-gray-300 dark:bg-gray-500/10 dark:text-gray-300 dark:border-gray-500/30';
 
     public function label(): string
     {
@@ -26,9 +26,9 @@ enum ImportSourceEnum: string
     public function badgeClass(): string
     {
         return match ($this) {
-            self::Igdb => 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
-            self::Steam => 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
-            self::Press => 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300',
+            self::Igdb => 'bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/30',
+            self::Steam => 'bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
+            self::Press => 'bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
             self::Web => self::FALLBACK_BADGE_CLASS,
         };
     }
