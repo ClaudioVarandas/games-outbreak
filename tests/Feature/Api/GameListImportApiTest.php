@@ -178,7 +178,41 @@ it('stages games on a hidden import list instead of the target list', function (
 
     expect($pivot->release_date)->toStartWith('2026-10-15')
         ->and(json_decode($pivot->platforms, true))->toBe([6, 169])
-        ->and((bool) $pivot->is_tba)->toBeFalse();
+        ->and((bool) $pivot->is_tba)->toBeFalse()
+        ->and($pivot->import_confidence)->toBe('high')
+        ->and(json_decode($pivot->import_sources, true))->toBe(['igdb', 'steam']);
+});
+
+it('persists the import note on the staging pivot', function () {
+    makeYearlyList();
+    Game::factory()->create(['igdb_id' => 606]);
+
+    $this->withHeaders(importHeaders())
+        ->postJson('/api/v1/import/list-items', [
+            'list_slug' => 'releases-2026',
+            'items' => [[
+                'igdb_id' => 606,
+                'confidence' => 'medium',
+                'note' => 'single-source date',
+            ]],
+        ])
+        ->assertSuccessful();
+
+    $pivot = GameList::where('slug', 'releases-2026-import')->first()->games()->first()->pivot;
+
+    expect($pivot->import_confidence)->toBe('medium')
+        ->and($pivot->import_note)->toBe('single-source date');
+});
+
+it('rejects an unknown confidence value', function () {
+    makeYearlyList();
+
+    $this->withHeaders(importHeaders())
+        ->postJson('/api/v1/import/list-items', [
+            'list_slug' => 'releases-2026',
+            'items' => [['igdb_id' => 1, 'confidence' => 'certain']],
+        ])
+        ->assertUnprocessable();
 });
 
 it('reuses the same staging list across imports', function () {

@@ -69,7 +69,7 @@ class GameList extends Model
     public function games(): BelongsToMany
     {
         return $this->belongsToMany(Game::class, 'game_list_game')
-            ->withPivot('order', 'release_date', 'platforms', 'platform_group', 'is_highlight', 'is_tba', 'is_early_access', 'is_indie', 'genre_ids', 'primary_genre_id', 'video_url', 'video_url_manual', 'release_year')
+            ->withPivot('order', 'release_date', 'platforms', 'platform_group', 'is_highlight', 'is_tba', 'is_early_access', 'is_indie', 'genre_ids', 'primary_genre_id', 'video_url', 'video_url_manual', 'release_year', 'import_confidence', 'import_sources', 'import_note')
             ->withTimestamps()
             ->orderByPivot('order');
     }

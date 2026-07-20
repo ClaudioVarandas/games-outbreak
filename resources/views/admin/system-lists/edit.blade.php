@@ -361,22 +361,24 @@
                             </a>
                         </div>
 
-                        {{-- View Toggle --}}
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">View:</span>
-                            <button
-                                onclick="toggleViewMode('grid')"
-                                class="px-3 py-1.5 rounded-lg transition text-sm {{ $viewMode === 'grid' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
-                            >
-                                Grid
-                            </button>
-                            <button
-                                onclick="toggleViewMode('list')"
-                                class="px-3 py-1.5 rounded-lg transition text-sm {{ $viewMode === 'list' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
-                            >
-                                List
-                            </button>
-                        </div>
+                        @unless($list->isImport())
+                            {{-- View Toggle (import staging lists are list-only) --}}
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">View:</span>
+                                <button
+                                    onclick="toggleViewMode('grid')"
+                                    class="px-3 py-1.5 rounded-lg transition text-sm {{ $viewMode === 'grid' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
+                                >
+                                    Grid
+                                </button>
+                                <button
+                                    onclick="toggleViewMode('list')"
+                                    class="px-3 py-1.5 rounded-lg transition text-sm {{ $viewMode === 'list' ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600' }}"
+                                >
+                                    List
+                                </button>
+                            </div>
+                        @endunless
 
                         @if(!empty($gamesByMonth))
                             {{-- Expand / Collapse All --}}
@@ -450,6 +452,7 @@
                                                 :list="$list"
                                                 :viewMode="$viewMode"
                                                 :sectionKey="$monthKey"
+                                                :memberships="$stagedGameMemberships"
                                             />
                                         </div>
                                     </div>
@@ -457,7 +460,7 @@
                             @endforeach
                         </div>
                     @else
-                        <x-admin.system-lists.game-grid :games="$list->games" :list="$list" :viewMode="$viewMode" />
+                        <x-admin.system-lists.game-grid :games="$list->games" :list="$list" :viewMode="$viewMode" :memberships="$stagedGameMemberships" />
                     @endif
                 @else
                     <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api;
 
+use App\Enums\ImportConfidenceEnum;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,7 +33,7 @@ class ImportListItemsRequest extends FormRequest
             'items.*.release_year' => ['nullable', 'integer', 'min:2000', 'max:2100'],
             'items.*.platforms' => ['nullable', 'array'],
             'items.*.platforms.*' => ['integer', 'min:1'],
-            'items.*.confidence' => ['nullable', Rule::in(['high', 'medium', 'low'])],
+            'items.*.confidence' => ['nullable', Rule::enum(ImportConfidenceEnum::class)],
             'items.*.sources' => ['nullable', 'array'],
             'items.*.sources.*' => ['string', 'max:100'],
             'items.*.note' => ['nullable', 'string', 'max:500'],

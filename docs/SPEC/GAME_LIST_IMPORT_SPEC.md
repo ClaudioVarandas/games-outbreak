@@ -99,6 +99,20 @@ summary table pointing medium/low-confidence rows at the admin edit modal.
   Review & Promote link). Staging edit page: banner + "Promote all" header
   button; per-game Promote/Reject buttons in the game grid.
 
+### Review UX (staging edit page)
+
+- Import review metadata is persisted on the `game_list_game` pivot:
+  `import_confidence` (`ImportConfidenceEnum`: high/medium/low, with
+  `label()`/`badgeClass()`), `import_sources` (json array), `import_note`.
+  Written by the import API via `GameListImportService::attachGame()`; null for
+  games added through the normal admin flow.
+- Staging lists are **list-view only**: `editSystemList()` forces
+  `viewMode = 'list'` and the Grid/List toggle is hidden.
+- Each staged row shows: confidence chip, sources, note, and an amber
+  `Already on: {list} ({date})` line per other system list the game already
+  belongs to (`AdminListController::stagedGameMemberships()`), so promote
+  conflicts are visible before promoting.
+
 ## Out of scope
 
 Trailers (existing admin modal), queued/async import, non-IGDB game creation,

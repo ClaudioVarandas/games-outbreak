@@ -54,6 +54,9 @@ class GameListImportService
      *     primary_genre_id?: int|null,
      *     video_url?: string|null,
      *     release_year?: int|null,
+     *     import_confidence?: string|null,
+     *     import_sources?: list<string>|null,
+     *     import_note?: string|null,
      * } $attributes
      *
      * @throws ValidationException When the early-access/TBA/date combination is invalid.
@@ -104,6 +107,9 @@ class GameListImportService
             'primary_genre_id' => $primaryGenreId ? (int) $primaryGenreId : null,
             'video_url' => ($attributes['video_url'] ?? null) ?: null,
             'release_year' => $isTba ? ($releaseYear ?: null) : null,
+            'import_confidence' => $attributes['import_confidence'] ?? null,
+            'import_sources' => isset($attributes['import_sources']) ? json_encode($attributes['import_sources']) : null,
+            'import_note' => $attributes['import_note'] ?? null,
         ]);
 
         return new GameListAttachResult(GameListAttachStatusEnum::Attached, $game);

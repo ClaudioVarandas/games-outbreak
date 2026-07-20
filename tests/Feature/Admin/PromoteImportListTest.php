@@ -136,6 +136,46 @@ it('shows promote controls on the staging edit page', function () {
         ->assertSee('Import staging list.');
 });
 
+it('shows import review metadata and existing list membership on the staging page', function () {
+    $game = Game::factory()->create(['igdb_id' => 302, 'name' => 'Reviewable Game']);
+    $this->target->games()->attach($game->id, ['order' => 1, 'release_date' => '2026-05-05']);
+    $this->staging->games()->attach($game->id, [
+        'order' => 1,
+        'release_date' => '2026-06-06',
+        'import_confidence' => 'medium',
+        'import_sources' => json_encode(['igdb', 'steam']),
+        'import_note' => 'single-source date',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get('/admin/system-lists/import/releases-2026-import/edit')
+        ->assertSuccessful()
+        ->assertSee('Medium')
+        ->assertSee('igdb + steam')
+        ->assertSee('single-source date')
+        ->assertSee('Already on: '.$this->target->name)
+        ->assertSee('05/05/2026');
+});
+
+it('forces list view on staging pages and hides the view toggle', function () {
+    $game = Game::factory()->create(['igdb_id' => 303]);
+    $this->staging->games()->attach($game->id, ['order' => 1]);
+
+    session(['game_view_mode' => 'grid']);
+
+    $this->actingAs($this->admin)
+        ->get('/admin/system-lists/import/releases-2026-import/edit')
+        ->assertSuccessful()
+        ->assertDontSee("toggleViewMode('grid')", false);
+});
+
+it('keeps the view toggle on non-import lists', function () {
+    $this->actingAs($this->admin)
+        ->get('/admin/system-lists/yearly/releases-2026/edit')
+        ->assertSuccessful()
+        ->assertSee("toggleViewMode('grid')", false);
+});
+
 it('hides import staging lists from public visitors', function () {
     $this->get('/list/import/releases-2026-import')->assertNotFound();
 

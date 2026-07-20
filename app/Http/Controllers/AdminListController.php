@@ -21,6 +21,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -191,13 +192,17 @@ class AdminListController extends Controller
 
         $list->setRelation('games', $games);
 
-        $viewMode = session('game_view_mode', 'grid');
+        $viewMode = $list->isImport() ? 'list' : session('game_view_mode', 'grid');
 
         $gamesByMonth = ($sortBy === 'release_date' && $list->isYearly())
             ? $list->groupGamesByMonth()
             : null;
 
-        return view('admin.system-lists.edit', compact('list', 'viewMode', 'sortBy', 'gamesByMonth'));
+        $stagedGameMemberships = $list->isImport()
+            ? $this->stagedGameMemberships($list)
+            : null;
+
+        return view('admin.system-lists.edit', compact('list', 'viewMode', 'sortBy', 'gamesByMonth', 'stagedGameMemberships'));
     }
 
     public function updateSystemList(UpdateGameListRequest $request, string $type, string $slug): RedirectResponse
@@ -481,6 +486,36 @@ class AdminListController extends Controller
         }
 
         return redirect()->back()->with('success', 'Game added to list.');
+    }
+
+    /**
+     * For a staging list: which other system lists each staged game already belongs
+     * to, with that list's pivot release date — shown as promote-conflict warnings.
+     *
+     * @return Collection<int, Collection<int, array{list_name: string, list_slug: string, list_type: string, release_date: mixed, is_tba: bool}>>
+     */
+    private function stagedGameMemberships(GameList $stagingList): Collection
+    {
+        $gameIds = $stagingList->games->pluck('id');
+
+        if ($gameIds->isEmpty()) {
+            return collect();
+        }
+
+        return GameList::where('is_system', true)
+            ->where('id', '!=', $stagingList->id)
+            ->whereHas('games', fn ($query) => $query->whereIn('games.id', $gameIds))
+            ->with(['games' => fn ($query) => $query->whereIn('games.id', $gameIds)])
+            ->get()
+            ->flatMap(fn (GameList $otherList) => $otherList->games->map(fn (Game $game): array => [
+                'game_id' => $game->id,
+                'list_name' => $otherList->name,
+                'list_slug' => $otherList->slug,
+                'list_type' => $otherList->list_type->value,
+                'release_date' => $game->pivot->release_date,
+                'is_tba' => (bool) $game->pivot->is_tba,
+            ]))
+            ->groupBy('game_id');
     }
 
     public function promoteGames(Request $request, GameListImportService $importService, EventYearlySyncService $syncService, string $type, string $slug): JsonResponse
