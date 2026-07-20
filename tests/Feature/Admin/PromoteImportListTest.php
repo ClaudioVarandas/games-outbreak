@@ -113,6 +113,71 @@ it('blocks non-admin users', function () {
         ->assertForbidden();
 });
 
+function rejectUrl(): string
+{
+    return '/admin/system-lists/import/releases-2026-import/games/reject';
+}
+
+it('rejects selected games from staging without touching real lists', function () {
+    $keep = Game::factory()->create(['igdb_id' => 400]);
+    $drop = Game::factory()->create(['igdb_id' => 401]);
+    $this->staging->games()->attach($keep->id, ['order' => 1]);
+    $this->staging->games()->attach($drop->id, ['order' => 2]);
+
+    $this->actingAs($this->admin)
+        ->postJson(rejectUrl(), ['game_ids' => [$drop->id]])
+        ->assertSuccessful()
+        ->assertJsonPath('rejected', 1);
+
+    expect($this->staging->games()->pluck('games.id')->all())->toBe([$keep->id])
+        ->and($this->target->games()->count())->toBe(0)
+        ->and(Game::where('id', $drop->id)->exists())->toBeTrue();
+});
+
+it('rejects all games, emptying the staging list', function () {
+    $this->staging->games()->attach(Game::factory()->create(['igdb_id' => 402])->id, ['order' => 1]);
+    $this->staging->games()->attach(Game::factory()->create(['igdb_id' => 403])->id, ['order' => 2]);
+
+    $this->actingAs($this->admin)
+        ->postJson(rejectUrl(), ['all' => true])
+        ->assertSuccessful()
+        ->assertJsonPath('rejected', 2);
+
+    expect($this->staging->games()->count())->toBe(0);
+});
+
+it('rejects reject on a non-import list and blocks non-admins', function () {
+    $this->actingAs($this->admin)
+        ->postJson('/admin/system-lists/yearly/releases-2026/games/reject', ['all' => true])
+        ->assertUnprocessable();
+
+    $this->actingAs(User::factory()->create(['is_admin' => false]))
+        ->postJson(rejectUrl(), ['all' => true])
+        ->assertForbidden();
+});
+
+it('shows the bulk action bar and renders Already on only once per game', function () {
+    $game = Game::factory()->create(['igdb_id' => 404, 'name' => 'Multi List Game']);
+    $otherList = GameList::factory()->yearly()->system()->create([
+        'user_id' => $this->admin->id,
+        'slug' => 'releases-2027',
+        'start_at' => '2027-01-01',
+    ]);
+    $this->target->games()->attach($game->id, ['order' => 1, 'release_date' => '2026-05-05']);
+    $otherList->games()->attach($game->id, ['order' => 1, 'is_tba' => true]);
+    $this->staging->games()->attach($game->id, ['order' => 1]);
+
+    $response = $this->actingAs($this->admin)
+        ->get('/admin/system-lists/import/releases-2026-import/edit')
+        ->assertSuccessful()
+        ->assertSee('Reject all')
+        ->assertSee('rejectSelectedGames(', false)
+        ->assertSee('05/05/2026')
+        ->assertSee('TBA');
+
+    expect(substr_count($response->getContent(), 'Already on:'))->toBe(1);
+});
+
 it('shows the import staging section on the admin index', function () {
     Game::factory()->create(['igdb_id' => 300])
         ->gameLists()->attach($this->staging->id, ['order' => 1]);
@@ -133,9 +198,10 @@ it('shows promote controls on the staging edit page', function () {
         ->get('/admin/system-lists/import/releases-2026-import/edit')
         ->assertSuccessful()
         ->assertSee('Promote all')
-        ->assertSee('Promote selected')
+        ->assertSee('Reject all')
         ->assertSee('Select all')
         ->assertSee('toggleSelected(', false)
+        ->assertSee('promoteSelectedGames(', false)
         ->assertSee('Import staging list.');
 });
 
@@ -177,9 +243,10 @@ it('shows import review metadata and existing list membership on the staging pag
         ->get('/admin/system-lists/import/releases-2026-import/edit')
         ->assertSuccessful()
         ->assertSee('Medium')
-        ->assertSee('igdb + steam')
+        ->assertSee('IGDB')
+        ->assertSee('Steam')
         ->assertSee('single-source date')
-        ->assertSee('Already on: '.$this->target->name)
+        ->assertSee('Already on:')
         ->assertSee('05/05/2026');
 });
 

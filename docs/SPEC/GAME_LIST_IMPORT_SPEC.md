@@ -108,10 +108,16 @@ summary table pointing medium/low-confidence rows at the admin edit modal.
   games added through the normal admin flow.
 - Staging lists are **list-view only**: `editSystemList()` forces
   `viewMode = 'list'` and the Grid/List toggle is hidden.
-- Each staged row shows: confidence chip, sources, note, and an amber
-  `Already on: {list} ({date})` line per other system list the game already
-  belongs to (`AdminListController::stagedGameMemberships()`), so promote
-  conflicts are visible before promoting.
+- Each staged row shows: confidence pill with coloured dot
+  (`ImportConfidenceEnum::dotClass()`), one coloured pill per source
+  (`ImportSourceEnum::labelFor()/badgeClassFor()`, gray fallback for unknown
+  sources), the note, and a single amber `Already on: {list} ({date}), …` line
+  listing every other system list the game belongs to
+  (`AdminListController::stagedGameMemberships()`).
+- Bulk actions: header has Select all / Promote all / Reject all; selecting
+  rows raises a floating bottom bar (`N selected · Promote · Reject · Clear`).
+  Reject detaches from staging only (`GameListImportService::rejectFromStaging()`,
+  route `admin.system-lists.games.reject`), never touching real lists.
 
 ## Out of scope
 

@@ -147,6 +147,27 @@ class GameListImportService
     }
 
     /**
+     * Reject staged games: detach them from the staging list without touching
+     * any real list. Returns the number of games removed.
+     *
+     * @param  list<int>  $gameIds
+     */
+    public function rejectFromStaging(GameList $staging, array $gameIds): int
+    {
+        if ($staging->list_type !== ListTypeEnum::IMPORT) {
+            throw new \InvalidArgumentException('Only import staging lists can be rejected from.');
+        }
+
+        $gameIds = $staging->games()->whereIn('games.id', $gameIds)->pluck('games.id')->all();
+
+        if ($gameIds === []) {
+            return 0;
+        }
+
+        return $staging->games()->detach($gameIds);
+    }
+
+    /**
      * @throws ValidationException
      */
     public static function guardReleaseState(bool $isEarlyAccess, bool $isTba, mixed $releaseDate): void

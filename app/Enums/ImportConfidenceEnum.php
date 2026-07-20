@@ -27,4 +27,13 @@ enum ImportConfidenceEnum: string
             self::Low => 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
         };
     }
+
+    public function dotClass(): string
+    {
+        return match ($this) {
+            self::High => 'bg-green-500',
+            self::Medium => 'bg-amber-500',
+            self::Low => 'bg-red-500',
+        };
+    }
 }

@@ -221,26 +221,30 @@
                                 @php
                                     $importConfidence = \App\Enums\ImportConfidenceEnum::tryFrom((string) $game->pivot->import_confidence);
                                     $importSources = json_decode($game->pivot->import_sources ?? '', true) ?: [];
+                                    $gameMemberships = $memberships?->get($game->id) ?? collect();
                                 @endphp
-                                <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
                                     @if($importConfidence)
-                                        <span class="px-2 py-0.5 text-xs font-semibold rounded {{ $importConfidence->badgeClass() }}">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold rounded-full {{ $importConfidence->badgeClass() }}">
+                                            <span class="w-1.5 h-1.5 rounded-full {{ $importConfidence->dotClass() }}"></span>
                                             {{ $importConfidence->label() }}
                                         </span>
                                     @endif
-                                    @if($importSources)
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ implode(' + ', $importSources) }}</span>
-                                    @endif
+                                    @foreach($importSources as $importSource)
+                                        <span class="px-2 py-0.5 text-[11px] font-medium rounded-full {{ \App\Enums\ImportSourceEnum::badgeClassFor($importSource) }}">
+                                            {{ \App\Enums\ImportSourceEnum::labelFor($importSource) }}
+                                        </span>
+                                    @endforeach
                                 </div>
                                 @if($game->pivot->import_note)
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 italic">{{ $game->pivot->import_note }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{{ $game->pivot->import_note }}</p>
                                 @endif
-                                @foreach($memberships?->get($game->id) ?? [] as $membership)
-                                    <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                                        Already on: {{ $membership['list_name'] }}
-                                        ({{ $membership['is_tba'] ? 'TBA' : ($membership['release_date'] ? \Carbon\Carbon::parse($membership['release_date'])->format('d/m/Y') : '—') }})
+                                @if($gameMemberships->isNotEmpty())
+                                    <p class="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                        Already on:
+                                        {{ collect($gameMemberships)->map(fn ($membership) => $membership['list_name'].' ('.($membership['is_tba'] ? 'TBA' : ($membership['release_date'] ? \Carbon\Carbon::parse($membership['release_date'])->format('d/m/Y') : '—')).')')->implode(', ') }}
                                     </p>
-                                @endforeach
+                                @endif
                             @endif
                         </div>
                     </a>

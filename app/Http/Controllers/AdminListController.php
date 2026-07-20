@@ -27,6 +27,8 @@ use Illuminate\View\View;
 
 class AdminListController extends Controller
 {
+    public function __construct(private readonly GameListImportService $importService) {}
+
     public function myLists(): RedirectResponse
     {
         return redirect()->route('user.lists.lists', ['user' => auth()->user()->username], 301);
@@ -423,7 +425,7 @@ class AdminListController extends Controller
         return $slug;
     }
 
-    public function addGame(Request $request, GameListImportService $importService, string $type, string $slug): RedirectResponse|JsonResponse
+    public function addGame(Request $request, string $type, string $slug): RedirectResponse|JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -450,7 +452,7 @@ class AdminListController extends Controller
             $platformIds = json_decode($platformIds, true) ?? [];
         }
 
-        $result = $importService->attachGame($list, $request->game_id, [
+        $result = $this->importService->attachGame($list, $request->game_id, [
             'release_date' => $request->input('release_date'),
             'platforms' => $platformIds,
             'platform_group' => $request->input('platform_group'),
@@ -518,7 +520,7 @@ class AdminListController extends Controller
             ->groupBy('game_id');
     }
 
-    public function promoteGames(Request $request, GameListImportService $importService, EventYearlySyncService $syncService, string $type, string $slug): JsonResponse
+    public function promoteGames(Request $request, EventYearlySyncService $syncService, string $type, string $slug): JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -540,7 +542,7 @@ class AdminListController extends Controller
             return response()->json(['error' => 'No games to promote.'], 422);
         }
 
-        $result = $importService->promoteFromStaging($list, $gameIds, $syncService);
+        $result = $this->importService->promoteFromStaging($list, $gameIds, $syncService);
 
         return response()->json([
             'success' => true,
@@ -553,6 +555,37 @@ class AdminListController extends Controller
                 count($result['errors'])
             ),
             'result' => $result,
+        ]);
+    }
+
+    public function rejectGames(Request $request, string $type, string $slug): JsonResponse
+    {
+        $list = $this->getSystemListByTypeAndSlug($type, $slug);
+
+        if ($list->list_type !== ListTypeEnum::IMPORT) {
+            return response()->json(['error' => 'Reject is only available for import staging lists.'], 422);
+        }
+
+        $request->validate([
+            'all' => ['nullable', 'boolean'],
+            'game_ids' => ['required_without:all', 'array', 'min:1'],
+            'game_ids.*' => ['integer'],
+        ]);
+
+        $gameIds = $request->boolean('all')
+            ? $list->games()->pluck('games.id')->all()
+            : array_map('intval', $request->input('game_ids', []));
+
+        if ($gameIds === []) {
+            return response()->json(['error' => 'No games to reject.'], 422);
+        }
+
+        $rejected = $this->importService->rejectFromStaging($list, $gameIds);
+
+        return response()->json([
+            'success' => true,
+            'message' => sprintf('Rejected %d game(s) from the staging list.', $rejected),
+            'rejected' => $rejected,
         ]);
     }
 

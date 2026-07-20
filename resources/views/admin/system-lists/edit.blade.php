@@ -33,21 +33,54 @@
                         Select all
                     </label>
                     <button type="button"
-                            @click="promoteSelectedGames($el, selected)"
-                            :disabled="selected.length === 0"
-                            data-promote-url="{{ route('admin.system-lists.games.promote', [$list->list_type->toSlug(), $list->slug]) }}"
-                            class="px-6 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
-                        Promote selected (<span x-text="selected.length"></span>)
-                    </button>
-                    <button type="button"
                             onclick="promoteAllGames(this)"
                             data-promote-url="{{ route('admin.system-lists.games.promote', [$list->list_type->toSlug(), $list->slug]) }}"
                             class="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition font-semibold">
                         Promote all
                     </button>
+                    <button type="button"
+                            onclick="rejectAllGames(this)"
+                            data-reject-url="{{ route('admin.system-lists.games.reject', [$list->list_type->toSlug(), $list->slug]) }}"
+                            class="px-6 py-3 border-2 border-red-600 text-red-600 dark:text-red-400 dark:border-red-500 rounded-lg hover:bg-red-600 hover:text-white transition font-semibold">
+                        Reject all
+                    </button>
                 </div>
             @endif
         </div>
+
+        @if($list->isImport() && $list->games->count() > 0)
+            {{-- Floating bulk-action bar (appears while rows are selected) --}}
+            <div x-show="selected.length > 0"
+                 x-cloak
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 translate-y-4"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0 translate-y-4"
+                 class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 bg-gray-900 dark:bg-gray-800 border border-gray-700 rounded-full shadow-2xl">
+                <span class="text-sm font-semibold text-white whitespace-nowrap">
+                    <span x-text="selected.length"></span> selected
+                </span>
+                <button type="button"
+                        @click="promoteSelectedGames($el, selected)"
+                        data-promote-url="{{ route('admin.system-lists.games.promote', [$list->list_type->toSlug(), $list->slug]) }}"
+                        class="px-4 py-1.5 bg-amber-500 text-white text-sm font-semibold rounded-full hover:bg-amber-600 transition">
+                    Promote
+                </button>
+                <button type="button"
+                        @click="rejectSelectedGames($el, selected)"
+                        data-reject-url="{{ route('admin.system-lists.games.reject', [$list->list_type->toSlug(), $list->slug]) }}"
+                        class="px-4 py-1.5 bg-red-600 text-white text-sm font-semibold rounded-full hover:bg-red-700 transition">
+                    Reject
+                </button>
+                <button type="button"
+                        @click="selected = []"
+                        class="px-3 py-1.5 text-sm text-gray-300 hover:text-white transition">
+                    Clear
+                </button>
+            </div>
+        @endif
 
         @if($list->isImport())
             <div class="mb-8 px-6 py-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg text-sm text-amber-900 dark:text-amber-200">
@@ -536,17 +569,17 @@
             });
         }
 
-        async function promoteGames(button, payload, confirmMessage) {
-            const confirmed = await confirmDialog(confirmMessage, { title: 'Promote games', confirmLabel: 'Promote' });
+        async function runBulkStagingAction(button, url, payload, { confirmMessage, confirmOptions, busyLabel, failureMessage }) {
+            const confirmed = await confirmDialog(confirmMessage, confirmOptions);
             if (!confirmed) {
                 return;
             }
 
             const original = button.innerHTML;
             button.disabled = true;
-            button.innerHTML = 'Promoting…';
+            button.innerHTML = busyLabel;
 
-            fetch(button.dataset.promoteUrl, {
+            fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -563,15 +596,33 @@
                         setTimeout(() => window.location.reload(), 900);
                         return;
                     }
-                    toast(data.error || data.message || 'Promote failed.', 'error');
+                    toast(data.error || data.message || failureMessage, 'error');
                     button.disabled = false;
                     button.innerHTML = original;
                 })
                 .catch(() => {
-                    toast('Promote failed. Please try again.', 'error');
+                    toast(failureMessage, 'error');
                     button.disabled = false;
                     button.innerHTML = original;
                 });
+        }
+
+        function promoteGames(button, payload, confirmMessage) {
+            runBulkStagingAction(button, button.dataset.promoteUrl, payload, {
+                confirmMessage,
+                confirmOptions: { title: 'Promote games', confirmLabel: 'Promote' },
+                busyLabel: 'Promoting…',
+                failureMessage: 'Promote failed. Please try again.',
+            });
+        }
+
+        function rejectGames(button, payload, confirmMessage) {
+            runBulkStagingAction(button, button.dataset.rejectUrl, payload, {
+                confirmMessage,
+                confirmOptions: { title: 'Reject games', confirmLabel: 'Reject', danger: true },
+                busyLabel: 'Rejecting…',
+                failureMessage: 'Reject failed. Please try again.',
+            });
         }
 
         function promoteAllGames(button) {
@@ -583,7 +634,15 @@
         }
 
         function promoteSelectedGames(button, gameIds) {
-            promoteGames(button, { game_ids: gameIds }, 'Promote ' + gameIds.length + ' selected game(s) to their yearly lists?');
+            promoteGames(button, { game_ids: [...gameIds] }, 'Promote ' + gameIds.length + ' selected game(s) to their yearly lists?');
+        }
+
+        function rejectAllGames(button) {
+            rejectGames(button, { all: true }, 'Reject ALL staged games? This empties the staging list.');
+        }
+
+        function rejectSelectedGames(button, gameIds) {
+            rejectGames(button, { game_ids: [...gameIds] }, 'Reject ' + gameIds.length + ' selected game(s) from staging?');
         }
 
         function syncEventFromIgdb(button) {
