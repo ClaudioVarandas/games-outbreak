@@ -12,6 +12,7 @@ enum ListTypeEnum: string
     case YEARLY = 'yearly';
     case SEASONED = 'seasoned';
     case EVENTS = 'events';
+    case IMPORT = 'import';
 
     public function label(): string
     {
@@ -22,6 +23,7 @@ enum ListTypeEnum: string
             self::YEARLY => 'Yearly',
             self::SEASONED => 'Seasoned',
             self::EVENTS => 'Events',
+            self::IMPORT => 'Import Staging',
         };
     }
 
@@ -34,6 +36,7 @@ enum ListTypeEnum: string
             self::YEARLY => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
             self::SEASONED => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
             self::EVENTS => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
+            self::IMPORT => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
         };
     }
 
@@ -46,6 +49,7 @@ enum ListTypeEnum: string
             self::YEARLY => false,
             self::SEASONED => false,
             self::EVENTS => false,
+            self::IMPORT => false,
         };
     }
 
@@ -55,6 +59,7 @@ enum ListTypeEnum: string
             self::YEARLY => true,
             self::SEASONED => true,
             self::EVENTS => true,
+            self::IMPORT => true,
             default => false,
         };
     }
@@ -68,6 +73,7 @@ enum ListTypeEnum: string
             'yearly' => self::YEARLY,
             'seasoned' => self::SEASONED,
             'events' => self::EVENTS,
+            'import' => self::IMPORT,
             default => null,
         };
     }
@@ -81,6 +87,7 @@ enum ListTypeEnum: string
             self::YEARLY => 'yearly',
             self::SEASONED => 'seasoned',
             self::EVENTS => 'events',
+            self::IMPORT => 'import',
         };
     }
 
@@ -93,6 +100,7 @@ enum ListTypeEnum: string
             'yearly' => self::YEARLY,
             'seasoned' => self::SEASONED,
             'events' => self::EVENTS,
+            'import' => self::IMPORT,
             default => null,
         };
     }

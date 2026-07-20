@@ -226,6 +226,7 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
         Route::get('/system-lists/{type}/{slug}/games/{game:id}/trailer-candidates', [AdminListController::class, 'trailerCandidates'])->name('system-lists.games.trailer-candidates');
         Route::patch('/system-lists/{type}/{slug}/games/{game:id}/genres', [AdminListController::class, 'updateGameGenres'])->name('system-lists.games.update-genres');
         Route::patch('/system-lists/{type}/{slug}/games/{game:id}/pivot', [AdminListController::class, 'updateGamePivotData'])->name('system-lists.games.update-pivot');
+        Route::post('/system-lists/{type}/{slug}/games/promote', [AdminListController::class, 'promoteGames'])->name('system-lists.games.promote');
 
         // All users' lists overview
         Route::get('/user-lists', [AdminListController::class, 'userLists'])->name('user-lists');

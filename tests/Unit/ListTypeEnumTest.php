@@ -41,6 +41,7 @@ class ListTypeEnumTest extends TestCase
             ListTypeEnum::YEARLY,
             ListTypeEnum::SEASONED,
             ListTypeEnum::EVENTS,
+            ListTypeEnum::IMPORT,
         ];
 
         foreach ($systemTypes as $type) {
@@ -65,5 +66,16 @@ class ListTypeEnumTest extends TestCase
                 "Expected {$type->value} not to be a system list type"
             );
         }
+    }
+
+    public function test_import_case_round_trips_value_slug_and_label(): void
+    {
+        $this->assertEquals('import', ListTypeEnum::IMPORT->value);
+        $this->assertEquals('Import Staging', ListTypeEnum::IMPORT->label());
+        $this->assertEquals('import', ListTypeEnum::IMPORT->toSlug());
+        $this->assertEquals(ListTypeEnum::IMPORT, ListTypeEnum::fromSlug('import'));
+        $this->assertEquals(ListTypeEnum::IMPORT, ListTypeEnum::fromValue('import'));
+        $this->assertFalse(ListTypeEnum::IMPORT->isUniquePerUser());
+        $this->assertNotEmpty(ListTypeEnum::IMPORT->colorClass());
     }
 }

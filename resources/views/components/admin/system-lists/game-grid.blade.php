@@ -4,7 +4,9 @@
     $isYearly = $list->list_type === \App\Enums\ListTypeEnum::YEARLY;
     $canHighlight = $list->canHaveHighlights();
     $canIndie = $list->canMarkAsIndie();
+    $canPromote = $list->isImport();
     $platformGroups = \App\Enums\PlatformGroupEnum::orderedCases();
+    $promoteUrl = $canPromote ? route('admin.system-lists.games.promote', [$list->list_type->toSlug(), $list->slug]) : null;
 @endphp
 
 @if(!$sectionKey)
@@ -88,10 +90,23 @@
                             </button>
                         @endif
 
+                        @if($canPromote)
+                            <button
+                                onclick="promoteSingleGame(this, {{ $game->id }}, '{{ addslashes($game->name) }}')"
+                                data-promote-url="{{ $promoteUrl }}"
+                                class="p-1 rounded bg-amber-500 hover:bg-amber-600 transition shadow"
+                                title="Promote to yearly list"
+                            >
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                                </svg>
+                            </button>
+                        @endif
+
                         <button
                             @click="removeGame({{ $game->id }})"
                             class="p-1 rounded bg-red-600 hover:bg-red-700 transition shadow"
-                            title="Remove from list"
+                            title="{{ $canPromote ? 'Reject (remove from staging)' : 'Remove from list' }}"
                         >
                             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -239,12 +254,22 @@
                         </button>
                     @endif
 
+                    @if($canPromote)
+                        <button
+                            onclick="promoteSingleGame(this, {{ $game->id }}, '{{ addslashes($game->name) }}')"
+                            data-promote-url="{{ $promoteUrl }}"
+                            class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition"
+                        >
+                            Promote
+                        </button>
+                    @endif
+
                     <!-- Remove Button -->
                     <button
                         @click="removeGame({{ $game->id }})"
                         class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
                     >
-                        Remove
+                        {{ $canPromote ? 'Reject' : 'Remove' }}
                     </button>
                 </div>
             @endforeach

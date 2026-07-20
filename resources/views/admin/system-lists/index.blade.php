@@ -322,6 +322,52 @@
                 <p class="text-gray-600 dark:text-gray-400">No events lists.</p>
             @endif
         </div>
+
+        @if($importLists->count() > 0)
+            <!-- Import Staging Lists -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+                    Import Staging
+                    <span class="text-lg font-normal text-gray-600 dark:text-gray-400">({{ $importLists->count() }} total)</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach($importLists as $list)
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 relative border border-amber-300 dark:border-amber-700">
+                            <div class="absolute top-4 right-4">
+                                <span class="px-2 py-1 text-xs font-semibold rounded {{ $list->list_type->colorClass() }}">
+                                    Pending review
+                                </span>
+                            </div>
+
+                            <div class="mb-4 pr-28">
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ $list->name }}</h3>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                    {{ $list->games_count }} {{ str()->plural('game', $list->games_count) }} awaiting review
+                                </div>
+                                @if($list->importTargetList)
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        Target: {{ $list->importTargetList->name }}
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex gap-2 justify-end">
+                                <a href="{{ route('admin.system-lists.edit', [$list->list_type->toSlug(), $list->slug]) }}"
+                                   class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-semibold">
+                                    Review &amp; Promote
+                                </a>
+                                <button onclick="openDeleteModal('{{ $list->name }}', '{{ route('admin.system-lists.destroy', [$list->list_type->toSlug(), $list->slug]) }}')"
+                                        class="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                                        title="Delete">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     </div>
 
     <script>

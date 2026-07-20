@@ -5,11 +5,29 @@
 @section('content')
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
-        <div class="mb-8">
+        <div class="mb-8 flex items-center justify-between gap-4 flex-wrap">
             <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100">
                 Edit {{ $list->name }}
             </h1>
+            @if($list->isImport() && $list->games->count() > 0)
+                <button type="button"
+                        onclick="promoteAllGames(this)"
+                        data-promote-url="{{ route('admin.system-lists.games.promote', [$list->list_type->toSlug(), $list->slug]) }}"
+                        class="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition font-semibold">
+                    Promote all to yearly lists
+                </button>
+            @endif
         </div>
+
+        @if($list->isImport())
+            <div class="mb-8 px-6 py-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg text-sm text-amber-900 dark:text-amber-200">
+                <strong>Import staging list.</strong> These games are hidden from the public site.
+                Review each entry (fix dates/platforms via Edit, Remove to reject), then promote —
+                each game moves to the yearly list matching its release year
+                @if($list->importTargetList)
+                    (target: {{ $list->importTargetList->name }})@endif.
+            </div>
+        @endif
 
         {{-- List Settings Header --}}
         <div class="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden" x-data="{ settingsOpen: false }">
@@ -483,6 +501,51 @@
             }).then(() => {
                 window.location.reload();
             });
+        }
+
+        function promoteGames(button, payload, confirmMessage) {
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            const original = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = 'Promoting…';
+
+            fetch(button.dataset.promoteUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(payload)
+            })
+                .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if (ok && data.success) {
+                        alert(data.message);
+                        window.location.reload();
+                        return;
+                    }
+                    alert(data.error || data.message || 'Promote failed.');
+                    button.disabled = false;
+                    button.innerHTML = original;
+                })
+                .catch(() => {
+                    alert('Promote failed. Please try again.');
+                    button.disabled = false;
+                    button.innerHTML = original;
+                });
+        }
+
+        function promoteAllGames(button) {
+            promoteGames(button, { all: true }, 'Promote ALL staged games to their yearly lists?');
+        }
+
+        function promoteSingleGame(button, gameId, gameName) {
+            promoteGames(button, { game_ids: [gameId] }, 'Promote "' + gameName + '" to its yearly list?');
         }
 
         function syncEventFromIgdb(button) {

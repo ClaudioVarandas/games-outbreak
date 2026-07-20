@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class GameList extends Model
 {
@@ -33,6 +34,7 @@ class GameList extends Model
         'end_at',
         'list_type',
         'igdb_event_id',
+        'import_target_list_id',
     ];
 
     protected $casts = [
@@ -52,6 +54,16 @@ class GameList extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function importTargetList(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'import_target_list_id');
+    }
+
+    public function importStagingList(): HasOne
+    {
+        return $this->hasOne(self::class, 'import_target_list_id');
     }
 
     public function games(): BelongsToMany
@@ -160,6 +172,11 @@ class GameList extends Model
     public function isEvents(): bool
     {
         return $this->list_type === ListTypeEnum::EVENTS;
+    }
+
+    public function isImport(): bool
+    {
+        return $this->list_type === ListTypeEnum::IMPORT;
     }
 
     public function canHaveHighlights(): bool

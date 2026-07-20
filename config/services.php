@@ -53,6 +53,10 @@ return [
     'steamgriddb' => [
         'api_key' => env('STEAMGRIDDB_API_KEY'),
     ],
+    'import' => [
+        // Static bearer token for the list-import API (used by the import-game-list skill).
+        'token' => env('IMPORT_API_TOKEN'),
+    ],
     'jina' => [
         'api_key' => env('JINA_API_KEY'),
     ],

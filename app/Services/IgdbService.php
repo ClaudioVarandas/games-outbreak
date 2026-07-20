@@ -139,6 +139,64 @@ class IgdbService
             ->all();
     }
 
+    private const GAME_SEARCH_FIELDS = 'id, name, slug, first_release_date, game_type, summary, cover.image_id, platforms.id, platforms.name, release_dates.human, release_dates.date, release_dates.y, release_dates.m, release_dates.region, release_dates.status, release_dates.date_format, external_games.external_game_source, external_games.uid, external_games.url';
+
+    /**
+     * Search IGDB games by name (used by the list-import tooling).
+     *
+     * The native `search` clause works on /v4/games (unlike /v4/events); when it
+     * returns nothing (subtitle ordering, extra punctuation) we fall back to
+     * word-by-word name matching.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function searchGames(string $term, int $limit = 5): array
+    {
+        $term = trim($term);
+
+        if ($term === '') {
+            return [];
+        }
+
+        $escaped = str_replace('"', '\"', $term);
+
+        $results = $this->postGamesQuery(
+            'search "'.$escaped.'"; fields '.self::GAME_SEARCH_FIELDS.'; limit '.$limit.';'
+        );
+
+        if ($results !== []) {
+            return $results;
+        }
+
+        $where = $this->buildNameMatchClause($term);
+
+        if ($where === null) {
+            return [];
+        }
+
+        return $this->postGamesQuery(
+            'fields '.self::GAME_SEARCH_FIELDS.'; where '.$where.'; limit '.$limit.';'
+        );
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function postGamesQuery(string $query): array
+    {
+        $response = Http::igdb()
+            ->withBody($query, 'text/plain')
+            ->post('https://api.igdb.com/v4/games');
+
+        if ($response->failed()) {
+            \Log::warning('Failed to search IGDB games', ['status' => $response->status()]);
+
+            return [];
+        }
+
+        return $response->json() ?? [];
+    }
+
     /**
      * @return list<array<string, mixed>>
      */

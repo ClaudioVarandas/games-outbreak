@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\GameListAttachStatusEnum;
 use App\Enums\ListTypeEnum;
 use App\Enums\PlatformEnum;
 use App\Enums\PlatformGroupEnum;
@@ -12,15 +13,15 @@ use App\Models\Game;
 use App\Models\GameList;
 use App\Services\EventImportService;
 use App\Services\EventTrailerService;
+use App\Services\EventYearlySyncService;
+use App\Services\GameListImportService;
 use App\Services\GameListSyncService;
-use App\Services\IgdbService;
 use App\Support\YouTube;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdminListController extends Controller
@@ -64,10 +65,19 @@ class AdminListController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        // Import staging lists awaiting review/promote
+        $importLists = GameList::where('is_system', true)
+            ->where('list_type', ListTypeEnum::IMPORT)
+            ->withCount('games')
+            ->with('importTargetList')
+            ->orderByDesc('created_at')
+            ->get();
+
         return view('admin.system-lists.index', compact(
             'yearlyLists',
             'seasonedLists',
-            'eventsLists'
+            'eventsLists',
+            'importLists'
         ));
     }
 
@@ -408,7 +418,7 @@ class AdminListController extends Controller
         return $slug;
     }
 
-    public function addGame(Request $request, string $type, string $slug): RedirectResponse|JsonResponse
+    public function addGame(Request $request, GameListImportService $importService, string $type, string $slug): RedirectResponse|JsonResponse
     {
         $list = $this->getSystemListByTypeAndSlug($type, $slug);
 
@@ -430,15 +440,24 @@ class AdminListController extends Controller
             'release_year' => ['nullable', 'integer', 'min:2000', 'max:2100'],
         ]);
 
-        $igdbId = $request->game_id;
-
-        $game = Game::where('igdb_id', $igdbId)->first();
-
-        if (! $game && is_numeric($igdbId)) {
-            $game = Game::fetchFromIgdbIfMissing((int) $igdbId, app(IgdbService::class));
+        $platformIds = $request->input('platforms', []);
+        if (is_string($platformIds)) {
+            $platformIds = json_decode($platformIds, true) ?? [];
         }
 
-        if (! $game) {
+        $result = $importService->attachGame($list, $request->game_id, [
+            'release_date' => $request->input('release_date'),
+            'platforms' => $platformIds,
+            'platform_group' => $request->input('platform_group'),
+            'is_tba' => $request->boolean('is_tba', false),
+            'is_early_access' => $request->boolean('is_early_access', false),
+            'genre_ids' => $request->input('genre_ids', []),
+            'primary_genre_id' => $request->input('primary_genre_id'),
+            'video_url' => $request->input('video_url'),
+            'release_year' => $request->integer('release_year') ?: null,
+        ]);
+
+        if ($result->status === GameListAttachStatusEnum::GameNotFound) {
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['error' => 'Game not found.'], 404);
             }
@@ -446,71 +465,13 @@ class AdminListController extends Controller
             return redirect()->back()->with('error', 'Game not found.');
         }
 
-        if ($list->games->contains($game->id)) {
+        if ($result->status === GameListAttachStatusEnum::AlreadyOnList) {
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['info' => 'Game is already in this list.']);
             }
 
             return redirect()->back()->with('info', 'Game is already in this list.');
         }
-
-        $maxOrder = $list->games()->max('order') ?? 0;
-
-        $releaseDate = $request->input('release_date');
-        if ($releaseDate) {
-            try {
-                $releaseDate = Carbon::parse($releaseDate);
-            } catch (\Exception $e) {
-                $releaseDate = $game->first_release_date;
-            }
-        } else {
-            $releaseDate = $game->first_release_date;
-        }
-
-        $platformIds = $request->input('platforms', []);
-        if (is_string($platformIds)) {
-            $platformIds = json_decode($platformIds, true) ?? [];
-        }
-        if (empty($platformIds)) {
-            $game->load('platforms');
-            $platformIds = $game->platforms
-                ->filter(fn ($p) => PlatformEnum::getActivePlatforms()->has($p->igdb_id))
-                ->map(fn ($p) => $p->igdb_id)
-                ->values()
-                ->toArray();
-        }
-
-        // Auto-set platform_group for yearly lists
-        $platformGroup = $request->input('platform_group');
-        if ($list->isYearly() && ! $platformGroup) {
-            $platformGroup = PlatformGroupEnum::suggestFromPlatforms($platformIds)->value;
-        }
-
-        $genreIds = $request->input('genre_ids', []);
-        if (is_string($genreIds)) {
-            $genreIds = json_decode($genreIds, true) ?? [];
-        }
-        $primaryGenreId = $request->input('primary_genre_id');
-
-        $isTba = $request->boolean('is_tba', false);
-        $isEarlyAccess = $request->boolean('is_early_access', false);
-        if ($isTba) {
-            $releaseDate = null;
-        }
-        $this->guardReleaseState($isEarlyAccess, $isTba, $releaseDate);
-
-        $list->games()->attach($game->id, [
-            'order' => $maxOrder + 1,
-            'release_date' => $releaseDate,
-            'platforms' => json_encode($platformIds),
-            'platform_group' => $platformGroup,
-            'is_tba' => $isTba,
-            'is_early_access' => $isEarlyAccess,
-            'genre_ids' => json_encode(array_map('intval', $genreIds)),
-            'primary_genre_id' => $primaryGenreId ? (int) $primaryGenreId : null,
-            'video_url' => $request->input('video_url') ?: null,
-            'release_year' => $isTba ? ($request->integer('release_year') ?: null) : null,
-        ]);
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -520,6 +481,44 @@ class AdminListController extends Controller
         }
 
         return redirect()->back()->with('success', 'Game added to list.');
+    }
+
+    public function promoteGames(Request $request, GameListImportService $importService, EventYearlySyncService $syncService, string $type, string $slug): JsonResponse
+    {
+        $list = $this->getSystemListByTypeAndSlug($type, $slug);
+
+        if ($list->list_type !== ListTypeEnum::IMPORT) {
+            return response()->json(['error' => 'Promote is only available for import staging lists.'], 422);
+        }
+
+        $request->validate([
+            'all' => ['nullable', 'boolean'],
+            'game_ids' => ['required_without:all', 'array', 'min:1'],
+            'game_ids.*' => ['integer'],
+        ]);
+
+        $gameIds = $request->boolean('all')
+            ? $list->games()->pluck('games.id')->all()
+            : array_map('intval', $request->input('game_ids', []));
+
+        if ($gameIds === []) {
+            return response()->json(['error' => 'No games to promote.'], 422);
+        }
+
+        $result = $importService->promoteFromStaging($list, $gameIds, $syncService);
+
+        return response()->json([
+            'success' => true,
+            'message' => sprintf(
+                'Promoted %d game(s): %d inserted, %d filled, %d skipped as duplicates, %d error(s).',
+                $result['detached'],
+                $result['inserted'],
+                count($result['filled']),
+                $result['skipped'],
+                count($result['errors'])
+            ),
+            'result' => $result,
+        ]);
     }
 
     public function removeGame(string $type, string $slug, Game $game): RedirectResponse|JsonResponse
@@ -598,25 +597,6 @@ class AdminListController extends Controller
                 $fail('Must be a valid YouTube URL (youtube.com/watch?v=… or youtu.be/…).');
             }
         };
-    }
-
-    /**
-     * Enforce the Early Access / TBA invariants: they are mutually exclusive,
-     * and Early Access always requires a release date.
-     */
-    private function guardReleaseState(bool $isEarlyAccess, bool $isTba, mixed $releaseDate): void
-    {
-        if ($isEarlyAccess && $isTba) {
-            throw ValidationException::withMessages([
-                'is_early_access' => 'A game cannot be both Early Access and TBA.',
-            ]);
-        }
-
-        if ($isEarlyAccess && empty($releaseDate)) {
-            throw ValidationException::withMessages([
-                'release_date' => 'Early Access requires a release date.',
-            ]);
-        }
     }
 
     public function toggleGameHighlight(Request $request, string $type, string $slug, Game $game): JsonResponse
@@ -898,7 +878,7 @@ class AdminListController extends Controller
         $isTba = $request->boolean('is_tba', false);
         $isEarlyAccess = $request->boolean('is_early_access', false);
         $releaseDate = $isTba ? null : $request->input('release_date');
-        $this->guardReleaseState($isEarlyAccess, $isTba, $releaseDate);
+        GameListImportService::guardReleaseState($isEarlyAccess, $isTba, $releaseDate);
 
         $pivotUpdate = [
             'release_date' => $releaseDate,
