@@ -8,7 +8,7 @@ return [
      */
     'credentials' => [
         'client_id' => env('IGDB_CLIENT_ID', ''),
-        'client_secret' => env('IGDB_ACCESS_TOKEN', ''),
+        'client_secret' => env('IGDB_CLIENT_SECRET', ''),
     ],
 
     /**

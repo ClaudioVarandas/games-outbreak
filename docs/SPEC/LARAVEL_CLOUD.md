@@ -61,7 +61,7 @@ REDIS_CACHE_DB=1
 ### IGDB API
 ```
 IGDB_CLIENT_ID=your_igdb_client_id
-IGDB_ACCESS_TOKEN=your_igdb_client_secret
+IGDB_CLIENT_SECRET=your_igdb_client_secret
 ```
 
 ### Filesystem
