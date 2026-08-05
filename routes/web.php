@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\NewsLocaleEnum;
+use App\Http\Controllers\Admin\DiscoverySourceController as AdminDiscoverySourceController;
 use App\Http\Controllers\Admin\News\NewsArticleController as AdminNewsArticleController;
 use App\Http\Controllers\Admin\News\NewsArticleImageUploadController as AdminNewsArticleImageUploadController;
 use App\Http\Controllers\Admin\News\NewsArticleRemoveFeaturedImageController as AdminNewsArticleRemoveFeaturedImageController;
@@ -234,6 +235,21 @@ Route::middleware(['auth', EnsureAdminUser::class, 'prevent-caching'])
 
         // Read-only reference for the IGDB / game-list maintenance CLI commands
         Route::view('/cli-reference', 'admin.cli-reference')->name('cli-reference');
+
+        // Discovery source registry (news / release sweeps)
+        Route::prefix('discovery-sources')
+            ->name('discovery-sources.')
+            ->group(function () {
+                Route::get('/', [AdminDiscoverySourceController::class, 'index'])->name('index');
+                Route::post('/intake', [AdminDiscoverySourceController::class, 'intake'])->name('intake');
+                Route::post('/bulk', [AdminDiscoverySourceController::class, 'bulk'])->name('bulk');
+                Route::patch('/{discoverySource}', [AdminDiscoverySourceController::class, 'update'])->name('update');
+                Route::post('/{discoverySource}/confirm', [AdminDiscoverySourceController::class, 'confirm'])->name('confirm');
+                Route::post('/{discoverySource}/reject', [AdminDiscoverySourceController::class, 'reject'])->name('reject');
+                Route::post('/{discoverySource}/disable', [AdminDiscoverySourceController::class, 'disable'])->name('disable');
+                Route::post('/{discoverySource}/enable', [AdminDiscoverySourceController::class, 'enable'])->name('enable');
+                Route::delete('/{discoverySource}', [AdminDiscoverySourceController::class, 'destroy'])->name('destroy');
+            });
 
         // Genre management
         Route::prefix('genres')

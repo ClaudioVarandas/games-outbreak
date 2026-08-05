@@ -56,6 +56,7 @@ class GameListImportService
      *     release_year?: int|null,
      *     import_confidence?: string|null,
      *     import_sources?: list<string>|null,
+     *     import_source_ids?: list<int>|null,
      *     import_note?: string|null,
      * } $attributes
      *
@@ -109,10 +110,29 @@ class GameListImportService
             'release_year' => $isTba ? ($releaseYear ?: null) : null,
             'import_confidence' => $attributes['import_confidence'] ?? null,
             'import_sources' => isset($attributes['import_sources']) ? json_encode($attributes['import_sources']) : null,
+            'import_source_ids' => isset($attributes['import_source_ids']) ? json_encode(array_map('intval', $attributes['import_source_ids'])) : null,
             'import_note' => $attributes['import_note'] ?? null,
         ]);
 
         return new GameListAttachResult(GameListAttachStatusEnum::Attached, $game);
+    }
+
+    /**
+     * Discovery-source attribution stored on the staging pivots, keyed by game.
+     * Read this BEFORE promote/reject — both detach the pivot rows.
+     *
+     * @param  list<int>  $gameIds
+     * @return array<int, list<int>>
+     */
+    public function sourceAttributionFor(GameList $staging, array $gameIds): array
+    {
+        return $staging->games()
+            ->whereIn('games.id', $gameIds)
+            ->get()
+            ->mapWithKeys(fn (Game $game): array => [
+                $game->id => array_map('intval', json_decode((string) $game->pivot->import_source_ids, true) ?: []),
+            ])
+            ->all();
     }
 
     /**

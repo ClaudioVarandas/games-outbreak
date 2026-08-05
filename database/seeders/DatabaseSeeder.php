@@ -25,5 +25,6 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call(VideoCategorySeeder::class);
+        $this->call(DiscoverySourceSeeder::class);
     }
 }

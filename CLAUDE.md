@@ -537,3 +537,10 @@ bulk selection) → per-year promote reusing `EventYearlySyncService`. Full spec
 `docs/SPEC/GAME_LIST_IMPORT_SPEC.md`. Never create games outside IGDB; never make
 `import` lists publicly visible (`/releases/{year}` ignores is_active/is_public —
 that's why the type exists).
+
+Discovery sources (news / release sweeps) live in the DB-backed registry
+(`discovery_sources`, admin page `/admin/discovery-sources`, same-token
+`GET|POST /api/v1/sources*`), never in config files. Agents propose sources
+(`/add-source` skill or `POST /api/v1/sources/propose`) — proposals are always
+`pending` until the admin confirms. Staged games carry `source_ids`; admin
+promote/reject feeds each source's yield score.

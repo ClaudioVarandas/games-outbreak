@@ -11,6 +11,7 @@ use App\Http\Requests\UpdateGameListRequest;
 use App\Jobs\RefreshGameListGamesJob;
 use App\Models\Game;
 use App\Models\GameList;
+use App\Services\DiscoverySourceService;
 use App\Services\EventImportService;
 use App\Services\EventTrailerService;
 use App\Services\EventYearlySyncService;
@@ -27,7 +28,10 @@ use Illuminate\View\View;
 
 class AdminListController extends Controller
 {
-    public function __construct(private readonly GameListImportService $importService) {}
+    public function __construct(
+        private readonly GameListImportService $importService,
+        private readonly DiscoverySourceService $discoverySourceService,
+    ) {}
 
     public function myLists(): RedirectResponse
     {
@@ -542,7 +546,15 @@ class AdminListController extends Controller
             return response()->json(['error' => 'No games to promote.'], 422);
         }
 
+        $attribution = $this->importService->sourceAttributionFor($list, $gameIds);
+
         $result = $this->importService->promoteFromStaging($list, $gameIds, $syncService);
+
+        $promotedSourceIds = collect($attribution)
+            ->except(array_keys($result['errors']))
+            ->flatten()
+            ->all();
+        $this->discoverySourceService->recordReviewOutcome($promotedSourceIds, promoted: true);
 
         return response()->json([
             'success' => true,
@@ -580,7 +592,11 @@ class AdminListController extends Controller
             return response()->json(['error' => 'No games to reject.'], 422);
         }
 
+        $attribution = $this->importService->sourceAttributionFor($list, $gameIds);
+
         $rejected = $this->importService->rejectFromStaging($list, $gameIds);
+
+        $this->discoverySourceService->recordReviewOutcome(collect($attribution)->flatten()->all(), promoted: false);
 
         return response()->json([
             'success' => true,

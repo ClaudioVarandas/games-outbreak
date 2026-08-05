@@ -120,6 +120,9 @@
                                         <a href="{{ route('admin.video-categories.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
                                             <span>Video Categories</span>
                                         </a>
+                                        <a href="{{ route('admin.discovery-sources.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
+                                            <span>Discovery Sources</span>
+                                        </a>
                                         <a href="{{ route('admin.cli-reference') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
                                             <span>CLI Reference</span>
                                         </a>
@@ -266,6 +269,9 @@
                                         </a>
                                         <a href="{{ route('admin.video-categories.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
                                             <span>Video Categories</span>
+                                        </a>
+                                        <a href="{{ route('admin.discovery-sources.index') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
+                                            <span>Discovery Sources</span>
                                         </a>
                                         <a href="{{ route('admin.cli-reference') }}" class="flex items-center gap-3 px-4 py-3 transition hover:bg-white/5">
                                             <span>CLI Reference</span>

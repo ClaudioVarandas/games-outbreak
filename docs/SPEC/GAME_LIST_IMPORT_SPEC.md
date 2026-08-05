@@ -140,3 +140,82 @@ admin UI for import logs, auto-deleting emptied staging lists.
 - Existing `AdminSystemListAddGameTest`, `EditPivotDataTest`,
   `AdminListEarlyAccessTest`, `AdminListReleaseYearTest`, `AdminListVideoUrlTest`
   cover the refactored admin path.
+
+## Discovery source registry (increment 7)
+
+DB-backed registry of media sources for release/news discovery sweeps —
+replaces the originally planned static `config/discovery.php`. "Smart, not a
+CRUD": raw links are auto-classified on intake, agents propose sources with
+evidence, and every source accumulates yield from real curation decisions.
+
+### Model — `discovery_sources` (`App\Models\DiscoverySource`)
+
+- Identity: `name`, `kind` (`calendar|press|youtube|x`), `purpose`
+  (`news|releases|both`), `url`, `locator` (normalized dedupe key, unique:
+  `@handle` for youtube/x, domain for press, host+path+query for calendars),
+  `status` (`pending|active|disabled|rejected`), `origin` (`seed|admin|agent`).
+- Proposal metadata: `confidence` (reuses `ImportConfidenceEnum` values),
+  `evidence` (why the agent proposed it), `needs_enrichment` (raw link not yet
+  researched).
+- Yield: `runs_count`, `items_found_total`, `items_promoted`, `items_rejected`,
+  `consecutive_failures`, `last_run_at`, `last_success_at`. `score()` =
+  promoted/found (null until the source produced anything); `looksDead()` =
+  3+ consecutive failures, or 3+ runs with zero found.
+- Enums in `app/Enums/DiscoverySource{Kind,Purpose,Status,Origin}Enum.php`
+  (label + badgeClass pill convention). Seeded by `DiscoverySourceSeeder`
+  (~25 approved sources, status `active`, origin `seed`).
+
+### API (same `EnsureImportToken` bearer auth as `/api/v1/import/*`)
+
+- `GET /api/v1/sources?purpose=&kind=` — **active** sources only; `purpose`
+  filters by coverage (`releases` includes `both`). Returns
+  `{sources: [{id, name, kind, purpose, url, locator, score}]}`.
+- `POST /api/v1/sources/propose` — up to 20 items `{url, kind?, purpose?,
+  name?, confidence?, evidence?}`; missing kind is filled by backend URL
+  heuristics or flagged `needs_enrichment`. Always creates `pending` rows,
+  origin `agent`; dedupes on `locator` (rejected rows count as duplicates on
+  purpose — a rejected locator cannot be re-proposed). Per-item status:
+  `created|duplicate|invalid`.
+- `POST /api/v1/sources/run-report` — per-sweep stats `{id, items_found,
+  fetch_ok}`; increments run/found counters, resets or bumps
+  `consecutive_failures`, stamps `last_run_at`/`last_success_at`.
+
+### Attribution (the smart core)
+
+`POST /api/v1/import/list-items` items accept `source_ids` (registry ids) →
+stored as `game_list_game.import_source_ids`. Admin promote/reject on the
+staging page reads that column (before detaching) and increments
+`items_promoted`/`items_rejected` on the attributed sources
+(`DiscoverySourceService::recordReviewOutcome()`). Sources therefore earn
+their score from the admin's actual curation decisions.
+
+### Admin page — `/admin/discovery-sources`
+
+Pending block (origin/kind/purpose/confidence pills + evidence, per-row and
+bulk confirm/reject), active table (yield columns, score, "Low yield —
+disable?" flag, inline edit of name/purpose, disable/delete), disabled &
+rejected block (enable / approve-anyway / delete), and a paste box ("throw
+links here") that runs `DiscoverySourceService::classifyUrl()` heuristics —
+YouTube handles and X profiles classify instantly, everything else lands
+`pending` + `needs_enrichment` for `/add-source` to research.
+
+### Skill — `.claude/skills/add-source/SKILL.md`
+
+`/add-source <urls…>`: checks the registry, fetches each link (Jina for
+bot-walled sites), verifies it actually yields dated games/news, then POSTs a
+classified proposal with evidence. Never activates anything — the admin
+confirms. Also the manual for enriching `needs_enrichment` rows.
+
+### Tests
+
+- `tests/Unit/DiscoverySourceEnumsTest.php` — labels/badges, purpose coverage,
+  usable status.
+- `tests/Feature/Services/DiscoverySourceServiceTest.php` — URL classification,
+  locator normalization + dedupe, run-report math, review-outcome counters,
+  score/dead flags.
+- `tests/Feature/Api/DiscoverySourceApiTest.php` — token auth, usable-only
+  listing + filters, propose (created/duplicate/invalid), run-report,
+  `source_ids` stored through the import API.
+- `tests/Feature/Admin/DiscoverySourceAdminTest.php` — 403, page sections,
+  paste intake, status transitions, bulk, update/delete, promote/reject
+  attribution end-to-end.

@@ -98,6 +98,7 @@ class GameListImportController extends Controller
                     'release_year' => $item['release_year'] ?? null,
                     'import_confidence' => $item['confidence'] ?? null,
                     'import_sources' => $item['sources'] ?? null,
+                    'import_source_ids' => $item['source_ids'] ?? null,
                     'import_note' => $item['note'] ?? null,
                 ]);
             } catch (ValidationException $e) {

@@ -36,6 +36,8 @@ class ImportListItemsRequest extends FormRequest
             'items.*.confidence' => ['nullable', Rule::enum(ImportConfidenceEnum::class)],
             'items.*.sources' => ['nullable', 'array'],
             'items.*.sources.*' => ['string', 'max:100'],
+            'items.*.source_ids' => ['nullable', 'array'],
+            'items.*.source_ids.*' => ['integer', 'min:1'],
             'items.*.note' => ['nullable', 'string', 'max:500'],
         ];
     }
