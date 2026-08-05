@@ -538,6 +538,10 @@ bulk selection) → per-year promote reusing `EventYearlySyncService`. Full spec
 `import` lists publicly visible (`/releases/{year}` ignores is_active/is_public —
 that's why the type exists).
 
+Release discovery runs through the `/discover-releases` skill (window sweep of
+the registry's calendars/press/YouTube/X, editorial-presence curation, IGDB
+cross-check via `games:release-window`, staging with `source_ids` attribution).
+
 Discovery sources (news / release sweeps) live in the DB-backed registry
 (`discovery_sources`, admin page `/admin/discovery-sources`, same-token
 `GET|POST /api/v1/sources*`), never in config files. Agents propose sources

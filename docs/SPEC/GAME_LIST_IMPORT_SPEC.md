@@ -219,3 +219,31 @@ confirms. Also the manual for enriching `needs_enrichment` rows.
 - `tests/Feature/Admin/DiscoverySourceAdminTest.php` — 403, page sections,
   paste intake, status transitions, bulk, update/delete, promote/reject
   attribution end-to-end.
+
+## Release discovery — media research (increment 6)
+
+`/discover-releases <window> [list-slug]` (`.claude/skills/discover-releases/SKILL.md`)
+automates the monthly release research as an agent playbook. Window accepts
+`YYYY-MM`, `YYYY-MM-DD..YYYY-MM-DD`, or natural phrasing normalized by the agent.
+
+Flow: load registry (`GET /api/v1/sources?purpose=releases`, keeping ids) →
+calendar sweep (backbone, Jina for bot-walled sites) → press sweep (one
+targeted `site:` search per outlet) → YouTube sweep (metadata only) → X sweep
+(best effort) → corroboration table with the **editorial-presence rule** (2+
+independent sources = candidate; 1 source only if clearly notable; date
+conflicts prefer the most recent evidence) → IGDB cross-check → `/import/check`
+dedupe → `games:igdb-search` id resolution → stage via `/import/list-items`
+(≤10/batch) with confidence, `sources` evidence kinds (incl. `youtube`/`x`
+pills), `source_ids` attribution and outlet-citing notes →
+`POST /api/v1/sources/run-report` → summary + source proposals via
+`POST /api/v1/sources/propose`. Rules: ≤ ~40 staged per window, targeted
+searches only, never bypass the API.
+
+Supporting command — `games:release-window {window} {--platforms=} {--limit=200}`
+(`app/Console/Commands/ListReleaseWindow.php`): IGDB safety net, not a primary
+source. Expands `YYYY-MM` to the full month, accepts explicit ranges up to 92
+days, queries `IgdbService::fetchReleaseWindowCandidates()` (window on
+`first_release_date`, 500-row pagination) and prints hypes-ranked JSON in the
+`games:igdb-search` candidate shape + `hypes` (shared formatter:
+`App\Support\IgdbCandidate`). Tests:
+`tests/Feature/Commands/ReleaseWindowCommandTest.php`.

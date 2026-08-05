@@ -10,6 +10,8 @@ enum ImportSourceEnum: string
     case Steam = 'steam';
     case Press = 'press';
     case Web = 'web';
+    case Youtube = 'youtube';
+    case X = 'x';
 
     private const FALLBACK_BADGE_CLASS = 'bg-gray-100 text-gray-700 border border-gray-300 dark:bg-gray-500/10 dark:text-gray-300 dark:border-gray-500/30';
 
@@ -20,6 +22,8 @@ enum ImportSourceEnum: string
             self::Steam => 'Steam',
             self::Press => 'Press',
             self::Web => 'Web',
+            self::Youtube => 'YouTube',
+            self::X => 'X',
         };
     }
 
@@ -30,6 +34,8 @@ enum ImportSourceEnum: string
             self::Steam => 'bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
             self::Press => 'bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
             self::Web => self::FALLBACK_BADGE_CLASS,
+            self::Youtube => 'bg-red-100 text-red-800 border border-red-300 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/30',
+            self::X => 'bg-zinc-100 text-zinc-800 border border-zinc-300 dark:bg-zinc-500/10 dark:text-zinc-300 dark:border-zinc-500/30',
         };
     }
 

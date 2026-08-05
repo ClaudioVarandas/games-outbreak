@@ -11,6 +11,7 @@ use App\Models\ExternalGameSource;
 use App\Models\Game;
 use App\Models\GameExternalSource;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
@@ -177,6 +178,48 @@ class IgdbService
         return $this->postGamesQuery(
             'fields '.self::GAME_SEARCH_FIELDS.'; where '.$where.'; limit '.$limit.';'
         );
+    }
+
+    /**
+     * Every game whose first_release_date falls inside the window, paged in
+     * IGDB's 500-row chunks (used by the games:release-window cross-check).
+     *
+     * @param  list<int>  $platformIds
+     * @return list<array<string, mixed>>
+     */
+    public function fetchReleaseWindowCandidates(CarbonInterface $from, CarbonInterface $to, array $platformIds = []): array
+    {
+        $where = sprintf('first_release_date >= %d & first_release_date <= %d', $from->timestamp, $to->timestamp);
+
+        if ($platformIds !== []) {
+            $where .= ' & platforms = ('.implode(',', array_map('intval', $platformIds)).')';
+        }
+
+        $games = [];
+        $offset = 0;
+
+        do {
+            $query = sprintf(
+                'fields %s; where %s; sort first_release_date asc; limit 500; offset %d;',
+                self::GAME_SEARCH_FIELDS.', hypes',
+                $where,
+                $offset
+            );
+
+            $response = Http::igdb()
+                ->withBody($query, 'text/plain')
+                ->post('https://api.igdb.com/v4/games');
+
+            if ($response->failed()) {
+                throw new RuntimeException('IGDB API request failed: '.$response->status().' - '.$response->body());
+            }
+
+            $page = $response->json() ?? [];
+            $games = array_merge($games, $page);
+            $offset += 500;
+        } while (count($page) === 500);
+
+        return $games;
     }
 
     /**

@@ -53,7 +53,7 @@ Add `Youtube = 'youtube'` (label `YouTube`, red pill: `bg-red-100 text-red-800 b
 
 Small safety net, NOT the primary source: `games:release-window {window : YYYY-MM, or YYYY-MM-DD..YYYY-MM-DD} {--platforms=} {--limit=200}` — parses the window argument (month shorthand expands to first→last day; explicit `from..to` otherwise; reject spans > 92 days). New lean `IgdbService::fetchReleaseWindowCandidates(CarbonInterface $from, CarbonInterface $to, array $platformIds = [])` (window on `first_release_date`, fields `id, name, slug, first_release_date, game_type, hypes, platforms.id, platforms.name, external_games.*`, 500-chunk pagination; do not touch `fetchUpcomingGames`). Output ranked-by-hypes JSON mirroring `games:igdb-search` shape + `hypes`. Purpose in the skill: catch notable titles the press sweep missed and confirm dates. Pest feature test (Http::fake): month shorthand + range parsing, window filtering, pagination, invalid/oversized window, JSON shape.
 
-### 3. The skill — `.claude/skills/discover-month-releases/SKILL.md`
+### 3. The skill — `.claude/skills/discover-releases/SKILL.md`
 
 Invoked `/discover-releases` (args: window — `YYYY-MM`, `YYYY-MM-DD..YYYY-MM-DD`, or natural phrasing like "next week" / "first half of October" which the agent normalizes to a from..to range — plus target list slug). Search phrasing in the sweeps adapts to the window ("games releasing this week", "<Month> releases"); calendar pages are date-organized so any window extracts cleanly. The playbook it instructs the agent to run:
 

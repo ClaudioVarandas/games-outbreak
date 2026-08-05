@@ -19,6 +19,10 @@ class ImportSourceEnumTest extends TestCase
     {
         $this->assertEquals('IGDB', ImportSourceEnum::labelFor('igdb'));
         $this->assertEquals(ImportSourceEnum::Steam->badgeClass(), ImportSourceEnum::badgeClassFor('steam'));
+        $this->assertEquals('YouTube', ImportSourceEnum::labelFor('youtube'));
+        $this->assertEquals('X', ImportSourceEnum::labelFor('x'));
+        $this->assertEquals(ImportSourceEnum::Youtube->badgeClass(), ImportSourceEnum::badgeClassFor('youtube'));
+        $this->assertStringContainsString('bg-zinc-100', ImportSourceEnum::badgeClassFor('x'));
     }
 
     public function test_unknown_source_falls_back_gracefully(): void
