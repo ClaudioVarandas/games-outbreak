@@ -574,7 +574,11 @@ class Game extends Model
                 ->post('https://api.igdb.com/v4/games');
 
             if ($response->failed() || empty($response->json())) {
-                \Log::warning('Failed to fetch game from IGDB', ['igdb_id' => $igdbId]);
+                \Log::warning('Failed to fetch game from IGDB', [
+                    'igdb_id' => $igdbId,
+                    'status' => $response->status(),
+                    'body' => str($response->body())->limit(300)->toString(),
+                ]);
 
                 return null;
             }
