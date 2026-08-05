@@ -18,7 +18,11 @@ use App\Services\OpenAiNewsGenerationService;
 use App\Support\Metrics\QueueEventLogger;
 use App\Support\News\MarkdownToTiptapConverter;
 use Http;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
@@ -80,7 +84,17 @@ class AppServiceProvider extends ServiceProvider
                 'Authorization' => 'Bearer '.app(IgdbService::class)->getAccessToken(),
                 'Accept' => 'application/json',
             ])
-                ->acceptJson();
+                ->acceptJson()
+                ->retry(2, 300, function (\Exception $exception, PendingRequest $request): bool {
+                    if ($exception instanceof RequestException && $exception->response->status() === 401) {
+                        Cache::forget('igdb_access_token');
+                        $request->withToken(app(IgdbService::class)->getAccessToken());
+
+                        return true;
+                    }
+
+                    return $exception instanceof ConnectionException;
+                }, throw: false);
         });
     }
 }

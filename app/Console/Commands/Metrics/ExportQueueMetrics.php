@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands\Metrics;
 
+use App\Support\Metrics\PrometheusTextfileWriter;
 use App\Support\Metrics\QueueMetricsCollector;
 use Illuminate\Console\Command;
 use Prometheus\CollectorRegistry;
@@ -16,7 +17,7 @@ class ExportQueueMetrics extends Command
 
     protected $description = 'Render queue metrics in Prometheus exposition format to the node_exporter textfile collector';
 
-    public function handle(QueueMetricsCollector $collector): int
+    public function handle(QueueMetricsCollector $collector, PrometheusTextfileWriter $writer): int
     {
         $registry = new CollectorRegistry(new InMemory, false);
 
@@ -38,18 +39,8 @@ class ExportQueueMetrics extends Command
         $registry->getOrRegisterGauge('laravel_queue', 'metrics_last_run_timestamp', 'Unix timestamp of the last successful metrics export')
             ->set((float) now()->getTimestamp());
 
-        $this->writeAtomically((new RenderTextFormat)->render($registry->getMetricFamilySamples()));
+        $writer->write(config('metrics.textfile_path'), (new RenderTextFormat)->render($registry->getMetricFamilySamples()));
 
         return self::SUCCESS;
-    }
-
-    private function writeAtomically(string $contents): void
-    {
-        $path = config('metrics.textfile_path');
-        $temp = $path.'.tmp';
-
-        file_put_contents($temp, $contents, LOCK_EX);
-        chmod($temp, 0644);
-        rename($temp, $path);
     }
 }

@@ -115,3 +115,10 @@ Schedule::command('metrics:export-queues')
     ->everyMinute()
     ->name('metrics-export-queues')
     ->withoutOverlapping();
+
+// IGDB connectivity probe (auth included) -> igdb_up gauge. Host-local textfile,
+// so not onOneServer() either.
+Schedule::command('igdb:health')
+    ->hourly()
+    ->name('igdb-health')
+    ->withoutOverlapping();
