@@ -42,6 +42,42 @@ it('requires a query of at least two characters', function () {
         ->assertStatus(422);
 });
 
+it('requires either a query or an id', function () {
+    fakeIgdbEventSearch([]);
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $this->actingAs($admin)
+        ->getJson(route('admin.system-lists.igdb-events.search'))
+        ->assertStatus(422);
+});
+
+it('looks up a single IGDB event by id, ignoring the name', function () {
+    fakeIgdbEventSearch([
+        ['id' => 1170, 'name' => 'State of Play: 2026-9-3', 'slug' => 'state-of-play-2026-9-3', 'start_time' => 1788556800],
+    ]);
+
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $response = $this->actingAs($admin)
+        ->getJson(route('admin.system-lists.igdb-events.search', ['id' => 1170]));
+
+    $response->assertSuccessful()
+        ->assertJsonCount(1, 'results')
+        ->assertJsonPath('results.0.id', 1170)
+        ->assertJsonPath('results.0.name', 'State of Play: 2026-9-3')
+        ->assertJsonPath('results.0.slug', 'state-of-play-2026-9-3');
+});
+
+it('returns no results when the id does not exist on IGDB', function () {
+    fakeIgdbEventSearch([]);
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $this->actingAs($admin)
+        ->getJson(route('admin.system-lists.igdb-events.search', ['id' => 999999999]))
+        ->assertSuccessful()
+        ->assertJsonCount(0, 'results');
+});
+
 it('forbids non-admin users from searching', function () {
     $user = User::factory()->create(['is_admin' => false]);
 

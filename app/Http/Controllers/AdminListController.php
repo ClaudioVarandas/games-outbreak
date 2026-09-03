@@ -277,10 +277,18 @@ class AdminListController extends Controller
     public function searchIgdbEvents(Request $request, EventImportService $events): JsonResponse
     {
         $validated = $request->validate([
-            'q' => ['required', 'string', 'min:2', 'max:255'],
+            'id' => ['nullable', 'integer', 'min:1', 'required_without:q'],
+            'q' => ['nullable', 'string', 'min:2', 'max:255', 'required_without:id'],
         ]);
 
-        $results = collect($events->searchEvents($validated['q']))
+        if (! empty($validated['id'])) {
+            $event = $events->fetchEvent((int) $validated['id']);
+            $results = $event ? collect([$event]) : collect();
+        } else {
+            $results = collect($events->searchEvents($validated['q']));
+        }
+
+        $results = $results
             ->map(fn (array $event): array => [
                 'id' => (int) $event['id'],
                 'name' => $event['name'] ?? 'Untitled Event',

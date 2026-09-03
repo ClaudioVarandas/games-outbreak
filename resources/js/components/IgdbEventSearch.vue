@@ -14,7 +14,7 @@
         type="button"
         @click="search"
         :disabled="loading"
-        title="Search IGDB using the list name"
+        title="Search IGDB by this ID, or by the list name if the ID is empty"
         class="shrink-0 px-3 py-2 text-sm rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50"
       >
         <span v-if="loading">…</span>
@@ -80,13 +80,16 @@ const listName = () => {
 };
 
 const search = async () => {
-  const query = listName();
-  lastQuery.value = query;
+  const idValue = String(selectedId.value ?? '').trim();
+  const byId = /^\d+$/.test(idValue);
+  const query = byId ? idValue : listName();
+
+  lastQuery.value = byId ? `IGDB event #${idValue}` : query;
   open.value = true;
   searched.value = true;
   results.value = [];
 
-  if (query.length < 2) {
+  if (!byId && query.length < 2) {
     return;
   }
 
@@ -94,7 +97,8 @@ const search = async () => {
   searched.value = false;
 
   try {
-    const response = await fetch(`${props.searchUrl}?q=${encodeURIComponent(query)}`, {
+    const params = byId ? `id=${encodeURIComponent(idValue)}` : `q=${encodeURIComponent(query)}`;
+    const response = await fetch(`${props.searchUrl}?${params}`, {
       headers: { Accept: 'application/json' },
     });
     results.value = response.ok ? ((await response.json()).results || []) : [];
