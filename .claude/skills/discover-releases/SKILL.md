@@ -22,8 +22,10 @@ from the staging page.
 1. **Window** — `YYYY-MM`, `YYYY-MM-DD..YYYY-MM-DD`, or natural phrasing
    ("next week", "first half of October") which you normalize to a from..to
    range before starting. Ask if missing.
-2. **Target list slug** (e.g. `releases-2026`) — infer from the window's year
-   when obvious, confirm otherwise.
+2. **Target list slug** — the yearly system list's slug is just the year
+   (e.g. `2026`, named "Game Releases 2026"). Infer from the window's year
+   when obvious, confirm otherwise. `list-items` returns "Target list not
+   found" for a wrong slug and writes nothing.
 3. Env (from the project `.env`): `IMPORT_API_BASE_URL`, `IMPORT_API_TOKEN`.
    Both must be set; stop and tell the user if missing.
 

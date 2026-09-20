@@ -17,7 +17,7 @@ Turn a raw pasted release list into verified entries on a yearly/seasoned system
 
 ## Inputs
 
-1. **Target list slug** (e.g. `releases-2026`) — ask if not given.
+1. **Target list slug** (yearly lists use just the year, e.g. `2026`) — ask if not given.
 2. **The raw list** — pasted text with month headers and comma-separated game names.
 3. Env (read from the project `.env`): `IMPORT_API_BASE_URL`, `IMPORT_API_TOKEN`.
    Both must be set; stop and tell the user if missing.
@@ -105,7 +105,7 @@ Payload shape:
 
 ```json
 {
-  "list_slug": "releases-2026",
+  "list_slug": "2026",
   "items": [
     {
       "igdb_id": 123,
