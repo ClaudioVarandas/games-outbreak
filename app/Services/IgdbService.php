@@ -605,82 +605,8 @@ class IgdbService
      */
     public function fetchImageFromSteamGridDb(string $gameName, string $type = 'cover', ?int $steamAppId = null, ?int $igdbId = null): ?string
     {
-        $apiKey = config('services.steamgriddb.api_key');
-        if (! $apiKey) {
-            \Log::warning('SteamGridDB API key not configured');
-
-            return null;
-        }
-
         try {
-            // Search for game
-            $searchResponse = Http::withHeaders([
-                'Authorization' => 'Bearer '.$apiKey,
-            ])
-                ->timeout(10)
-                ->get('https://www.steamgriddb.com/api/v2/search/autocomplete/'.urlencode($gameName));
-
-            if ($searchResponse->failed() || empty($searchResponse->json()['data'])) {
-                return null;
-            }
-
-            $searchResults = $searchResponse->json()['data'] ?? [];
-            if (empty($searchResults)) {
-                return null;
-            }
-
-            // If Steam AppID provided, try to find exact match
-            $gameId = null;
-            if ($steamAppId) {
-                foreach ($searchResults as $result) {
-                    if (isset($result['types']) && in_array('steam', $result['types'] ?? [])) {
-                        // Try to match by Steam AppID if available in result
-                        if (isset($result['id'])) {
-                            $gameId = $result['id'];
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Fallback to first result if no AppID match
-            if (! $gameId && ! empty($searchResults[0]['id'])) {
-                $gameId = $searchResults[0]['id'];
-            }
-
-            if (! $gameId) {
-                return null;
-            }
-
-            // Fetch grids (covers)
-            $gridsResponse = Http::withHeaders([
-                'Authorization' => 'Bearer '.$apiKey,
-            ])
-                ->timeout(10)
-                ->get("https://www.steamgriddb.com/api/v2/grids/game/{$gameId}");
-
-            if ($gridsResponse->failed() || empty($gridsResponse->json()['data'])) {
-                return null;
-            }
-
-            $grids = $gridsResponse->json()['data'] ?? [];
-            if (empty($grids)) {
-                return null;
-            }
-
-            // Select grid based on requested type
-            $selectedGrid = match ($type) {
-                'hero' => $this->selectHeroGrid($grids),
-                'logo' => $this->selectLogoGrid($grids),
-                'cover' => $this->selectCoverGrid($grids),
-                default => $grids[0] ?? null,
-            };
-
-            if (! $selectedGrid && ! empty($grids)) {
-                $selectedGrid = $grids[0];
-            }
-
-            $imageUrl = $selectedGrid['url'] ?? null;
+            $imageUrl = $this->findSteamGridDbImageUrl($gameName, $type, $steamAppId);
             if (! $imageUrl) {
                 return null;
             }
@@ -717,6 +643,90 @@ class IgdbService
 
             return null;
         }
+    }
+
+    /**
+     * Search SteamGridDB by title and pick the best grid URL for the requested image type.
+     *
+     * @param  string  $type  Image type: 'cover', 'hero', or 'logo'
+     */
+    public function findSteamGridDbImageUrl(string $gameName, string $type = 'cover', ?int $steamAppId = null): ?string
+    {
+        $apiKey = config('services.steamgriddb.api_key');
+        if (! $apiKey) {
+            \Log::warning('SteamGridDB API key not configured');
+
+            return null;
+        }
+
+        // Search for game
+        $searchResponse = Http::withHeaders([
+            'Authorization' => 'Bearer '.$apiKey,
+        ])
+            ->timeout(10)
+            ->get('https://www.steamgriddb.com/api/v2/search/autocomplete/'.urlencode($gameName));
+
+        if ($searchResponse->failed() || empty($searchResponse->json()['data'])) {
+            return null;
+        }
+
+        $searchResults = $searchResponse->json()['data'] ?? [];
+        if (empty($searchResults)) {
+            return null;
+        }
+
+        // If Steam AppID provided, try to find exact match
+        $gameId = null;
+        if ($steamAppId) {
+            foreach ($searchResults as $result) {
+                if (isset($result['types']) && in_array('steam', $result['types'] ?? [])) {
+                    // Try to match by Steam AppID if available in result
+                    if (isset($result['id'])) {
+                        $gameId = $result['id'];
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Fallback to first result if no AppID match
+        if (! $gameId && ! empty($searchResults[0]['id'])) {
+            $gameId = $searchResults[0]['id'];
+        }
+
+        if (! $gameId) {
+            return null;
+        }
+
+        // Fetch grids (covers)
+        $gridsResponse = Http::withHeaders([
+            'Authorization' => 'Bearer '.$apiKey,
+        ])
+            ->timeout(10)
+            ->get("https://www.steamgriddb.com/api/v2/grids/game/{$gameId}");
+
+        if ($gridsResponse->failed() || empty($gridsResponse->json()['data'])) {
+            return null;
+        }
+
+        $grids = $gridsResponse->json()['data'] ?? [];
+        if (empty($grids)) {
+            return null;
+        }
+
+        // Select grid based on requested type
+        $selectedGrid = match ($type) {
+            'hero' => $this->selectHeroGrid($grids),
+            'logo' => $this->selectLogoGrid($grids),
+            'cover' => $this->selectCoverGrid($grids),
+            default => $grids[0] ?? null,
+        };
+
+        if (! $selectedGrid && ! empty($grids)) {
+            $selectedGrid = $grids[0];
+        }
+
+        return $selectedGrid['url'] ?? null;
     }
 
     /**
