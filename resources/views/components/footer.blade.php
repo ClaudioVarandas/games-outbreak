@@ -10,7 +10,8 @@
                 <div class="rounded-2xl border border-cyan-300/10 bg-white/5 p-5 text-center md:text-left">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Powered By</p>
                     <p class="mt-3 text-sm leading-6 text-slate-200">
-                        <a href="https://www.igdb.com" target="_blank" rel="noopener noreferrer" class="text-orange-300 transition hover:text-orange-200">IGDB</a>
+                        <a href="https://www.igdb.com" target="_blank" rel="noopener noreferrer" class="text-orange-300 transition hover:text-orange-200">IGDB</a>,
+                        <a href="https://www.steamgriddb.com/" target="_blank" rel="noopener noreferrer" class="text-orange-300 transition hover:text-orange-200">SteamGridDB</a>
                         {{ __('and') }}
                         <a href="https://steamspy.com/" target="_blank" rel="noopener noreferrer" class="text-orange-300 transition hover:text-orange-200">steamspy</a>
                     </p>
