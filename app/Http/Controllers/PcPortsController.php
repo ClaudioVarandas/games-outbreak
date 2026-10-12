@@ -21,14 +21,13 @@ class PcPortsController extends Controller
             'value' => match ($metric) {
                 PcPortMetricEnum::Entries => $ports->count(),
                 PcPortMetricEnum::NativePorts => $nativePorts->count(),
-                PcPortMetricEnum::Playable => $nativePorts->filter(fn (PcPort $port): bool => $port->isPlayable())->count(),
+                PcPortMetricEnum::Playable => $ports->filter(fn (PcPort $port): bool => $port->status->isPlayable())->count(),
                 PcPortMetricEnum::Platforms => $platforms->count(),
             },
         ]);
 
-        $statuses = collect(PcPortStatusEnum::cases())
-            ->filter(fn (PcPortStatusEnum $status): bool => $ports->contains('status', $status))
-            ->values();
+        $statuses = collect(PcPortStatusEnum::filterOptions())
+            ->filter(fn (string $label, string $value): bool => $ports->contains(fn (PcPort $port): bool => PcPortStatusEnum::matchesFilter($port->status, $value)));
 
         return view('ports.index', [
             'ports' => $ports->map(fn (PcPort $port): array => $port->toTrackerArray())->values(),

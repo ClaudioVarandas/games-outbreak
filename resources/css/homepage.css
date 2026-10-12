@@ -16,10 +16,18 @@
 }
 
 body.neon-body {
-    background:
+    --neon-page-bg:
         radial-gradient(circle at top left, rgba(255, 138, 42, 0.14), transparent 24%),
         radial-gradient(circle at top right, rgba(109, 40, 217, 0.18), transparent 30%),
         linear-gradient(180deg, #262c42 0%, #2e3550 50%, #21273c 100%);
+    background: var(--neon-page-bg);
+    background-attachment: fixed;
+}
+
+/* The sticky header paints the same viewport-fixed backdrop, so scrolling content never shows through its gutters. */
+.neon-body .site-header {
+    background: var(--neon-page-bg);
+    background-attachment: fixed;
 }
 
 .theme-neon::after {
@@ -643,4 +651,38 @@ body.neon-body {
     padding: 0.14rem 0.5rem;
     font-size: 0.58rem;
     letter-spacing: 0.12em;
+}
+
+/* ── Ports tracker: heading + filters pinned under the sticky site header ── */
+.ports-page {
+    padding-top: 2.5rem;
+}
+
+.ports-sticky-panel {
+    margin-bottom: 1.5rem;
+}
+
+@media (min-width: 1024px) and (min-height: 800px) {
+    /* Starts exactly where it sticks (right under the header), so it never shifts while scrolling. */
+    .ports-page {
+        padding-top: 0;
+    }
+
+    /* Opaque strip (gap above + rounded corners) masks the cards scrolling underneath. */
+    .ports-sticky-panel {
+        position: sticky;
+        z-index: 30;
+        margin-bottom: 1rem;
+        padding-top: 1rem;
+        background: var(--neon-page-bg);
+        background-attachment: fixed;
+    }
+
+    .ports-sticky-panel__inner {
+        padding: 0.9rem 1rem;
+        border-radius: 1.5rem;
+        background: rgba(25, 30, 47, 0.72);
+        border: 1px solid rgba(99, 243, 255, 0.1);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.26);
+    }
 }

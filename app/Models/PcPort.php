@@ -146,15 +146,6 @@ class PcPort extends Model
         return $value === null || $value === '' ? null : (string) $value;
     }
 
-    /**
-     * Counts as playable when the status says so or the playability note reports it.
-     */
-    public function isPlayable(): bool
-    {
-        return $this->status->isPlayable()
-            || (bool) preg_match('/playable|completable/i', (string) $this->detail('playability'));
-    }
-
     public function coverUrl(): ?string
     {
         return $this->cover_path ? asset('storage/'.$this->cover_path) : null;
@@ -265,6 +256,7 @@ class PcPort extends Model
             'platform' => $this->original_platform ?: 'Multi',
             'platforms' => $this->platforms(),
             'section' => $section->value,
+            'playable' => $this->status->isPlayable(),
             'flag' => $section->flagLabel() ? __($section->flagLabel()) : null,
             'status' => $this->status->value,
             'statusLabel' => __($this->status->label()),

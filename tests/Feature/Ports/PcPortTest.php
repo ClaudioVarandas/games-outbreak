@@ -29,7 +29,7 @@ it('gives every enum case a label and literal classes', function () {
 it('only treats finished statuses as playable', function () {
     $playable = collect(PcPortStatusEnum::cases())->filter->isPlayable()->values()->all();
 
-    expect($playable)->toBe([PcPortStatusEnum::Released, PcPortStatusEnum::Complete, PcPortStatusEnum::Playable]);
+    expect($playable)->toBe([PcPortStatusEnum::Released, PcPortStatusEnum::Playable]);
 });
 
 it('normalizes technique spellings', function (?string $input, ?string $expected) {
@@ -80,8 +80,21 @@ it('prefers the public version and the most specific activity date', function ()
         ->and($port->activityDate()->toDateString())->toBe('2026-10-01');
 });
 
-it('counts playability notes as playable', function () {
-    $port = new PcPort(['status' => PcPortStatusEnum::Wip, 'details' => ['playability' => 'Fully completable']]);
+it('groups every green status under the Playable filter option', function () {
+    expect(array_keys(PcPortStatusEnum::filterOptions()))
+        ->toBe(['playable', 'released', 'complete', 'active', 'beta', 'advanced_wip', 'wip', 'discovered']);
 
-    expect($port->isPlayable())->toBeTrue();
+    foreach (PcPortStatusEnum::cases() as $status) {
+        expect(PcPortStatusEnum::matchesFilter($status, 'playable'))->toBe($status->isPlayable())
+            ->and(PcPortStatusEnum::matchesFilter($status, $status->value))->toBeTrue();
+    }
+
+    expect(PcPortStatusEnum::matchesFilter(PcPortStatusEnum::Released, 'wip'))->toBeFalse()
+        ->and(PcPortStatusEnum::matchesFilter(PcPortStatusEnum::Complete, 'playable'))->toBeFalse()
+        ->and(PcPortStatusEnum::Complete->pillClasses())->not->toContain('emerald');
+});
+
+it('colours the playable tile like the playable status pills', function () {
+    expect(PcPortMetricEnum::Playable->valueClasses())->toContain('emerald')
+        ->and(PcPortStatusEnum::Released->pillClasses())->toContain('emerald');
 });

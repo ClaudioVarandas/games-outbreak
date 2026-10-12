@@ -7,103 +7,105 @@
 @section('body-class', 'neon-body')
 
 @section('content')
-<div class="theme-neon overflow-x-hidden" x-data="portsTracker()" x-init="init()">
-    <div class="page-shell py-10">
+<div class="theme-neon overflow-x-clip" x-data="portsTracker()" x-init="init()">
+    <div class="page-shell ports-page pb-10">
 
-        {{-- Heading + metrics --}}
-        <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-            <div class="min-w-0">
-                <x-homepage.section-heading icon="chip" :title="__('Ports')" />
-                <h1 class="mt-4 text-3xl font-extrabold uppercase tracking-wide text-slate-100 sm:text-4xl">
-                    {{ __('Unofficial') }} <span class="text-orange-400">{{ __('PC ports') }}</span>
-                </h1>
-                <p class="mt-2 max-w-2xl text-sm text-slate-400">
-                    {{ __('Community static recompilations, decompilations and reimplementations. None of these projects distribute the games: you always need your own original copy.') }}
-                </p>
-            </div>
-
-            <div class="flex flex-col gap-3">
-                @if ($lastChecked)
-                    <span class="self-start rounded-full border border-orange-400/35 bg-orange-400/15 px-3 py-1 font-mono text-xs text-orange-300 lg:self-end">
-                        {{ __('Checked :date', ['date' => $lastChecked->format('M d, Y')]) }}
-                    </span>
-                @endif
-
-                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    @foreach ($stats as $stat)
-                        <div @class(['flex min-w-0 flex-col gap-1 rounded-xl border px-4 py-3 font-mono text-[0.7rem] text-slate-400', $stat['metric']->tileClasses()])>
-                            <b @class(['text-2xl font-semibold leading-tight tabular-nums', $stat['metric']->valueClasses()])>{{ $stat['value'] }}</b>
-                            {{ __($stat['metric']->label()) }}
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-
-        {{-- Filter bar --}}
-        <div class="neon-section-frame mb-6">
-            <form class="relative flex flex-wrap items-center gap-2" role="search" @submit.prevent>
-                <label class="relative min-w-0 flex-[1_1_16rem]">
-                    <x-heroicon-o-magnifying-glass class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                    <input type="search" x-model="q" autocomplete="off"
-                           placeholder="{{ __('Search game, project or framework') }}"
-                           aria-label="{{ __('Search') }}"
-                           class="w-full rounded-full border border-white/10 bg-slate-900/60 py-2 pl-9 pr-4 text-xs text-slate-200 placeholder-slate-500 focus:border-cyan-400/50 focus:outline-none focus:ring-0">
-                </label>
-
-                <select x-model="platform" aria-label="{{ __('Original platform') }}"
-                        class="flex-[1_1_10rem] rounded-full border border-white/10 bg-slate-900/60 py-2 pl-4 pr-9 text-xs text-slate-200 focus:border-cyan-400/50 focus:outline-none focus:ring-0 sm:flex-none">
-                    <option value="">{{ __('All platforms') }}</option>
-                    @foreach ($platforms as $platform)
-                        <option value="{{ $platform }}">{{ $platform }}</option>
-                    @endforeach
-                </select>
-
-                <select x-model="status" aria-label="{{ __('Status') }}"
-                        class="flex-[1_1_10rem] rounded-full border border-white/10 bg-slate-900/60 py-2 pl-4 pr-9 text-xs text-slate-200 focus:border-cyan-400/50 focus:outline-none focus:ring-0 sm:flex-none">
-                    <option value="">{{ __('All statuses') }}</option>
-                    @foreach ($statuses as $status)
-                        <option value="{{ $status->value }}">{{ __($status->label()) }}</option>
-                    @endforeach
-                </select>
-
-                <select x-model="os" aria-label="{{ __('Operating system') }}"
-                        class="flex-[1_1_10rem] rounded-full border border-white/10 bg-slate-900/60 py-2 pl-4 pr-9 text-xs text-slate-200 focus:border-cyan-400/50 focus:outline-none focus:ring-0 sm:flex-none">
-                    <option value="">{{ __('Any system') }}</option>
-                    @foreach (\App\Models\PcPort::OPERATING_SYSTEMS as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-
-                <div class="flex flex-[1_1_100%] items-center gap-2 sm:flex-none">
-                    <button type="button" @click="cycleSort()"
-                            class="neon-btn-ghost flex-1 whitespace-nowrap rounded-full px-4 py-2 font-mono text-[0.68rem] text-slate-300 transition hover:text-slate-100 sm:flex-none"
-                            title="{{ __('Change sort order') }}"
-                            x-text="i18n.sort + ' · ' + i18n.sortModes[sortMode]"></button>
-
-                    <div class="flex items-center gap-1">
-                        <button type="button" @click="viewMode = 'grid'" :aria-pressed="viewMode === 'grid'"
-                                :class="viewMode === 'grid' ? 'border-cyan-400/60 text-cyan-300 bg-cyan-400/10' : 'text-slate-400 hover:text-slate-200'"
-                                class="neon-btn-ghost rounded-lg p-2 transition" title="{{ __('Grid') }}">
-                            <x-heroicon-o-squares-2x2 class="h-4 w-4" />
-                        </button>
-                        <button type="button" @click="viewMode = 'list'" :aria-pressed="viewMode === 'list'"
-                                :class="viewMode === 'list' ? 'border-cyan-400/60 text-cyan-300 bg-cyan-400/10' : 'text-slate-400 hover:text-slate-200'"
-                                class="neon-btn-ghost rounded-lg p-2 transition" title="{{ __('List') }}">
-                            <x-heroicon-o-bars-3 class="h-4 w-4" />
-                        </button>
+        {{-- Heading, metrics and filters stay pinned under the site header on tall desktop screens --}}
+        <div x-ref="stickyPanel" class="ports-sticky-panel">
+            <div x-ref="stickyPanelInner" class="ports-sticky-panel__inner">
+                {{-- Heading + metrics --}}
+                <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                    <div class="min-w-0">
+                        <h1 class="text-3xl font-extrabold uppercase tracking-wide text-slate-100 sm:text-4xl">
+                            {{ __('Unofficial') }} <span class="text-orange-400">{{ __('PC ports') }}</span>
+                        </h1>
+                        <p class="mt-2 max-w-2xl text-sm text-slate-400">
+                            {{ __('Community static recompilations, decompilations and reimplementations. None of these projects distribute the games: you always need your own original copy.') }}
+                        </p>
+                        <p class="mt-3 font-mono text-xs font-semibold text-cyan-300" aria-live="polite" x-text="countText()"></p>
                     </div>
 
-                    <button type="button" @click="reset()"
-                            class="neon-btn-ghost rounded-lg p-2 text-slate-400 transition hover:text-slate-100"
-                            title="{{ __('Clear filters') }}" aria-label="{{ __('Clear filters') }}">
-                        <x-heroicon-o-x-mark class="h-4 w-4" />
-                    </button>
-                </div>
-            </form>
-        </div>
+                    <div class="flex flex-col gap-3">
+                        @if ($lastChecked)
+                            <span class="self-start rounded-full border border-orange-400/35 bg-orange-400/15 px-3 py-1 font-mono text-xs text-orange-300 lg:self-end">
+                                {{ __('Checked :date', ['date' => $lastChecked->format('M d, Y')]) }}
+                            </span>
+                        @endif
 
-        <p class="mb-4 font-mono text-xs font-semibold text-slate-400" aria-live="polite" x-text="countText()"></p>
+                        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            @foreach ($stats as $stat)
+                                <div @class(['flex min-w-0 flex-col gap-1 rounded-xl border px-4 py-3 font-mono text-[0.7rem] text-slate-400', $stat['metric']->tileClasses()])>
+                                    <b @class(['text-2xl font-semibold leading-tight tabular-nums', $stat['metric']->valueClasses()])>{{ $stat['value'] }}</b>
+                                    {{ __($stat['metric']->label()) }}
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Filter bar --}}
+                <div class="neon-section-frame">
+                    <form class="relative flex flex-wrap items-center gap-2" role="search" @submit.prevent>
+                        <div class="relative min-w-0 flex-[1_1_16rem]">
+                            <x-heroicon-o-magnifying-glass class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                            <input type="text" x-model="q" autocomplete="off"
+                                   placeholder="{{ __('Search game, project or framework') }}"
+                                   aria-label="{{ __('Search') }}"
+                                   class="w-full rounded-full border border-white/10 bg-slate-900/60 py-2 pl-9 pr-10 text-xs text-slate-200 placeholder-slate-500 focus:border-cyan-400/50 focus:outline-none focus:ring-0">
+                            <button type="button" @click="q = ''"
+                                    class="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/5 hover:text-slate-100"
+                                    title="{{ __('Clear search') }}" aria-label="{{ __('Clear search') }}">
+                                <x-heroicon-o-x-mark class="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        <select x-model="platform" aria-label="{{ __('Original platform') }}"
+                                class="flex-[1_1_10rem] rounded-full border border-white/10 bg-slate-900/60 py-2 pl-4 pr-9 text-xs text-slate-200 focus:border-cyan-400/50 focus:outline-none focus:ring-0 sm:flex-none">
+                            <option value="">{{ __('All platforms') }}</option>
+                            @foreach ($platforms as $platform)
+                                <option value="{{ $platform }}">{{ $platform }}</option>
+                            @endforeach
+                        </select>
+
+                        <select x-model="status" aria-label="{{ __('Status') }}"
+                                class="flex-[1_1_10rem] rounded-full border border-white/10 bg-slate-900/60 py-2 pl-4 pr-9 text-xs text-slate-200 focus:border-cyan-400/50 focus:outline-none focus:ring-0 sm:flex-none">
+                            <option value="">{{ __('All statuses') }}</option>
+                            @foreach ($statuses as $value => $label)
+                                <option value="{{ $value }}">{{ __($label) }}</option>
+                            @endforeach
+                        </select>
+
+                        <select x-model="os" aria-label="{{ __('Operating system') }}"
+                                class="flex-[1_1_10rem] rounded-full border border-white/10 bg-slate-900/60 py-2 pl-4 pr-9 text-xs text-slate-200 focus:border-cyan-400/50 focus:outline-none focus:ring-0 sm:flex-none">
+                            <option value="">{{ __('Any system') }}</option>
+                            @foreach (\App\Models\PcPort::OPERATING_SYSTEMS as $key => $label)
+                                <option value="{{ $key }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+
+                        <div class="flex flex-[1_1_100%] items-center gap-2 sm:flex-none">
+                            <button type="button" @click="cycleSort()"
+                                    class="neon-btn-ghost flex-1 whitespace-nowrap rounded-full px-4 py-2 font-mono text-[0.68rem] text-slate-300 transition hover:text-slate-100 sm:flex-none"
+                                    title="{{ __('Change sort order') }}"
+                                    x-text="i18n.sort + ' · ' + i18n.sortModes[sortMode]"></button>
+
+                            <div class="flex items-center gap-1">
+                                <button type="button" @click="viewMode = 'grid'" :aria-pressed="viewMode === 'grid'"
+                                        :class="viewMode === 'grid' ? 'border-cyan-400/60 text-cyan-300 bg-cyan-400/10' : 'text-slate-400 hover:text-slate-200'"
+                                        class="neon-btn-ghost rounded-lg p-2 transition" title="{{ __('Grid') }}">
+                                    <x-heroicon-o-squares-2x2 class="h-4 w-4" />
+                                </button>
+                                <button type="button" @click="viewMode = 'list'" :aria-pressed="viewMode === 'list'"
+                                        :class="viewMode === 'list' ? 'border-cyan-400/60 text-cyan-300 bg-cyan-400/10' : 'text-slate-400 hover:text-slate-200'"
+                                        class="neon-btn-ghost rounded-lg p-2 transition" title="{{ __('List') }}">
+                                    <x-heroicon-o-bars-3 class="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
         {{-- Sections --}}
         <div x-show="filtered.length > 0" class="flex flex-col gap-10">
@@ -130,7 +132,7 @@
                                     <h3 class="text-sm font-semibold leading-tight text-slate-100" x-text="port.title"></h3>
                                     <p class="-mt-1 break-words text-xs text-slate-400" x-text="port.project || @js(__('No public repository'))"></p>
                                     <p class="font-mono text-[0.68rem] tabular-nums text-slate-400" x-text="port.version || '—'"></p>
-                                    <div class="mt-auto flex flex-wrap items-center gap-1.5">
+                                    <div class="mt-auto flex flex-col items-start gap-1.5">
                                         <span class="neon-platform-pill" x-text="port.platform"></span>
                                         <span class="rounded-full border px-2 py-0.5 font-mono text-[0.62rem] font-semibold" :class="port.statusClasses" x-text="port.statusLabel"></span>
                                     </div>
@@ -270,6 +272,24 @@
                 } catch (e) {}
 
                 ['q', 'platform', 'status', 'os', 'sortMode', 'viewMode'].forEach(key => this.$watch(key, () => this.persist()));
+
+                // The site header is sticky too: pin the panel right below it, at the exact width of its bar.
+                const header = document.querySelector('.site-header');
+                const bar = header?.querySelector('.site-header__bar');
+                if (header && bar) {
+                    const panel = this.$refs.stickyPanel;
+                    const inner = this.$refs.stickyPanelInner;
+                    const sticky = window.matchMedia('(min-width: 1024px) and (min-height: 800px)');
+                    const pin = () => {
+                        panel.style.top = header.offsetHeight + 'px';
+                        inner.style.marginInline = sticky.matches
+                            ? (bar.getBoundingClientRect().left - panel.getBoundingClientRect().left) + 'px'
+                            : '';
+                    };
+                    new ResizeObserver(pin).observe(header);
+                    sticky.addEventListener('change', pin);
+                    pin();
+                }
             },
 
             persist() {
@@ -292,7 +312,7 @@
                 return this.ports
                     .filter(port => (!q || port.haystack.includes(q))
                         && (!this.platform || port.platforms.includes(this.platform))
-                        && (!this.status || port.status === this.status)
+                        && (!this.status || (this.status === 'playable' ? port.playable : port.status === this.status))
                         && (!this.os || port.supports.includes(this.os)))
                     .sort(compare);
             },
@@ -310,13 +330,6 @@
 
             cycleSort() {
                 this.sortMode = sortModes[(sortModes.indexOf(this.sortMode) + 1) % sortModes.length];
-            },
-
-            reset() {
-                this.q = '';
-                this.platform = '';
-                this.status = '';
-                this.os = '';
             },
 
             open(port) {

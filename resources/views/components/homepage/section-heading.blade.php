@@ -27,8 +27,6 @@
                 <x-heroicon-o-video-camera class="h-5 w-5" />
             @elseif($icon === 'photo')
                 <x-heroicon-o-photo class="h-5 w-5" />
-            @elseif($icon === 'chip')
-                <x-heroicon-o-cpu-chip class="h-5 w-5" />
             @endif
         </span>
         <span>{!! $title !!}</span>
