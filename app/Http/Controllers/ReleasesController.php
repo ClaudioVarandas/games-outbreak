@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\PlatformEnum;
 use App\Models\GameList;
 use App\Models\Genre;
+use App\Support\ReleasesPageSeo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -83,7 +84,10 @@ class ReleasesController extends Controller
         // Prepare JSON data for Alpine.js filtering
         $allGamesJson = $yearlyList ? $yearlyList->getGamesForFiltering() : [];
 
+        $seo = ReleasesPageSeo::for($year, $month, $only, $gamesByMonth);
+
         return view('releases.yearly', compact(
+            'seo',
             'yearlyList',
             'year',
             'month',

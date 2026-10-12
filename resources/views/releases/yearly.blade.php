@@ -1,6 +1,33 @@
 @extends('layouts.app')
 
-@section('title', ($month ? \Carbon\Carbon::create($year, $month)->format('F') . ' ' : '') . "Game Releases {$year}")
+@section('title', $seo['title'])
+
+@section('meta-description', $seo['description'])
+
+@push('seo')
+    <link rel="canonical" href="{{ $seo['canonical'] }}">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ $seo['title'] }}">
+    <meta property="og:description" content="{{ $seo['description'] }}">
+    <meta property="og:url" content="{{ $seo['canonical'] }}">
+    <meta property="og:site_name" content="Games Outbreak">
+    @if ($seo['image'])
+        <meta property="og:image" content="{{ $seo['image'] }}">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta property="og:image:alt" content="{{ $seo['imageAlt'] }}">
+    @endif
+
+    <meta name="twitter:card" content="{{ $seo['image'] ? 'summary_large_image' : 'summary' }}">
+    <meta name="twitter:title" content="{{ $seo['title'] }}">
+    <meta name="twitter:description" content="{{ $seo['description'] }}">
+    @if ($seo['image'])
+        <meta name="twitter:image" content="{{ $seo['image'] }}">
+    @endif
+
+    <script type="application/ld+json">{!! json_encode($seo['structuredData'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
+@endpush
 
 @section('body-class', 'neon-body')
 
