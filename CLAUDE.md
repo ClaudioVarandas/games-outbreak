@@ -548,3 +548,15 @@ Discovery sources (news / release sweeps) live in the DB-backed registry
 (`/add-source` skill or `POST /api/v1/sources/propose`) — proposals are always
 `pending` until the admin confirms. Staged games carry `source_ids`; admin
 promote/reject feeds each source's yield score.
+
+### Unofficial PC ports page (`/ports`)
+
+The list is owned and maintained outside this repo, in
+`/home/cvarandas/Documents/cv/UNOFFICIAL_PC_PORTS/` (canonical CSV, `covers/sources.json`,
+`push_to_site.py`, its own `AGENTS.md` and agent skill). It publishes through the
+token-authenticated `POST /api/v1/ports/sync` (upsert by slug, optional prune) and
+`GET /api/v1/ports` — that API is the only contract between the two. Never add CSV
+parsing or a push command here, and never edit ports in the DB by hand; change the
+tracker and push. Covers come only from SteamGridDB (`FetchPcPortCover` job). "Playable"
+means status `released` or `playable` (`PcPortStatusEnum::isPlayable()`), and the page
+metrics are static totals.
