@@ -88,6 +88,19 @@ it('reports unchanged rows and only re-fetches the cover when its url changes', 
     expect($port->fresh()->cover_source_url)->toEndWith('new.png');
 });
 
+it('treats details stored with a different key order as unchanged', function () {
+    $this->postJson('/api/v1/ports/sync', ['ports' => [portRow()]], portApiHeaders())->assertJsonPath('summary.created', 1);
+    // MySQL returns JSON objects with its own key order; emulate that on the stored row.
+    PcPort::where('slug', 'banjo-kazooie')->update(['details' => '{"features": "Widescreen", "save_support": "true"}']);
+
+    $this->postJson('/api/v1/ports/sync', ['ports' => [portRow()]], portApiHeaders())
+        ->assertJsonPath('summary.unchanged', 1)
+        ->assertJsonPath('summary.updated', 0);
+
+    $this->postJson('/api/v1/ports/sync', ['ports' => [portRow(['features' => 'Widescreen, 60 FPS'])]], portApiHeaders())
+        ->assertJsonPath('summary.updated', 1);
+});
+
 it('turns non-native entries into radar but keeps mods as mods', function () {
     $this->postJson('/api/v1/ports/sync', ['ports' => [
         portRow(['slug' => 'radar-one', 'native_pc_port' => 'no', 'category' => 'pc_port']),

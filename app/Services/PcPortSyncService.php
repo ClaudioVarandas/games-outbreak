@@ -50,6 +50,11 @@ class PcPortSyncService
             $port = PcPort::firstOrNew(['slug' => $row['slug']]);
             $port->fill($this->attributesFrom($row));
 
+            // MySQL reorders JSON object keys on write, so compare details regardless of key order.
+            if ($port->exists && $port->isDirty('details') && $port->details == $port->getOriginal('details')) {
+                $port->syncOriginalAttribute('details');
+            }
+
             $isNew = ! $port->exists;
             $coverChanged = $port->isDirty('cover_source_url');
 

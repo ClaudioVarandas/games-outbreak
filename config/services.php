@@ -56,8 +56,6 @@ return [
     'import' => [
         // Static bearer token for the list-import API (used by the import-game-list skill).
         'token' => env('IMPORT_API_TOKEN'),
-        // Remote site the local `ports:push` command sends the tracker CSV to.
-        'base_url' => env('IMPORT_API_BASE_URL'),
     ],
     'jina' => [
         'api_key' => env('JINA_API_KEY'),
