@@ -20,6 +20,7 @@ use App\Http\Controllers\NewsArticleController;
 use App\Http\Controllers\PcPortsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReleasesController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\UserGameController;
 use App\Http\Controllers\UserListController;
 use App\Http\Controllers\VideoController;
@@ -57,6 +58,14 @@ Route::redirect('/highlights', '/releases', 301);
 
 Route::get('/events', EventsController::class)->name('events');
 Route::get('/ports', PcPortsController::class)->name('ports');
+
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+Route::prefix('sitemaps')->name('sitemaps.')->group(function () {
+    Route::get('pages.xml', [SitemapController::class, 'pages'])->name('pages');
+    Route::get('lists.xml', [SitemapController::class, 'lists'])->name('lists');
+    Route::get('news.xml', [SitemapController::class, 'news'])->name('news');
+    Route::get('games-{page}.xml', [SitemapController::class, 'games'])->whereNumber('page')->name('games');
+});
 Route::get('/upcoming', [GamesController::class, 'upcoming'])->name('upcoming');
 Route::get('/most-wanted', [GamesController::class, 'mostWanted'])->name('most-wanted');
 Route::get('/game/{game:slug}', [GamesController::class, 'show'])->name('game.show');
