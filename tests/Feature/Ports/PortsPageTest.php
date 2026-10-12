@@ -78,3 +78,39 @@ it('credits SteamGridDB in the footer', function () {
         ->assertSee('href="https://www.steamgriddb.com/"', false)
         ->assertSeeText('SteamGridDB');
 });
+
+it('emits canonical, Open Graph and Twitter tags with the ports card image', function () {
+    $image = asset('images/ports-og.jpg');
+
+    $this->get(route('ports'))
+        ->assertSuccessful()
+        ->assertSee('<link rel="canonical" href="'.route('ports').'">', false)
+        ->assertSee('<meta name="description" content="Community static recompilations, decompilations and reimplementations of console games for PC.">', false)
+        ->assertSee('<meta property="og:type" content="website">', false)
+        ->assertSee('<meta property="og:url" content="'.route('ports').'">', false)
+        ->assertSee('<meta property="og:image" content="'.$image.'">', false)
+        ->assertSee('<meta property="og:image:width" content="1200">', false)
+        ->assertSee('<meta property="og:image:height" content="630">', false)
+        ->assertSee('<meta name="twitter:card" content="summary_large_image">', false)
+        ->assertSee('<meta name="twitter:image" content="'.$image.'">', false);
+
+    expect(public_path('images/ports-og.jpg'))->toBeFile();
+});
+
+it('describes every port in the JSON-LD collection', function () {
+    PcPort::factory()->create(['game_title' => 'Banjo-Kazooie', 'project_name' => 'BanjoRecomp', 'repo_url' => 'https://github.com/example/banjo', 'last_checked_at' => '2026-10-11']);
+    PcPort::factory()->create(['game_title' => 'Zelda <Radar>', 'project_name' => null, 'repo_url' => null, 'primary_source' => 'https://example.com/zelda', 'last_checked_at' => '2026-10-01']);
+
+    $html = $this->get(route('ports'))->assertSuccessful()->getContent();
+
+    preg_match('#<script type="application/ld\+json">(.+?)</script>#s', $html, $match);
+    $graph = collect(json_decode($match[1], true)['@graph'])->keyBy('@type');
+    $list = $graph['CollectionPage']['mainEntity'];
+
+    expect($graph['BreadcrumbList']['itemListElement'][1]['item'])->toBe(route('ports'))
+        ->and($graph['CollectionPage']['dateModified'])->toBe('2026-10-11')
+        ->and($list['numberOfItems'])->toBe(2)
+        ->and($list['itemListElement'][0])->toMatchArray(['position' => 1, 'name' => 'Banjo-Kazooie — BanjoRecomp', 'url' => 'https://github.com/example/banjo'])
+        ->and($list['itemListElement'][1])->toMatchArray(['position' => 2, 'name' => 'Zelda <Radar>', 'url' => 'https://example.com/zelda'])
+        ->and($match[1])->not->toContain('<Radar>');
+});

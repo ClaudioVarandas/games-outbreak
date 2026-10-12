@@ -6,6 +6,7 @@ use App\Enums\PcPortMetricEnum;
 use App\Enums\PcPortSectionEnum;
 use App\Enums\PcPortStatusEnum;
 use App\Models\PcPort;
+use App\Support\PcPortStructuredData;
 use Illuminate\View\View;
 
 class PcPortsController extends Controller
@@ -29,7 +30,13 @@ class PcPortsController extends Controller
         $statuses = collect(PcPortStatusEnum::filterOptions())
             ->filter(fn (string $label, string $value): bool => $ports->contains(fn (PcPort $port): bool => PcPortStatusEnum::matchesFilter($port->status, $value)));
 
+        $pageTitle = __('Unofficial PC Ports');
+        $pageDescription = __('Community static recompilations, decompilations and reimplementations of console games for PC.');
+
         return view('ports.index', [
+            'pageTitle' => $pageTitle,
+            'pageDescription' => $pageDescription,
+            'structuredData' => PcPortStructuredData::for($ports, $pageTitle, $pageDescription),
             'ports' => $ports->map(fn (PcPort $port): array => $port->toTrackerArray())->values(),
             'stats' => $stats,
             'platforms' => $platforms,

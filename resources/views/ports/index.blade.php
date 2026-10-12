@@ -1,8 +1,29 @@
 @extends('layouts.app')
 
-@section('title', __('Unofficial PC Ports'))
+@section('title', $pageTitle)
 
-@section('meta-description', __('Community static recompilations, decompilations and reimplementations of console games for PC.'))
+@section('meta-description', $pageDescription)
+
+@push('seo')
+    <link rel="canonical" href="{{ route('ports') }}">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $pageDescription }}">
+    <meta property="og:url" content="{{ route('ports') }}">
+    <meta property="og:site_name" content="Games Outbreak">
+    <meta property="og:image" content="{{ asset('images/ports-og.jpg') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{{ __('Game Ports — play legendary games beyond their original platforms') }}">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
+    <meta name="twitter:description" content="{{ $pageDescription }}">
+    <meta name="twitter:image" content="{{ asset('images/ports-og.jpg') }}">
+
+    <script type="application/ld+json">{!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
+@endpush
 
 @section('body-class', 'neon-body')
 
