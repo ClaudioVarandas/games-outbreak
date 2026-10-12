@@ -17,6 +17,7 @@ use App\Http\Controllers\GamesController;
 use App\Http\Controllers\HomepageController;
 use App\Http\Controllers\LocaleSwitchController;
 use App\Http\Controllers\NewsArticleController;
+use App\Http\Controllers\PcPortsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReleasesController;
 use App\Http\Controllers\UserGameController;
@@ -55,6 +56,7 @@ Route::redirect('/indie-games', '/releases', 301);
 Route::redirect('/highlights', '/releases', 301);
 
 Route::get('/events', EventsController::class)->name('events');
+Route::get('/ports', PcPortsController::class)->name('ports');
 Route::get('/upcoming', [GamesController::class, 'upcoming'])->name('upcoming');
 Route::get('/most-wanted', [GamesController::class, 'mostWanted'])->name('most-wanted');
 Route::get('/game/{game:slug}', [GamesController::class, 'show'])->name('game.show');

@@ -181,7 +181,11 @@
                         @endif
 
                         <a href="{{ route('releases.year', ['year' => now()->year]) }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition xl:px-4">
-                            {{ __('Curated Lists') }}
+                            {{ __('Releases') }}
+                        </a>
+
+                        <a href="{{ route('ports') }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition xl:px-4">
+                            {{ __('Ports') }}
                         </a>
 
                         <a href="{{ route('events') }}" class="site-header__chip inline-flex min-h-10 items-center rounded-full px-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-100 transition xl:px-4">

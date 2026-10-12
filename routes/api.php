@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\DiscoverySourceController;
 use App\Http\Controllers\Api\GameListImportController;
+use App\Http\Controllers\Api\PcPortController;
 use App\Http\Middleware\EnsureImportToken;
 use Illuminate\Support\Facades\Route;
 
@@ -18,4 +19,11 @@ Route::prefix('v1/sources')
         Route::get('/', [DiscoverySourceController::class, 'index'])->name('api.sources.index');
         Route::post('propose', [DiscoverySourceController::class, 'propose'])->name('api.sources.propose');
         Route::post('run-report', [DiscoverySourceController::class, 'runReport'])->name('api.sources.run-report');
+    });
+
+Route::prefix('v1/ports')
+    ->middleware(EnsureImportToken::class)
+    ->group(function () {
+        Route::get('/', [PcPortController::class, 'index'])->name('api.ports.index');
+        Route::post('sync', [PcPortController::class, 'sync'])->name('api.ports.sync');
     });
