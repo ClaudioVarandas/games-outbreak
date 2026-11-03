@@ -1,6 +1,8 @@
 <?php
 
 use App\Actions\News\PublishNewsArticle;
+use App\Enums\GlobalFeatureEnum;
+use App\Enums\NewsVisibilityEnum;
 use App\Jobs\Broadcasts\BroadcastNewsArticleJob;
 use App\Models\NewsArticle;
 use App\Models\User;
@@ -10,7 +12,7 @@ use Illuminate\Support\Facades\Bus;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config(['features.news' => true]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Public->value);
     Bus::fake();
 });
 

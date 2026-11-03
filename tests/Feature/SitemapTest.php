@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\GlobalFeatureEnum;
+use App\Enums\NewsVisibilityEnum;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Models\NewsArticle;
@@ -9,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config(['features.news' => true]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Public->value);
 });
 
 function sitemapLocs(string $xml): array
@@ -71,7 +73,7 @@ it('lists published news in every locale with hreflang alternates', function () 
 });
 
 it('leaves news out entirely when the feature is not public', function () {
-    config(['features.news' => 'admin']);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::AdminOnly->value);
     NewsArticle::factory()->published()->create();
 
     expect(sitemapLocs($this->get(route('sitemap'))->getContent()))->not->toContain(route('sitemaps.news'))

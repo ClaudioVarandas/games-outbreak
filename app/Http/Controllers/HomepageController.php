@@ -158,7 +158,7 @@ class HomepageController extends Controller
         $latestAddedGames = $this->getLatestAddedGames();
         $platformEnums = PlatformEnum::getActivePlatforms();
         $eventBanners = $this->getEventBanners();
-        $newsEnabled = EnsureNewsFeatureEnabled::isVisibleTo(auth()->user());
+        $newsEnabled = EnsureNewsFeatureEnabled::homepageBlockIsVisibleTo(auth()->user());
 
         $newsLocale = $this->resolveNewsLocale($request);
 

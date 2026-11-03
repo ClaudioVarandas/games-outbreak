@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Contracts\ContentExtractorInterface;
 use App\Contracts\NewsGenerationServiceInterface;
+use App\Enums\GlobalFeatureEnum;
 use App\Services\AnthropicNewsGenerationService;
 use App\Services\Broadcasts\Channels\MonthlyTelegramChannel;
 use App\Services\Broadcasts\Channels\TelegramChannel;
@@ -67,6 +68,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Feature::define('game_user_actions', fn () => false);
+
+        foreach (GlobalFeatureEnum::cases() as $feature) {
+            Feature::define($feature->value, fn () => $feature->defaultValue());
+        }
 
         $queueLogger = $this->app->make(QueueEventLogger::class);
         Queue::before($queueLogger->processing(...));

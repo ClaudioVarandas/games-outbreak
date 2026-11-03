@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\GlobalFeatureEnum;
 use App\Enums\NewsLocaleEnum;
+use App\Enums\NewsVisibilityEnum;
 use App\Models\Game;
 use App\Models\GameList;
 use App\Models\NewsArticle;
@@ -10,7 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 it('renders the homepage sections with the neon homepage structure', function () {
-    config(['features.news' => false]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Disabled->value);
 
     $response = $this->get(route('homepage'));
 
@@ -25,7 +27,7 @@ it('renders the homepage sections with the neon homepage structure', function ()
 });
 
 it('renders both upcoming releases carousel controls', function () {
-    config(['features.news' => false]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Disabled->value);
 
     Game::factory()->create([
         'first_release_date' => now()->addDays(2),
@@ -39,7 +41,7 @@ it('renders both upcoming releases carousel controls', function () {
 });
 
 it('shows the homepage hero when news is enabled and published news exists', function () {
-    config(['features.news' => true]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Public->value);
 
     $article = NewsArticle::factory()->published()->create([
         'featured_image_url' => 'https://example.com/image.jpg',
@@ -64,7 +66,7 @@ it('shows the homepage hero when news is enabled and published news exists', fun
 });
 
 it('omits the homepage hero when news is enabled but no published articles exist', function () {
-    config(['features.news' => true]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Public->value);
 
     NewsArticle::factory()->count(2)->create();
 
@@ -75,7 +77,7 @@ it('omits the homepage hero when news is enabled but no published articles exist
 });
 
 it('includes games released on the last day of the week at any time of day', function () {
-    config(['features.news' => false]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Disabled->value);
 
     $yearlyList = GameList::factory()->system()->yearly()->active()->create([
         'start_at' => now()->startOfYear(),
@@ -98,7 +100,7 @@ it('includes games released on the last day of the week at any time of day', fun
 });
 
 it('limits this weeks choices to eighteen games', function () {
-    config(['features.news' => false]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Disabled->value);
 
     $yearlyList = GameList::factory()->system()->yearly()->active()->create([
         'start_at' => now()->startOfYear(),
@@ -120,7 +122,7 @@ it('limits this weeks choices to eighteen games', function () {
 });
 
 it('keeps the latest added list capped at twelve games', function () {
-    config(['features.news' => false]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Disabled->value);
 
     Game::factory()->count(15)->create();
 

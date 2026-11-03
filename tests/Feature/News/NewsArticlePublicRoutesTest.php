@@ -1,7 +1,9 @@
 <?php
 
+use App\Enums\GlobalFeatureEnum;
 use App\Enums\NewsArticleStatusEnum;
 use App\Enums\NewsLocaleEnum;
+use App\Enums\NewsVisibilityEnum;
 use App\Models\NewsArticle;
 use App\Models\NewsArticleLocalization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -9,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config(['features.news' => true]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Public->value);
 });
 
 // ============================================================

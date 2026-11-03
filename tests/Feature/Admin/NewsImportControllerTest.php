@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\GlobalFeatureEnum;
+use App\Enums\NewsVisibilityEnum;
 use App\Jobs\News\ImportNewsUrlJob;
 use App\Models\NewsImport;
 use App\Models\User;
@@ -9,7 +11,7 @@ use Illuminate\Support\Facades\Queue;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config(['features.news' => true]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Public->value);
     Queue::fake();
 });
 

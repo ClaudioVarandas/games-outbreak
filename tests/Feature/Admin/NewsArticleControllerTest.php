@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\GlobalFeatureEnum;
 use App\Enums\NewsArticleStatusEnum;
+use App\Enums\NewsVisibilityEnum;
 use App\Models\NewsArticle;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -8,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config(['features.news' => true]);
+    GlobalFeatureEnum::News->set(NewsVisibilityEnum::Public->value);
 });
 
 it('admin can view articles list', function () {
