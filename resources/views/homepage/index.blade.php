@@ -12,15 +12,15 @@
             @endif
 
             <main class="neon-section pb-4">
+                <x-homepage.latest-videos
+                    :featured="$featuredVideo"
+                    :videos="$latestVideos" />
+
                 <x-homepage.this-week-choices
                     :games="$thisWeekGames"
                     :platformEnums="$platformEnums"
                     :currentYear="$currentYear"
                     :currentMonth="$currentMonth" />
-
-                <x-homepage.latest-videos
-                    :featured="$featuredVideo"
-                    :videos="$latestVideos" />
 
                 <x-homepage.events-grid :banners="$eventBanners" />
 

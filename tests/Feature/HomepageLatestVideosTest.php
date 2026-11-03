@@ -23,20 +23,12 @@ it('hides the section entirely when no videos are ready', function () {
         ->assertDontSee('Latest Game Videos');
 });
 
-it('places the section between This Week\'s Choices and Events', function () {
-    Video::factory()->ready()->create(['title' => 'Between Marker']);
+it('places the section before This Week\'s Choices and Events', function () {
+    Video::factory()->ready()->create(['title' => 'Order Marker']);
 
-    $html = $this->get('/')->assertOk()->getContent();
-
-    $thisWeekPos = strpos($html, "This Week's Choices");
-    $videosPos = strpos($html, 'Latest Game Videos');
-    $eventsPos = strpos($html, 'data-events-grid');
-
-    if ($thisWeekPos === false) {
-        $thisWeekPos = strpos($html, 'this-week-choices');
-    }
-
-    expect($videosPos)->toBeGreaterThan($thisWeekPos ?: 0);
+    $this->get('/')
+        ->assertOk()
+        ->assertSeeTextInOrder(['Latest Game Videos', "This Week's Choices", 'Events']);
 });
 
 it('renders the category badge and days-ago meta on the homepage', function () {
