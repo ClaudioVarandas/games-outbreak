@@ -105,8 +105,6 @@ class GameListRefreshService
                     }
                 }
 
-                $logoImageId = $this->igdb->resolveSteamGridDbImage($game->logo_image_id, $gameName, 'logo', $steamAppId, $igdbGameId);
-
                 $game->update([
                     'name' => $gameName,
                     'summary' => $igdbGame['summary'] ?? null,
@@ -115,7 +113,6 @@ class GameListRefreshService
                         : null,
                     'cover_image_id' => $coverImageId,
                     'hero_image_id' => $heroImageId,
-                    'logo_image_id' => $logoImageId,
                     'game_type' => $igdbGame['game_type'] ?? 0,
                     'raw_igdb_json' => $rawIgdbResponse,
                     'similar_games' => $igdbGame['similar_games'] ?? null,

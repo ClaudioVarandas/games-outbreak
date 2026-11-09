@@ -279,9 +279,6 @@ class UserListController extends Controller
                         // For hero: Use IGDB cover if available
                         $heroImageId = $igdbGame['cover']['image_id'] ?? null;
 
-                        // Logo will be fetched asynchronously (always null initially)
-                        $logoImageId = null;
-
                         // Determine which images need to be fetched from SteamGridDB
                         $imagesToFetch = [];
                         if (! $coverImageId) {
@@ -290,8 +287,6 @@ class UserListController extends Controller
                         if (! $heroImageId) {
                             $imagesToFetch[] = 'hero';
                         }
-                        // Logo is always fetched (not provided by IGDB)
-                        $imagesToFetch[] = 'logo';
 
                         // Create game in database
                         $game = Game::create([
@@ -303,7 +298,6 @@ class UserListController extends Controller
                                 : null,
                             'cover_image_id' => $coverImageId,
                             'hero_image_id' => $heroImageId,
-                            'logo_image_id' => $logoImageId,
                             'game_type' => $igdbGame['game_type'] ?? 0,
                             'steam_data' => $igdbGame['steam'] ?? null,
                             'screenshots' => $igdbGame['screenshots'] ?? null,

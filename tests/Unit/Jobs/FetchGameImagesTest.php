@@ -19,7 +19,6 @@ class FetchGameImagesTest extends TestCase
         $game = Game::factory()->create([
             'cover_image_id' => null,
             'hero_image_id' => null,
-            'logo_image_id' => null,
         ]);
 
         Http::fake([
@@ -46,7 +45,7 @@ class FetchGameImagesTest extends TestCase
             $game->name,
             123456,
             $game->igdb_id,
-            ['cover', 'hero', 'logo']
+            ['cover', 'hero']
         );
 
         $job->handle(app(IgdbService::class));
@@ -54,9 +53,8 @@ class FetchGameImagesTest extends TestCase
         $game->refresh();
         // At least one image should be fetched
         $this->assertTrue(
-            !empty($game->cover_image_id) ||
-            !empty($game->hero_image_id) ||
-            !empty($game->logo_image_id)
+            ! empty($game->cover_image_id) ||
+            ! empty($game->hero_image_id)
         );
     }
 
@@ -83,7 +81,6 @@ class FetchGameImagesTest extends TestCase
         $game = Game::factory()->create([
             'cover_image_id' => 'existing_cover.jpg',
             'hero_image_id' => null,
-            'logo_image_id' => null,
         ]);
 
         Http::fake([
@@ -110,7 +107,7 @@ class FetchGameImagesTest extends TestCase
             $game->name,
             123456,
             $game->igdb_id,
-            ['cover', 'hero', 'logo']
+            ['cover', 'hero']
         );
 
         $job->handle(app(IgdbService::class));
@@ -125,7 +122,6 @@ class FetchGameImagesTest extends TestCase
         $game = Game::factory()->create([
             'cover_image_id' => null,
             'hero_image_id' => null,
-            'logo_image_id' => null,
         ]);
 
         Http::fake([
@@ -153,7 +149,6 @@ class FetchGameImagesTest extends TestCase
         $game = Game::factory()->create([
             'cover_image_id' => null,
             'hero_image_id' => null,
-            'logo_image_id' => null,
         ]);
 
         Http::fake([

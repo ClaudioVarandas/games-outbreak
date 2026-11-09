@@ -239,16 +239,6 @@ class Game extends Model
         return $this->getPlaceholderUrl();
     }
 
-    public function getLogoImageUrl(): string
-    {
-        // If logo_image_id exists, use it
-        if ($this->logo_image_id) {
-            return $this->getImageUrl($this->logo_image_id, 'logo_med');
-        }
-
-        return $this->getPlaceholderUrl();
-    }
-
     public function getScreenshotUrl(?string $imageId, string $size = 'screenshot_big'): string
     {
         if (! $imageId) {
@@ -605,9 +595,6 @@ class Game extends Model
             // For hero: Use IGDB cover if available
             $heroImageId = $igdbGame['cover']['image_id'] ?? null;
 
-            // Logo will be fetched asynchronously (always null initially)
-            $logoImageId = null;
-
             // Determine which images need to be fetched from SteamGridDB
             $imagesToFetch = [];
             if (! $coverImageId) {
@@ -616,8 +603,6 @@ class Game extends Model
             if (! $heroImageId) {
                 $imagesToFetch[] = 'hero';
             }
-            // Logo is always fetched (not provided by IGDB)
-            $imagesToFetch[] = 'logo';
 
             // Create game in database
             $game = self::create([
@@ -629,7 +614,6 @@ class Game extends Model
                     : null,
                 'cover_image_id' => $coverImageId,
                 'hero_image_id' => $heroImageId,
-                'logo_image_id' => $logoImageId,
                 'game_type' => $igdbGame['game_type'] ?? 0,
                 'igdb_aggregated_rating' => isset($igdbGame['aggregated_rating'])
                     ? (int) round($igdbGame['aggregated_rating'])

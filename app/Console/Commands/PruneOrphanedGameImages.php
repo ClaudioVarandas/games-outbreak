@@ -16,7 +16,7 @@ class PruneOrphanedGameImages extends Command
 
     protected $description = 'Delete downloaded SteamGridDB images that no record references';
 
-    private const GAME_IMAGE_COLUMNS = ['cover_image_id', 'hero_image_id', 'logo_image_id'];
+    private const GAME_IMAGE_COLUMNS = ['cover_image_id', 'hero_image_id'];
 
     // None of these are written with covers/ paths today. They are checked so a
     // manually entered path cannot lose its file.

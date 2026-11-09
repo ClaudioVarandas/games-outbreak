@@ -26,7 +26,6 @@ class GameFactory extends Factory
             'first_release_date' => fake()->dateTimeBetween('-1 year', '+1 year'),
             'cover_image_id' => 'co'.fake()->lexify('????'),
             'hero_image_id' => null,
-            'logo_image_id' => null,
             'game_type' => 0,
             'steam_data' => null,
             'screenshots' => null,

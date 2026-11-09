@@ -598,7 +598,7 @@ class IgdbService
      * Fetch game image from SteamGridDB when IGDB doesn't provide one
      *
      * @param  string  $gameName  The game name to search for
-     * @param  string  $type  Image type: 'cover', 'hero', or 'logo'
+     * @param  string  $type  Image type: 'cover' or 'hero'
      * @param  int|null  $steamAppId  Optional Steam AppID for better matching
      * @param  int|null  $igdbId  Optional IGDB ID for filename
      * @return string|null Filename of downloaded image, or null if failed
@@ -661,7 +661,7 @@ class IgdbService
     /**
      * Search SteamGridDB by title and pick the best grid URL for the requested image type.
      *
-     * @param  string  $type  Image type: 'cover', 'hero', or 'logo'
+     * @param  string  $type  Image type: 'cover' or 'hero'
      */
     public function findSteamGridDbImageUrl(string $gameName, string $type = 'cover', ?int $steamAppId = null): ?string
     {
@@ -730,7 +730,6 @@ class IgdbService
         // Select grid based on requested type
         $selectedGrid = match ($type) {
             'hero' => $this->selectHeroGrid($grids),
-            'logo' => $this->selectLogoGrid($grids),
             'cover' => $this->selectCoverGrid($grids),
             default => $grids[0] ?? null,
         };
@@ -769,21 +768,6 @@ class IgdbService
 
         foreach ($grids as $grid) {
             if (isset($grid['style']) && $grid['style'] === 'alternate') {
-                return $grid;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Select logo grid from SteamGridDB grids
-     */
-    private function selectLogoGrid(array $grids): ?array
-    {
-        // Prefer 'logo' style
-        foreach ($grids as $grid) {
-            if (isset($grid['style']) && $grid['style'] === 'logo') {
                 return $grid;
             }
         }

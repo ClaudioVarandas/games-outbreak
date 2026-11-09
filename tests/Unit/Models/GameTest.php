@@ -4,9 +4,11 @@ namespace Tests\Unit\Models;
 
 use App\Enums\GameTypeEnum;
 use App\Models\Game;
-use App\Models\Genre;
 use App\Models\GameMode;
+use App\Models\GameReleaseDate;
+use App\Models\Genre;
 use App\Models\Platform;
+use App\Models\ReleaseDateStatus;
 use App\Services\IgdbService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -73,28 +75,6 @@ class GameTest extends TestCase
         $url = $game->getHeroImageUrl();
 
         $this->assertStringContainsString('co123', $url);
-    }
-
-    public function test_get_logo_image_url_returns_logo_when_exists(): void
-    {
-        $game = Game::factory()->create([
-            'logo_image_id' => 'logo123',
-        ]);
-
-        $url = $game->getLogoImageUrl();
-
-        $this->assertStringContainsString('logo123', $url);
-    }
-
-    public function test_get_logo_image_url_returns_placeholder_when_no_logo(): void
-    {
-        $game = Game::factory()->create([
-            'logo_image_id' => null,
-        ]);
-
-        $url = $game->getLogoImageUrl();
-
-        $this->assertStringContainsString('placeholder', $url);
     }
 
     public function test_get_game_type_enum_returns_correct_enum(): void
@@ -210,7 +190,7 @@ class GameTest extends TestCase
         $platform = Platform::factory()->create(['igdb_id' => 6]);
 
         // Create initial release date
-        \App\Models\GameReleaseDate::create([
+        GameReleaseDate::create([
             'game_id' => $game->id,
             'platform_id' => $platform->id,
             'date' => now(),
@@ -228,7 +208,7 @@ class GameTest extends TestCase
         $platform = Platform::factory()->create(['igdb_id' => 6]);
 
         // Create manual release date
-        \App\Models\GameReleaseDate::create([
+        GameReleaseDate::create([
             'game_id' => $game->id,
             'platform_id' => $platform->id,
             'date' => now(),
@@ -276,8 +256,8 @@ class GameTest extends TestCase
     {
         $game = Game::factory()->create();
         $platform = Platform::factory()->create(['igdb_id' => 6]);
-        $status1 = \App\Models\ReleaseDateStatus::factory()->create(['igdb_id' => 1, 'name' => 'TBA']);
-        $status2 = \App\Models\ReleaseDateStatus::factory()->create(['igdb_id' => 2, 'name' => 'Released']);
+        $status1 = ReleaseDateStatus::factory()->create(['igdb_id' => 1, 'name' => 'TBA']);
+        $status2 = ReleaseDateStatus::factory()->create(['igdb_id' => 2, 'name' => 'Released']);
 
         // Initial sync with status TBA
         $igdbReleaseDates = [

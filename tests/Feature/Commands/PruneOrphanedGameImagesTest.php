@@ -28,7 +28,7 @@ afterEach(function () {
 });
 
 it('reports orphans without deleting them by default', function () {
-    Game::factory()->create(['logo_image_id' => '100_1700000001.png']);
+    Game::factory()->create(['hero_image_id' => '100_1700000001.png']);
     $orphan = ($this->createCover)('100_1700000000.png');
     ($this->createCover)('100_1700000001.png');
 
@@ -41,7 +41,7 @@ it('reports orphans without deleting them by default', function () {
 });
 
 it('lets --dry-run win over --force and names the files', function () {
-    Game::factory()->create(['logo_image_id' => '100_1700000001.png']);
+    Game::factory()->create(['hero_image_id' => '100_1700000001.png']);
     $orphan = ($this->createCover)('100_1700000000.png');
 
     $this->artisan('images:prune-orphans --dry-run --force')
@@ -53,7 +53,7 @@ it('lets --dry-run win over --force and names the files', function () {
 });
 
 it('limits the dry run listing to a sample', function () {
-    Game::factory()->create(['logo_image_id' => '100_1700000001.png']);
+    Game::factory()->create(['hero_image_id' => '100_1700000001.png']);
     foreach (range(1, 25) as $number) {
         ($this->createCover)("200_17000000{$number}.png");
     }
@@ -67,23 +67,20 @@ it('deletes only unreferenced files when forced', function () {
     Game::factory()->create([
         'cover_image_id' => '100_1700000001.jpg',
         'hero_image_id' => '100_1700000002.png',
-        'logo_image_id' => '100_1700000003.png',
     ]);
     $orphan = ($this->createCover)('100_1700000000.png');
     $cover = ($this->createCover)('100_1700000001.jpg');
     $hero = ($this->createCover)('100_1700000002.png');
-    $logo = ($this->createCover)('100_1700000003.png');
 
     $this->artisan('images:prune-orphans --force')->assertSuccessful();
 
     expect(File::exists($orphan))->toBeFalse()
         ->and(File::exists($cover))->toBeTrue()
-        ->and(File::exists($hero))->toBeTrue()
-        ->and(File::exists($logo))->toBeTrue();
+        ->and(File::exists($hero))->toBeTrue();
 });
 
 it('keeps files referenced by a path in another table', function () {
-    Game::factory()->create(['logo_image_id' => '100_1700000001.png']);
+    Game::factory()->create(['hero_image_id' => '100_1700000001.png']);
     GameList::factory()->create(['og_image_path' => 'covers/200_1700000000.png']);
     $file = ($this->createCover)('200_1700000000.png');
 
@@ -93,7 +90,7 @@ it('keeps files referenced by a path in another table', function () {
 });
 
 it('keeps recent files and files with an unexpected name', function () {
-    Game::factory()->create(['logo_image_id' => '100_1700000001.png']);
+    Game::factory()->create(['hero_image_id' => '100_1700000001.png']);
     $recent = ($this->createCover)('100_1700000000.png', 1);
     $unexpected = ($this->createCover)('manual-upload.png');
 

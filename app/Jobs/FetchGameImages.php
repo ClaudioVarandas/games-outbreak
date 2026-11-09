@@ -22,7 +22,7 @@ class FetchGameImages implements ShouldQueue
         public string $gameName,
         public ?int $steamAppId = null,
         public ?int $igdbId = null,
-        public array $imageTypes = ['cover', 'hero', 'logo']
+        public array $imageTypes = ['cover', 'hero']
     ) {}
 
     /**
@@ -54,7 +54,6 @@ class FetchGameImages implements ShouldQueue
             $imageField = match ($type) {
                 'cover' => 'cover_image_id',
                 'hero' => 'hero_image_id',
-                'logo' => 'logo_image_id',
                 default => null,
             };
 

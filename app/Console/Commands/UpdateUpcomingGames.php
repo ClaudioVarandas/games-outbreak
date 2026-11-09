@@ -199,9 +199,6 @@ class UpdateUpcomingGames extends Command
                 }
             }
 
-            // For logo: Fetch from SteamGridDB
-            $logoImageId = $igdb->resolveSteamGridDbImage($existingGame?->logo_image_id, $gameName, 'logo', $steamAppId, $igdbGameId);
-
             $game = Game::updateOrCreate(
                 ['igdb_id' => $igdbGame['id']],
                 [
@@ -212,7 +209,6 @@ class UpdateUpcomingGames extends Command
                         : null,
                     'cover_image_id' => $coverImageId,
                     'hero_image_id' => $heroImageId,
-                    'logo_image_id' => $logoImageId,
                     'game_type' => $igdbGame['game_type'] ?? 0,
                     'raw_igdb_json' => $gameRawJson,
                     'steam_data' => $igdbGame['steam'] ?? null,
