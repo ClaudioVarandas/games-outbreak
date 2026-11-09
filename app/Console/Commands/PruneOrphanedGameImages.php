@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
+use FilesystemIterator;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Symfony\Component\Finder\SplFileInfo;
 
 class PruneOrphanedGameImages extends Command
 {
@@ -49,31 +49,44 @@ class PruneOrphanedGameImages extends Command
         }
 
         $referenced = $this->referencedFilenames();
-        $files = File::files($directory);
+        $cutoff = now()->subDays($minAgeDays)->getTimestamp();
+        $scanned = 0;
+        $orphans = [];
+        $orphanBytes = 0;
 
-        if ($files !== [] && $referenced === []) {
+        // Production holds tens of thousands of files: File::files() keeps a
+        // Finder object for each one and runs out of memory.
+        foreach (new FilesystemIterator($directory, FilesystemIterator::SKIP_DOTS) as $file) {
+            if (! $file->isFile()) {
+                continue;
+            }
+
+            $scanned++;
+
+            if (preg_match(self::GENERATED_FILENAME, $file->getFilename()) === 1
+                && $file->getMTime() < $cutoff
+                && ! isset($referenced[$file->getFilename()])) {
+                $orphans[] = $file->getFilename();
+                $orphanBytes += $file->getSize();
+            }
+        }
+
+        if ($scanned > 0 && $referenced === []) {
             $this->error('No image references found in the database. Refusing to continue.');
 
             return self::FAILURE;
         }
 
-        $cutoff = now()->subDays($minAgeDays)->getTimestamp();
-        $orphans = array_filter($files, fn (SplFileInfo $file): bool => preg_match(self::GENERATED_FILENAME, $file->getFilename()) === 1
-            && $file->getMTime() < $cutoff
-            && ! isset($referenced[$file->getFilename()]));
-
-        $orphanBytes = array_sum(array_map(fn (SplFileInfo $file): int => $file->getSize(), $orphans));
-
         $this->info(sprintf(
             'Scanned %d files. Orphaned: %d (%s GB).',
-            count($files),
+            $scanned,
             count($orphans),
             number_format($orphanBytes / 1_000_000_000, 2),
         ));
 
         if ($this->option('dry-run') || ! $this->option('force')) {
             foreach (array_slice($orphans, 0, self::DRY_RUN_SAMPLE_SIZE) as $orphan) {
-                $this->line($orphan->getFilename());
+                $this->line($orphan);
             }
 
             if (count($orphans) > self::DRY_RUN_SAMPLE_SIZE) {
@@ -87,7 +100,7 @@ class PruneOrphanedGameImages extends Command
 
         $failed = 0;
         foreach ($orphans as $orphan) {
-            if (! File::delete($orphan->getPathname())) {
+            if (! File::delete($directory.'/'.$orphan)) {
                 $failed++;
             }
         }
