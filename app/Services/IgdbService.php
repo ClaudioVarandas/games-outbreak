@@ -646,6 +646,19 @@ class IgdbService
     }
 
     /**
+     * Every download gets a new filename, so downloading an image a game already has
+     * orphans the previous file. A failed download keeps the current value.
+     */
+    public function resolveSteamGridDbImage(?string $currentFilename, string $gameName, string $type, ?int $steamAppId = null, ?int $igdbId = null): ?string
+    {
+        if ($currentFilename && File::exists(storage_path('app/public/covers/'.$currentFilename))) {
+            return $currentFilename;
+        }
+
+        return $this->fetchImageFromSteamGridDb($gameName, $type, $steamAppId, $igdbId) ?: $currentFilename;
+    }
+
+    /**
      * Search SteamGridDB by title and pick the best grid URL for the requested image type.
      *
      * @param  string  $type  Image type: 'cover', 'hero', or 'logo'

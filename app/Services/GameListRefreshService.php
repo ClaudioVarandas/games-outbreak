@@ -91,7 +91,7 @@ class GameListRefreshService
 
                 $coverImageId = $igdbGame['cover']['image_id'] ?? null;
                 if (! $coverImageId) {
-                    $steamGridDbCover = $this->igdb->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
+                    $steamGridDbCover = $this->igdb->resolveSteamGridDbImage($game->cover_image_id, $gameName, 'cover', $steamAppId, $igdbGameId);
                     if ($steamGridDbCover) {
                         $coverImageId = $steamGridDbCover;
                     }
@@ -99,13 +99,13 @@ class GameListRefreshService
 
                 $heroImageId = $igdbGame['cover']['image_id'] ?? null;
                 if (! $heroImageId) {
-                    $steamGridDbHero = $this->igdb->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
+                    $steamGridDbHero = $this->igdb->resolveSteamGridDbImage($game->hero_image_id, $gameName, 'hero', $steamAppId, $igdbGameId);
                     if ($steamGridDbHero) {
                         $heroImageId = $steamGridDbHero;
                     }
                 }
 
-                $logoImageId = $this->igdb->fetchImageFromSteamGridDb($gameName, 'logo', $steamAppId, $igdbGameId);
+                $logoImageId = $this->igdb->resolveSteamGridDbImage($game->logo_image_id, $gameName, 'logo', $steamAppId, $igdbGameId);
 
                 $game->update([
                     'name' => $gameName,

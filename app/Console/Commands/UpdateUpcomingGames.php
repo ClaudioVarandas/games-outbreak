@@ -172,6 +172,7 @@ class UpdateUpcomingGames extends Command
             $gameName = $igdbGame['name'] ?? 'Unknown Game';
             $steamAppId = $igdbGame['steam']['appid'] ?? null;
             $igdbGameId = $igdbGame['id'] ?? null;
+            $existingGame = Game::where('igdb_id', $igdbGame['id'])->first();
 
             // Store IGDB cover.image_id in cover_image_id
             $coverImageId = $igdbGame['cover']['image_id'] ?? null;
@@ -179,7 +180,7 @@ class UpdateUpcomingGames extends Command
             // If IGDB didn't provide a cover, try SteamGridDB
             if (! $coverImageId) {
                 $this->line("No IGDB cover for {$gameName}, trying SteamGridDB...");
-                $steamGridDbCover = $igdb->fetchImageFromSteamGridDb($gameName, 'cover', $steamAppId, $igdbGameId);
+                $steamGridDbCover = $igdb->resolveSteamGridDbImage($existingGame?->cover_image_id, $gameName, 'cover', $steamAppId, $igdbGameId);
 
                 if ($steamGridDbCover) {
                     $coverImageId = $steamGridDbCover;
@@ -192,14 +193,14 @@ class UpdateUpcomingGames extends Command
             // For hero: Use IGDB cover if available, else fetch from SteamGridDB
             $heroImageId = $igdbGame['cover']['image_id'] ?? null;
             if (! $heroImageId) {
-                $steamGridDbHero = $igdb->fetchImageFromSteamGridDb($gameName, 'hero', $steamAppId, $igdbGameId);
+                $steamGridDbHero = $igdb->resolveSteamGridDbImage($existingGame?->hero_image_id, $gameName, 'hero', $steamAppId, $igdbGameId);
                 if ($steamGridDbHero) {
                     $heroImageId = $steamGridDbHero;
                 }
             }
 
             // For logo: Fetch from SteamGridDB
-            $logoImageId = $igdb->fetchImageFromSteamGridDb($gameName, 'logo', $steamAppId, $igdbGameId);
+            $logoImageId = $igdb->resolveSteamGridDbImage($existingGame?->logo_image_id, $gameName, 'logo', $steamAppId, $igdbGameId);
 
             $game = Game::updateOrCreate(
                 ['igdb_id' => $igdbGame['id']],
